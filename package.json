@@ -1,0 +1,17 @@
+{
+  "name": "test_ggw",
+  "version": "1.0.0",
+  "description": "",
+  "main": "elm.js",
+  "scripts": {
+    "start": "parcel serve index.html"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@parcel/transformer-elm": "^2.0.0",
+    "elm": "^0.19.1-5",
+    "elm-live": "^4.0.2",
+    "parcel": "^2.0.0"
+  }
+}
