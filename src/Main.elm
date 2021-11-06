@@ -1,8 +1,8 @@
 module Main exposing (..)
 
-import Array exposing (Array, append, length)
+import Array exposing (Array)
 import Browser
-import Color exposing (Color)
+import Color
 import Debug exposing (toString)
 import Element exposing (..)
 import Element.Background as Background
@@ -10,16 +10,14 @@ import Element.Border as Border exposing (rounded)
 import Element.Font as Font
 import Element.Input as Input exposing (OptionState(..))
 import Element.Region
-import Html exposing (Html, div, label)
+import Html exposing (Html, label)
 import Html.Attributes exposing (style)
 import List
 import Path
 import Shape exposing (defaultPieConfig)
-import String exposing (toInt)
 import TypedSvg exposing (g, svg, text_)
-import TypedSvg.Attributes exposing (dy, fill, stroke, textAnchor, transform, viewBox)
-import TypedSvg.Attributes.InPx exposing (height, width)
-import TypedSvg.Core exposing (Svg, text)
+import TypedSvg.Attributes exposing (dy, stroke, textAnchor, transform, viewBox)
+import TypedSvg.Core exposing (Svg)
 import TypedSvg.Types exposing (AnchorAlignment(..), Paint(..), Transform(..), em)
 import Browser.Dom exposing (Error(..))
 
@@ -324,28 +322,9 @@ downloadButtonBar : Element msg
 downloadButtonBar =
     row
         [ centerX
-        , spacing 10
+        , spacing 150
         ]
         [ Input.button
-            [ padding 10
-            , Border.width 3
-            , Border.rounded 6
-            , Border.color color.blue
-            , Border.color color.blue
-            , Background.color color.white
-            , mouseDown
-                [ Background.color color.blue
-                , Font.color color.white
-                ]
-            , mouseOver
-                [ Background.color color.lightBlue
-                , Border.color color.lightGrey
-                ]
-            ]
-            { onPress = Nothing
-            , label = Element.text "Download GenBank"
-            }
-        , Input.button
             [ padding 10
             , Border.width 3
             , Border.rounded 6
