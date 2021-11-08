@@ -5,6 +5,7 @@ import Browser
 import Browser.Dom exposing (Error(..))
 import Color
 import Debug exposing (toString)
+import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border exposing (rounded)
@@ -15,8 +16,10 @@ import Html exposing (Html, label)
 import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
 import List
+import List.Extra
 import Path
 import Shape exposing (defaultPieConfig)
+import Svg.Attributes exposing (mode)
 import TypedSvg exposing (g, svg, text_)
 import TypedSvg.Attributes exposing (dy, stroke, textAnchor, transform, viewBox)
 import TypedSvg.Core exposing (Svg)
@@ -60,6 +63,36 @@ overhangList6 =
     , F__G
     ]
 
+-- insertList3 : List Insert
+-- insertList3 = 
+--     [ {overhang = A__B, name = "", length = 0, mPG0Number = ""}
+--     , {overhang = B__C, name = "", length = 0, mPG0Number = ""}
+--     , {overhang = C__G, name = "", length = 0, mPG0Number = ""}
+--     ]
+
+-- insertList4 = 
+--     [ {overhang = A__B, name = "", length = 0, mPG0Number = ""}
+--     , {overhang = B__C, name = "", length = 0, mPG0Number = ""}
+--     , {overhang = C__D, name = "", length = 0, mPG0Number = ""}
+--     , {overhang = D__G, name = "", length = 0, mPG0Number = ""}
+--     ]
+
+-- insertList5 = 
+--     [ {overhang = A__B, name = "", length = 0, mPG0Number = ""}
+--     , {overhang = B__C, name = "", length = 0, mPG0Number = ""}
+--     , {overhang = C__D, name = "", length = 0, mPG0Number = ""}
+--     , {overhang = D__E, name = "", length = 0, mPG0Number = ""}
+--     , {overhang = E__G, name = "", length = 0, mPG0Number = ""}
+--     ]
+    
+-- insertList6 = 
+--     [ {overhang = A__B, name = "", length = 0, mPG0Number = ""}
+--     , {overhang = B__C, name = "", length = 0, mPG0Number = ""}
+--     , {overhang = C__D, name = "", length = 0, mPG0Number = ""}
+--     , {overhang = D__E, name = "", length = 0, mPG0Number = ""}
+--     , {overhang = E__F, name = "", length = 0, mPG0Number = ""}
+--     , {overhang = E__G, name = "", length = 0, mPG0Number = ""}
+--     ]
 
 type alias Model =
     { currApp : Application
@@ -84,13 +117,7 @@ type alias Insert =
 
 testInsertList : List Insert
 testInsertList =
-    [ { name = "Insert 1", mPG0Number = "MPG-G0-000001", overhang = A__B, length = 501 }
-    , { name = "Insert 2", mPG0Number = "MPG-G0-000007", overhang = B__C, length = 402 }
-    , { name = "Insert 3", mPG0Number = "MPG-G0-000002", overhang = C__D, length = 303 }
-    , { name = "Insert 4", mPG0Number = "MPG-G0-000006", overhang = D__E, length = 404 }
-    , { name = "Insert 5", mPG0Number = "MPG-G0-000003", overhang = E__F, length = 505 }
-    , { name = "Insert 6", mPG0Number = "MPG-G0-000005", overhang = F__G, length = 606 }
-    ]
+    []
 
 
 type alias Backbone =
@@ -99,10 +126,10 @@ type alias Backbone =
 
 testBackbone : Backbone
 testBackbone =
-    { name = "Current Backbone"
-    , mPGBNumber = "MPG-B-000035"
-    , level = 1
-    , length = 5624
+    { name = ""
+    , mPGBNumber = ""
+    , level = 0
+    , length = 0
     }
 
 
@@ -119,7 +146,7 @@ init =
       , overhangShape = overhangList6
       , constructName = "Demo Construct"
       , constructNumber = "MP-G1-000000001"
-      , constructLength = 20000
+      , constructLength = 0
       , applicationNote = "Some Application: words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words"
       , designerName = "Guy, Smart"
       , description = "Some Description: words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words"
@@ -171,10 +198,7 @@ type Msg
     | ResetInsertList
     | ResetBackbone
 
-
-
 -- view
-
 
 view : Model -> Html Msg
 view model =
@@ -188,12 +212,19 @@ view model =
             [ navLinks
             , column [ spacing 25, Element.width Element.fill, centerX, padding 50 ]
                 [ el
-                    [ Element.Region.heading 1
+                    [ Element.Region.heading 2
                     , Font.size 50
                     , Font.color color.darkCharcoal
                     ]
                   <|
                     Element.text "Level 1 construct design"
+                ,el
+                    [ Element.Region.heading 1
+                    , Font.size 25
+                    , Font.color color.darkCharcoal
+                    ]
+                  <|
+                    Element.text "Construct information"
                 , Input.text []
                     { onChange = ChangeConstructName
                     , label = Input.labelLeft [] <| Element.text "Construct name: "
@@ -230,11 +261,32 @@ view model =
                     , spellcheck = True
                     , placeholder = Nothing
                     }
+                , el
+                    [ Element.Region.heading 2
+                    , Font.size 25
+                    , Font.color color.darkCharcoal
+                    ]
+                  <|
+                    Element.text "Destination vector selection"
                 , backboneTable model
+                , el
+                    [ Element.Region.heading 2
+                    , Font.size 25
+                    , Font.color color.darkCharcoal
+                    ]
+                  <|
+                    Element.text "Donor vector selection"
                 , applicationRadioButton model
                 , overhangRadioRow model
                 , insertTable model
                 , downloadButtonBar
+                , el
+                    [ Element.Region.heading 2
+                    , Font.size 25
+                    , Font.color color.darkCharcoal
+                    ]
+                  <|
+                    Element.text "Construct visualisation"
                 , Element.html <| visualRepresentation model
                 ]
             ]
@@ -273,8 +325,8 @@ radius =
 
 
 pieSlice : Int -> Shape.Arc -> Svg msg
-pieSlice index datum =
-    Path.element (Shape.arc datum) [ TypedSvg.Attributes.fill <| Paint <| Maybe.withDefault Color.darkCharcoal <| Array.get index chartColors, stroke <| Paint Color.white ]
+pieSlice index data =
+    Path.element (Shape.arc data) [ TypedSvg.Attributes.fill <| Paint <| Maybe.withDefault Color.darkCharcoal <| Array.get index chartColors, stroke <| Paint Color.white ]
 
 
 pieLabel : Shape.Arc -> ( String, Float ) -> Svg msg
@@ -291,16 +343,71 @@ pieLabel slice ( label, _ ) =
         ]
         [ TypedSvg.Core.text label ]
 
+tupleToRecord : ( String, String, Int ) -> { name : String, overhang : String, length : Int }
+tupleToRecord ( t_name, t_overhang, t_length ) =
+    { name = t_name, overhang = t_overhang, length = t_length }
+
 
 visualRepresentation : Model -> Html Msg
 visualRepresentation model =
     let
         -- Note: The reversing is for making sure insert 1 is at position 0. This way the destination vector is appended on the back of the list!
+        insertOverhangs =
+            List.map showOverhang <| List.map .overhang model.selectedInserts
+
+        insertNames =
+            List.map .name model.selectedInserts
+
+        insertLengths =
+            List.map .length model.selectedInserts
+
+        insertTuple =
+            List.Extra.zip3 insertNames insertOverhangs insertLengths
+
+        insertRecordList =
+            List.map tupleToRecord insertTuple
+
+        sortByWith : (a -> comparable) -> (comparable -> comparable -> Order) -> List a -> List a
+        sortByWith accessor sortFunc list =
+            List.sortWith (orderBy accessor sortFunc) list
+
+        orderBy : (a -> comparable) -> (comparable -> comparable -> Order) -> a -> a -> Order
+        orderBy accessor orderFunc a b =
+            orderFunc (accessor a) (accessor b)
+
+        -- Comparison Funcs
+        ascending : comparable -> comparable -> Order
+        ascending a b =
+            case compare a b of
+                LT ->
+                    LT
+
+                EQ ->
+                    EQ
+
+                GT ->
+                    GT
+
+        descending : comparable -> comparable -> Order
+        descending a b =
+            case compare a b of
+                LT ->
+                    GT
+
+                EQ ->
+                    EQ
+
+                GT ->
+                    LT
+
+        sortedInsertRecordList =
+            sortByWith .overhang ascending insertRecordList
+
         chartLabels =
-            List.reverse (model.selectedBackbone.name :: List.reverse (List.map .name model.selectedInserts))
+            List.reverse (model.selectedBackbone.name :: List.reverse (List.map .name sortedInsertRecordList))
 
         chartLengths =
-            List.reverse (List.map toFloat <| model.selectedBackbone.length :: List.reverse (List.map .length model.selectedInserts))
+            List.reverse (List.map toFloat <| model.selectedBackbone.length :: List.reverse (List.map .length sortedInsertRecordList))
 
         data =
             List.map2 Tuple.pair chartLabels chartLengths
@@ -319,7 +426,7 @@ visualRepresentation model =
             ]
         , Html.div [ style "justify-content" "center", style "align-items" "center", style "display" "flex" ]
             [ Html.button [ onClick ResetInsertList, style "margin-right" "75px", style "padding" "10px", style "background-color" "white", style "border-radius" "6px", style "border" "solid 3px rgb(152, 171, 198)" ] [ Html.text "Reset Insert List" ]
-            , Html.button [ onClick ResetBackbone, style "margin-left" "75px", style "padding" "10px", style "background-color" "white", style "border-radius" "6px", style "border" "solid 3px rgb(152, 171, 198)" ] [ Html.text "Reset Backbone" ]
+            , Html.button [ onClick ResetBackbone, style "margin-left" "75px", style "padding" "10px", style "background-color" "white", style "border-radius" "6px", style "border" "solid 3px rgb(152, 171, 198)" ] [ Html.text "Reset All" ]
             ]
         ]
 
@@ -496,11 +603,11 @@ insertTable model =
         [ row
             [ spacing 20
             , Element.width Element.fill
-            , padding 25
+            , padding 30
             , clipY
             ]
-            [ el ((Element.width <| fillPortion 5) :: headerAttrs) <| Element.text "Insert Name"
-            , el ((Element.width <| fillPortion 3) :: headerAttrs) <| Element.text "MP-G0-Number"
+            [ el ((Element.width <| fillPortion 3) :: headerAttrs) <| Element.text "MP-G0-Number"
+            , el ((Element.width <| fillPortion 5) :: headerAttrs) <| Element.text "Insert Name"
             , el ((Element.width <| fillPortion 1) :: headerAttrs) <| Element.text "Length"
             ]
         , el
@@ -514,19 +621,19 @@ insertTable model =
                 , Element.height <| px 250
                 , scrollbarY
                 , spacing 10
-                , padding 50
+                , padding 25
                 ]
                 { data = insertList model.currOverhang
                 , columns =
                     [ { header = none
+                      , width = fillPortion 3
+                      , view = .mPG0Number >> Element.text >> el [ centerY ]
+                      }
+                    , { header = none
                       , width = fillPortion 5
                       , view =
                             \insert ->
                                 Input.button [ Font.color color.blue, Font.bold, Font.underline ] { onPress = Just (AppendInsert insert), label = Element.text insert.name }
-                      }
-                    , { header = none
-                      , width = fillPortion 3
-                      , view = .mPG0Number >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 1
@@ -540,9 +647,6 @@ insertTable model =
 backboneTable : Model -> Element Msg
 backboneTable model =
     let
-        -- _ =
-        --     Debug.log "Debug says: " overhangList4
-
         headerAttrs =
             [ Font.bold
             , Font.color color.blue
@@ -556,16 +660,16 @@ backboneTable model =
         [ row
             [ spacing 20
             , Element.width Element.fill
-            , padding 25
+            , padding 30
             ]
-            [ el ((Element.width <| fillPortion 5) :: headerAttrs) <| Element.text "Backbone Name"
-            , el ((Element.width <| fillPortion 3) :: headerAttrs) <| Element.text "MP-GB-Number"
+            [ el ((Element.width <| fillPortion 3) :: headerAttrs) <| Element.text "MP-GB-Number"
+            , el ((Element.width <| fillPortion 5) :: headerAttrs) <| Element.text "Backbone Name"
             , el ((Element.width <| fillPortion 1) :: headerAttrs) <| Element.text "Length"
             ]
         , el
             [ Element.width Element.fill
             , Border.width 1
-            , Border.rounded 50
+            , Border.rounded 30
             ]
           <|
             table
@@ -573,19 +677,19 @@ backboneTable model =
                 , Element.height <| px 250
                 , scrollbarY
                 , spacing 10
-                , padding 50
+                , padding 25
                 ]
                 { data = backboneList model.backboneLevel
                 , columns =
                     [ { header = none
+                      , width = fillPortion 3
+                      , view = .mPGBNumber >> Element.text >> el [ centerY ]
+                      }
+                    , { header = none
                       , width = fillPortion 5
                       , view =
                             \backbone ->
                                 Input.button [ Font.color color.blue, Font.bold, Font.underline ] { onPress = Just (ChangeBackbone backbone), label = Element.text backbone.name }
-                      }
-                    , { header = none
-                      , width = fillPortion 3
-                      , view = .mPGBNumber >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 1
@@ -648,16 +752,21 @@ update msg model =
             ( { model | description = newDescription }, Cmd.none )
 
         AppendInsert newInsert ->
-            ( { model | selectedInserts = List.append model.selectedInserts [ newInsert ] }, Cmd.none )
+            if not (List.member newInsert.overhang ( List.map .overhang model.selectedInserts )) then
+                ( { model | selectedInserts = List.append model.selectedInserts [ newInsert ]
+                  , constructLength = List.sum (model.selectedBackbone.length :: newInsert.length :: List.map .length model.selectedInserts) }, Cmd.none )
+            else
+                ( { model | selectedInserts = newInsert :: List.filter(\insert -> not(insert.overhang == newInsert.overhang)) model.selectedInserts
+                , constructLength = List.sum(model.selectedBackbone.length :: List.map .length (newInsert :: List.filter(\insert -> not(insert.overhang == newInsert.overhang)) model.selectedInserts)) } , Cmd.none )
 
         ChangeBackbone newBackbone ->
             ( { model | selectedBackbone = newBackbone }, Cmd.none )
 
         ResetInsertList ->
-            ( { model | selectedInserts = [] }, Cmd.none )
+            ( { model | selectedInserts = []}, Cmd.none )
 
         ResetBackbone ->
-            ( { model | selectedBackbone = { name = "", length = 0, mPGBNumber = "", level = 0 } }, Cmd.none )
+            ( { model | selectedInserts = [], selectedBackbone = { name = "", length = 0, mPGBNumber = "", level = 0 } }, Cmd.none )
 
 
 main : Program () Model Msg
@@ -668,7 +777,11 @@ main =
         , view = view
         , update = update
         }
--- 
+
+
+
+--
+
 
 color : { blue : Element.Color, darkCharcoal : Element.Color, lightBlue : Element.Color, lightGrey : Element.Color, white : Element.Color }
 color =
