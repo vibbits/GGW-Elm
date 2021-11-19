@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  db:
+    image: postgres:13-alpine
+    container_name: ggw-db
+    environment:
+      - POSTGRES_USER=keycloak
+      - POSTGRES_PASSWORD=abcdef
+    ports:
+      - "5432:5432"
+
+  keycloak:
+    image: jboss/keycloak:latest
+    container_name: ggw-keycloak
+    environment:
+      - KEYCLOAK_USER=ggw
+      - KEYCLOAK_PASSWORD=ggw
+      - KEYCLOAK_IMPORT=/tmp/keycloak_ggw.json
+      - DB_VENDOR=postgres
+      - DB_ADDR=db
+      - DB_USER=keycloak
+      - DB_PASSWORD=abcdef
+    volumes:
+      - ./keycloak_ggw.json:/tmp/keycloak_ggw.json
+    ports:
+      - "8080:8080"

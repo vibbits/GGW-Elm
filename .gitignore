@@ -1,4 +1,7 @@
-client/node_modules
-client/elm-stuff
-client/.parcel-cache
-client/dist
+node_modules
+elm-stuff
+.parcel-cache
+dist
+.envrc
+*~
+*.sqlite
