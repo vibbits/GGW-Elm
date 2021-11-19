@@ -100,9 +100,9 @@ async def verify_authorization(
         )
     ) is None:
         # Create a new user in the database
-        user = crud.create_user(database, user=user)
+        db_user = crud.create_user(database, user=user)
 
-    authed_user = schemas.User.from_orm(user)
+    authed_user = schemas.User.from_orm(db_user)
     access_token = oidc.create_access_token(data=authed_user)
 
     return schemas.Token(
