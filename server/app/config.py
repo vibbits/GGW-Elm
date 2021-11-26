@@ -16,5 +16,7 @@ class Settings(BaseSettings):
 
     AUTH_REDIRECT_URI: str
 
+    MAX_TEMP_FILE_SIZE: int = 10 * 1024 * 1024
+
 
 settings = Settings()
