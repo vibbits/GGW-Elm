@@ -32,7 +32,7 @@ def upgrade():
     op.create_index(op.f("ix_users_iss"), "users", ["iss"], unique=False)
     op.create_index(op.f("ix_users_sub"), "users", ["sub"], unique=False)
     with op.batch_alter_table("users", schema=None) as batch_op:
-        batch_op.create_unique_constraint('login_id', ['iss', 'sub'])
+        batch_op.create_unique_constraint("login_id", ["iss", "sub"])
 
     op.create_table(
         "providers",
@@ -54,7 +54,7 @@ def downgrade():
     op.drop_table("providers")
 
     with op.batch_alter_table("users", schema=None) as batch_op:
-        batch_op.drop_constraint('login_id', type_='unique')
+        batch_op.drop_constraint("login_id", type_="unique")
     op.drop_index(op.f("ix_users_sub"), table_name="users")
     op.drop_index(op.f("ix_users_iss"), table_name="users")
     op.drop_index(op.f("ix_users_id"), table_name="users")

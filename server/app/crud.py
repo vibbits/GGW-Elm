@@ -68,3 +68,62 @@ def get_provider_by_id(
         .filter(model.IdentityProvider.id == provider_id)
         .first()
     )
+
+
+# Submitting data
+
+
+def add_vector(database: Session, vector: schemas.Vector):
+    new_vector = model.Vector(
+        name=vector.name,
+        mpg_number=vector.mpg_number,
+        sequence=vector.sequence,
+        sequence_length=vector.sequence_length,
+    )
+    try:
+        database.add(new_vector)
+        database.flush()
+        database.refresh(new_vector)
+
+        database.add_all(
+            [
+                model.Annotation(key=ann.key, value=ann.value,
+                                 vector=new_vector.id)
+                for ann in vector.annotations
+            ]
+        )
+
+        for feat in vector.features:
+            new_feature = model.Feature(
+                type=feat.type,
+                start_pos=feat.start_pos,
+                end_pos=feat.end_pos,
+                strand=feat.strand,
+                vector=new_vector.id,
+            )
+            database.add(new_feature)
+            database.flush()
+            database.refresh(new_feature)
+
+            database.add_all(
+                [
+                    model.Qualifier(
+                        key=qual.key, value=qual.value, feature=new_feature.id)
+                    for qual in feat.qualifiers
+                ]
+            )
+
+        database.add_all(
+            [
+                model.Reference(
+                    authors=ref.authors,
+                    title=ref.title,
+                    vector=new_vector.id,
+                )
+                for ref in vector.references
+            ]
+        )
+    except SQLAlchemyError:
+        database.rollback()
+    else:
+        database.commit()

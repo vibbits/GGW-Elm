@@ -11,7 +11,9 @@ SQLAlchemy = "^1.4.26"
 alembic = "^1.7.4"
 python-jose = {version = "^3.3.0", extras = ["cryptography"]}
 httpx = "^0.20.0"
-fastapi = "^0.68.1"
+fastapi = "^0.70.0"
+biopython = "^1.79"
+python-multipart = "^0.0.5"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
