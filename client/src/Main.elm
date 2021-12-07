@@ -1,10 +1,11 @@
 module Main exposing (..)
 
 import Array exposing (Array, length)
-import Browser
+import Browser exposing (Document, application)
 import Browser.Dom exposing (Error(..))
+import Browser.Navigation as Nav
 import Color
-import Debug exposing (toString)
+import Debug exposing (toString, todo)
 import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Background as Background
@@ -12,9 +13,12 @@ import Element.Border as Border exposing (rounded)
 import Element.Font as Font
 import Element.Input as Input exposing (OptionState(..))
 import Element.Region
-import Html exposing (Html, label)
-import Html.Attributes exposing (style)
+import Html exposing (Html, a, button, div, label, text)
+import Html.Attributes exposing (href, style)
 import Html.Events exposing (onClick)
+import Http exposing (Error(..), expectJson, expectString, jsonBody)
+import Json.Decode as Decode exposing (Decoder)
+import Json.Encode as Encode
 import List
 import List.Extra
 import Path
@@ -24,6 +28,9 @@ import TypedSvg exposing (g, svg, text_)
 import TypedSvg.Attributes exposing (dy, stroke, textAnchor, transform, viewBox)
 import TypedSvg.Core exposing (Svg)
 import TypedSvg.Types exposing (AnchorAlignment(..), Paint(..), Transform(..), em)
+import Url exposing (..)
+import Url.Parser exposing ((</>), Parser, parse, query, s)
+import Url.Parser.Query as Query exposing (map2, string)
 
 
 overhangList3 : List Overhang
@@ -63,36 +70,12 @@ overhangList6 =
     , F__G
     ]
 
--- insertList3 : List Insert
--- insertList3 = 
---     [ {overhang = A__B, name = "", length = 0, mPG0Number = ""}
---     , {overhang = B__C, name = "", length = 0, mPG0Number = ""}
---     , {overhang = C__G, name = "", length = 0, mPG0Number = ""}
---     ]
+type alias User =
+    { id : Int
+    , name : Maybe String
+    , role : String
+    }
 
--- insertList4 = 
---     [ {overhang = A__B, name = "", length = 0, mPG0Number = ""}
---     , {overhang = B__C, name = "", length = 0, mPG0Number = ""}
---     , {overhang = C__D, name = "", length = 0, mPG0Number = ""}
---     , {overhang = D__G, name = "", length = 0, mPG0Number = ""}
---     ]
-
--- insertList5 = 
---     [ {overhang = A__B, name = "", length = 0, mPG0Number = ""}
---     , {overhang = B__C, name = "", length = 0, mPG0Number = ""}
---     , {overhang = C__D, name = "", length = 0, mPG0Number = ""}
---     , {overhang = D__E, name = "", length = 0, mPG0Number = ""}
---     , {overhang = E__G, name = "", length = 0, mPG0Number = ""}
---     ]
-    
--- insertList6 = 
---     [ {overhang = A__B, name = "", length = 0, mPG0Number = ""}
---     , {overhang = B__C, name = "", length = 0, mPG0Number = ""}
---     , {overhang = C__D, name = "", length = 0, mPG0Number = ""}
---     , {overhang = D__E, name = "", length = 0, mPG0Number = ""}
---     , {overhang = E__F, name = "", length = 0, mPG0Number = ""}
---     , {overhang = E__G, name = "", length = 0, mPG0Number = ""}
---     ]
 
 type alias Model =
     { currApp : Application
@@ -108,6 +91,11 @@ type alias Model =
     , description : String
     , selectedInserts : List Insert
     , selectedBackbone : Backbone
+    , loginUrls : List Login
+    , token : Maybe String
+    , user : Maybe User
+    , error : Maybe String
+    , key : Nav.Key
     }
 
 
@@ -137,8 +125,17 @@ testBackbone =
 -- Model
 
 
-init : ( Model, Cmd Msg )
-init =
+init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
+init _ url key =
+    let
+        cmd =
+            case url.path of
+                "/oidc_login" ->
+                    checkAuthUrl url
+
+                _ ->
+                    getLoginUrls
+    in
     ( { currApp = Standard
       , currOverhang = A__B
       , numberInserts = 6
@@ -152,9 +149,42 @@ init =
       , description = "Some Description: words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words"
       , selectedInserts = testInsertList
       , selectedBackbone = testBackbone
+      , loginUrls = []
+      , token = Nothing
+      , user = Nothing
+      , error = Nothing
+      , key = key
       }
-    , Cmd.none
+    , cmd
     )
+
+
+checkAuthUrl : Url -> Cmd Msg
+checkAuthUrl url =
+    case extractCodeAndState url of
+        Just authReq ->
+            getAuthentication authReq
+
+        Nothing ->
+            Debug.log "extract code and state failed" Cmd.none
+
+
+extractCodeAndState : Url -> Maybe Authentication
+extractCodeAndState url =
+    let
+        makeAuthentication : Maybe String -> Maybe String -> Maybe Authentication
+        makeAuthentication =
+            Maybe.map2 Authentication
+
+        parser : Parser (Maybe Authentication -> Maybe Authentication) (Maybe Authentication)
+        parser =
+            s "oidc_login" </> query (map2 makeAuthentication (string "code") (string "state"))
+    in
+    parse parser url |> Maybe.andThen identity
+
+
+
+-- Where does identity come from?
 
 
 type Application
@@ -197,101 +227,123 @@ type Msg
     | ChangeBackbone Backbone
     | ResetInsertList
     | ResetBackbone
+    | GotLoginUrls (Result Http.Error (List Login))
+    | UrlChanged Url.Url
+    | LinkClicked Browser.UrlRequest
+    | GotAuthentication (Result Http.Error AuthenticationResponse)
+
+
 
 -- view
 
-view : Model -> Html Msg
+
+view : Model -> Document Msg
 view model =
-    layout
-        [ -- Element.explain Debug.todo -- Adds debugging info to the console.
-          Font.size 11
-        , inFront <| navLinks
-        ]
-    <|
-        row []
-            [ navLinks
-            , column [ spacing 25, Element.width Element.fill, centerX, padding 50 ]
-                [ el
-                    [ Element.Region.heading 2
-                    , Font.size 50
-                    , Font.color color.darkCharcoal
-                    ]
-                  <|
-                    Element.text "Level 1 construct design"
-                ,el
-                    [ Element.Region.heading 1
-                    , Font.size 25
-                    , Font.color color.darkCharcoal
-                    ]
-                  <|
-                    Element.text "Construct information"
-                , Input.text []
-                    { onChange = ChangeConstructName
-                    , label = Input.labelLeft [] <| Element.text "Construct name: "
-                    , text = model.constructName
-                    , placeholder = Nothing
-                    }
-                , Input.text []
-                    { onChange = ChangeConstructNumber
-                    , label = Input.labelLeft [] <| Element.text "Construct number: "
-                    , text = model.constructNumber
-                    , placeholder = Nothing
-                    }
-                , row [ spacing 50 ]
-                    [ el [] <| Element.text "Length (bp):"
-                    , el [ Background.color color.lightGrey, padding 10 ] <| Element.text (toString model.constructLength)
-                    ]
-                , Input.multiline [ Element.height <| px 150 ]
-                    { text = model.applicationNote
-                    , onChange = ChangeApplicationNote
-                    , label = Input.labelLeft [] <| Element.text "Application Note: "
-                    , spellcheck = True
-                    , placeholder = Nothing
-                    }
-                , Input.text []
-                    { onChange = ChangeConstructDesignerName
-                    , label = Input.labelLeft [] <| Element.text "Designer Name: "
-                    , text = model.designerName
-                    , placeholder = Nothing
-                    }
-                , Input.multiline [ Element.height <| px 150 ]
-                    { text = model.description
-                    , onChange = ChangeDescription
-                    , label = Input.labelLeft [] <| Element.text "Description: "
-                    , spellcheck = True
-                    , placeholder = Nothing
-                    }
-                , el
-                    [ Element.Region.heading 2
-                    , Font.size 25
-                    , Font.color color.darkCharcoal
-                    ]
-                  <|
-                    Element.text "Destination vector selection"
-                , backboneTable model
-                , el
-                    [ Element.Region.heading 2
-                    , Font.size 25
-                    , Font.color color.darkCharcoal
-                    ]
-                  <|
-                    Element.text "Donor vector selection"
-                , applicationRadioButton model
-                , overhangRadioRow model
-                , insertTable model
-                , downloadButtonBar
-                , el
-                    [ Element.Region.heading 2
-                    , Font.size 25
-                    , Font.color color.darkCharcoal
-                    ]
-                  <|
-                    Element.text "Construct visualisation"
-                , Element.html <| visualRepresentation model
-                ]
+    { title = "GGW"
+    , body =
+        [ layout
+            [ -- Element.explain Debug.todo -- Adds debugging info to the console.
+              Font.size 11
+            , inFront <| navLinks
             ]
+          <|
+            row []
+                [ navLinks
+                , column [ spacing 25, Element.width Element.fill, centerX, padding 50 ]
+                    [ Element.html <| mainView model
+                    , el
+                        [ Element.Region.heading 2
+                        , Font.size 50
+                        , Font.color color.darkCharcoal
+                        ]
+                      <|
+                        Element.text "Level 1 construct design"
+                    , el
+                        [ Element.Region.heading 1
+                        , Font.size 25
+                        , Font.color color.darkCharcoal
+                        ]
+                      <|
+                        Element.text "Construct information"
+                    , Input.text []
+                        { onChange = ChangeConstructName
+                        , label = Input.labelLeft [] <| Element.text "Construct name: "
+                        , text = model.constructName
+                        , placeholder = Nothing
+                        }
+                    , Input.text []
+                        { onChange = ChangeConstructNumber
+                        , label = Input.labelLeft [] <| Element.text "Construct number: "
+                        , text = model.constructNumber
+                        , placeholder = Nothing
+                        }
+                    , row [ spacing 50 ]
+                        [ el [] <| Element.text "Length (bp):"
+                        , el [ Background.color color.lightGrey, padding 10 ] <| Element.text (String.fromInt model.constructLength)
+                        ]
+                    , Input.multiline [ Element.height <| px 150 ]
+                        { text = model.applicationNote
+                        , onChange = ChangeApplicationNote
+                        , label = Input.labelLeft [] <| Element.text "Application Note: "
+                        , spellcheck = True
+                        , placeholder = Nothing
+                        }
+                    , Input.text []
+                        { onChange = ChangeConstructDesignerName
+                        , label = Input.labelLeft [] <| Element.text "Designer Name: "
+                        , text = model.designerName
+                        , placeholder = Nothing
+                        }
+                    , Input.multiline [ Element.height <| px 150 ]
+                        { text = model.description
+                        , onChange = ChangeDescription
+                        , label = Input.labelLeft [] <| Element.text "Description: "
+                        , spellcheck = True
+                        , placeholder = Nothing
+                        }
+                    , el
+                        [ Element.Region.heading 2
+                        , Font.size 25
+                        , Font.color color.darkCharcoal
+                        ]
+                      <|
+                        Element.text "Destination vector selection"
+                    , backboneTable model
+                    , el
+                        [ Element.Region.heading 2
+                        , Font.size 25
+                        , Font.color color.darkCharcoal
+                        ]
+                      <|
+                        Element.text "Donor vector selection"
+                    , applicationRadioButton model
+                    , overhangRadioRow model
+                    , insertTable model
+                    , downloadButtonBar
+                    , el
+                        [ Element.Region.heading 2
+                        , Font.size 25
+                        , Font.color color.darkCharcoal
+                        ]
+                      <|
+                        Element.text "Construct visualisation"
+                    , Element.html <| visualRepresentation model
+                    ]
+                ]
+        ]
+    }
 
+mainView : Model -> Html Msg
+mainView model =
+    case model.user of
+        Just user -> Html.text <| Maybe.withDefault "No user name" user.name
+        Nothing -> div [] <| viewLoginUrls model.loginUrls
 
+viewLoginUrls : List Login -> List (Html Msg)
+viewLoginUrls loginUrls =
+    case loginUrls of
+        [] -> [Html.text "Fetching..."]
+        _ -> List.map (\lgn -> a [ href lgn.url ] [ Html.text lgn.name ]) loginUrls
 
 -- Visual representation
 
@@ -342,6 +394,7 @@ pieLabel slice ( label, _ ) =
         , TypedSvg.Attributes.fontSize (TypedSvg.Types.px 18)
         ]
         [ TypedSvg.Core.text label ]
+
 
 tupleToRecord : ( String, String, Int ) -> { name : String, overhang : String, length : Int }
 tupleToRecord ( t_name, t_overhang, t_length ) =
@@ -637,7 +690,7 @@ insertTable model =
                       }
                     , { header = none
                       , width = fillPortion 1
-                      , view = .length >> toString >> Element.text >> el [ centerY ]
+                      , view = .length >> String.fromInt >> Element.text >> el [ centerY ]
                       }
                     ]
                 }
@@ -693,7 +746,7 @@ backboneTable model =
                       }
                     , { header = none
                       , width = fillPortion 1
-                      , view = .length >> toString >> Element.text >> el [ centerY ]
+                      , view = .length >> String.fromInt >> Element.text >> el [ centerY ]
                       }
                     ]
                 }
@@ -702,6 +755,81 @@ backboneTable model =
 
 
 -- update
+
+
+type alias AuthenticationResponse =
+    { token : String
+    , user : User
+    }
+
+
+type alias Authentication =
+    { code : String
+    , state : String
+    }
+
+
+authDecoder : Decode.Decoder Authentication
+authDecoder =
+    Decode.map2 Authentication
+        (Decode.field "code" Decode.string)
+        (Decode.field "state" Decode.string)
+
+
+authUrlsDecoder : Decode.Decoder AuthenticationResponse
+authUrlsDecoder =
+    Decode.map2 AuthenticationResponse
+        (Decode.field "access_token" Decode.string)
+        (Decode.field "user" userDecoder)
+
+
+
+-- You have to use a decoder specific to decode user objects
+
+
+userDecoder : Decode.Decoder User
+userDecoder =
+    Decode.map3 User
+        (Decode.field "id" Decode.int)
+        (Decode.field "name" (Decode.nullable Decode.string))
+        (Decode.field "role" Decode.string)
+
+
+type alias Login =
+    { url : String
+    , name : String
+    }
+
+
+loginDecoder : Decode.Decoder Login
+loginDecoder =
+    Decode.map2 Login
+        (Decode.field "url" Decode.string)
+        (Decode.field "name" Decode.string)
+
+
+loginUrlsDecoder : Decode.Decoder (List Login)
+loginUrlsDecoder =
+    Decode.list loginDecoder
+
+
+showHttpError : Http.Error -> String
+showHttpError err =
+    case err of
+        BadUrl v ->
+            "BadUrl: " ++ v
+
+        Timeout ->
+            "Timeout"
+
+        NetworkError ->
+            "NetworkError"
+
+        BadStatus i ->
+            "BadStatus: " ++ String.fromInt i
+
+        BadBody v ->
+            "BadBody: " ++ v
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -752,31 +880,106 @@ update msg model =
             ( { model | description = newDescription }, Cmd.none )
 
         AppendInsert newInsert ->
-            if not (List.member newInsert.overhang ( List.map .overhang model.selectedInserts )) then
-                ( { model | selectedInserts = List.append model.selectedInserts [ newInsert ]
-                  , constructLength = List.sum (model.selectedBackbone.length :: newInsert.length :: List.map .length model.selectedInserts) }, Cmd.none )
+            if not (List.member newInsert.overhang (List.map .overhang model.selectedInserts)) then
+                ( { model
+                    | selectedInserts = List.append model.selectedInserts [ newInsert ]
+                    , constructLength = List.sum (model.selectedBackbone.length :: newInsert.length :: List.map .length model.selectedInserts)
+                  }
+                , Cmd.none
+                )
+
             else
-                ( { model | selectedInserts = newInsert :: List.filter(\insert -> not(insert.overhang == newInsert.overhang)) model.selectedInserts
-                , constructLength = List.sum(model.selectedBackbone.length :: List.map .length (newInsert :: List.filter(\insert -> not(insert.overhang == newInsert.overhang)) model.selectedInserts)) } , Cmd.none )
+                ( { model
+                    | selectedInserts = newInsert :: List.filter (\insert -> not (insert.overhang == newInsert.overhang)) model.selectedInserts
+                    , constructLength = List.sum (model.selectedBackbone.length :: List.map .length (newInsert :: List.filter (\insert -> not (insert.overhang == newInsert.overhang)) model.selectedInserts))
+                  }
+                , Cmd.none
+                )
 
         ChangeBackbone newBackbone ->
             ( { model | selectedBackbone = newBackbone }, Cmd.none )
 
         ResetInsertList ->
-            ( { model | selectedInserts = []}, Cmd.none )
+            ( { model | selectedInserts = [] }, Cmd.none )
 
         ResetBackbone ->
             ( { model | selectedInserts = [], selectedBackbone = { name = "", length = 0, mPGBNumber = "", level = 0 } }, Cmd.none )
 
+        UrlChanged _ ->
+            ( model, Cmd.none )
+        
+        GotLoginUrls res ->
+            case res of
+                Ok urls ->
+                    ( { model | loginUrls = urls }, Cmd.none )
+
+                Err err ->
+                    ( { model | error = Just <| showHttpError err }, Cmd.none )
+
+        LinkClicked urlRequest ->
+            case urlRequest of
+                Browser.Internal url ->
+                    ( model, Nav.pushUrl model.key (Url.toString url) )
+
+                Browser.External href ->
+                    ( model, Nav.load href )
+
+        GotAuthentication res ->
+            let
+                navToRoot : Cmd Msg
+                navToRoot =
+                    Nav.pushUrl model.key "/"
+            in
+            case res of
+                Ok response ->
+                    ( { model | user = Just response.user, token = Just response.token }, navToRoot )
+
+                Err err ->
+                    ( { model | error = Just <| showHttpError err }, navToRoot )
+
+
+getLoginUrls : Cmd Msg
+getLoginUrls =
+    Http.get
+        { url = "http://localhost:8000/login"
+        , expect = expectJson GotLoginUrls loginUrlsDecoder
+        }
+
+
+getAuthentication : Authentication -> Cmd Msg
+getAuthentication auth =
+    Http.post
+        { url = "http://localhost:8000/authorize"
+        , body =
+            jsonBody
+                (Encode.object
+                    [ ( "state", Encode.string auth.state )
+                    , ( "code", Encode.string auth.code )
+                    ]
+                )
+        , expect = expectJson GotAuthentication authUrlsDecoder
+        }
+
 
 main : Program () Model Msg
 main =
-    Browser.element
-        { init = always init
-        , subscriptions = always Sub.none
+    Browser.application
+        { init = init
         , view = view
         , update = update
+        , subscriptions = subscriptions
+        , onUrlRequest = LinkClicked
+        , onUrlChange = UrlChanged
         }
+
+
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.none
 
 
 

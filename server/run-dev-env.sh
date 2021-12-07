@@ -1,7 +1,7 @@
 #!/bin/sh
 
 export DATABASE_URL="sqlite:///ggw.sqlite?check_same_thread=false"
-export AUTH_REDIRECT_URI="http://localhost:49999/"
+export AUTH_REDIRECT_URI="http://localhost:49999/oidc_login"
 
 # Initialise the database
 poetry run alembic upgrade head
@@ -16,4 +16,4 @@ poetry run ggwc add-identity-provider --issuer https://services-staging.vib.be/ 
 poetry run ggwc create-admin --iss 1 --sub 4af3d9fb-beb3-4b59-af33-d325addbf1bb ggw
 
 # Run the app
-poetry run hypercorn main:app --reload
+poetry run hypercorn --bind "0.0.0.0:8000" main:app --reload

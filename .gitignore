@@ -5,3 +5,5 @@ dist
 .envrc
 *~
 *.sqlite
+**/__pycache__/**
+server/.python-version
