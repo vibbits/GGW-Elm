@@ -906,9 +906,6 @@ update msg model =
         ResetBackbone ->
             ( { model | selectedInserts = [], selectedBackbone = { name = "", length = 0, mPGBNumber = "", level = 0 } }, Cmd.none )
 
-        LogInUrls ->
-            ( model, getLoginUrls )
-
         UrlChanged _ ->
             ( model, Cmd.none )
         
