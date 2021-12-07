@@ -227,7 +227,6 @@ type Msg
     | ChangeBackbone Backbone
     | ResetInsertList
     | ResetBackbone
-    | LogInUrls
     | GotLoginUrls (Result Http.Error (List Login))
     | UrlChanged Url.Url
     | LinkClicked Browser.UrlRequest
