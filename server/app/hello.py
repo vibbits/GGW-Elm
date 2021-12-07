@@ -1,10 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
 
-from app import deps
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from app import deps, schemas, crud
 
 router = APIRouter()
 
 
-@router.get("/hello")
-def hello(user = Depends(deps.get_current_user)):
-    return f"Hello {user.name}"
+@router.get("/hello", response_model=Optional[schemas.User])
+def hello(db: Session = Depends(deps.get_db)):
+    return crud.get_user(db, 2)
