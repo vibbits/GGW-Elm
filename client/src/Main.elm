@@ -174,10 +174,6 @@ extractCodeAndState url =
     let
         makeAuthentication : Maybe String -> Maybe String -> Maybe Authentication
         makeAuthentication =
-            let
-                _ =
-                    Debug.log "Authentication:"
-            in
             Maybe.map2 Authentication
 
         parser : Parser (Maybe Authentication -> Maybe Authentication) (Maybe Authentication)
