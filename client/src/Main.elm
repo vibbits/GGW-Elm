@@ -1,36 +1,32 @@
 module Main exposing (..)
 
-import Array exposing (Array, length)
-import Browser exposing (Document, application)
+import Array exposing (Array)
+import Browser exposing (Document)
 import Browser.Dom exposing (Error(..))
 import Browser.Navigation as Nav
 import Color
-import Debug exposing (toString, todo)
-import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border exposing (rounded)
-import Element.Font as Font
 import Element.Input as Input exposing (OptionState(..))
 import Element.Region
 import Html exposing (Html, a, button, label)
 import Html.Attributes exposing (href, style)
 import Html.Events exposing (onClick)
-import Http exposing (Error(..), expectJson, expectString, jsonBody)
-import Json.Decode as Decode exposing (Decoder)
+import Http exposing (Error(..), expectJson, jsonBody)
+import Json.Decode as Decode
 import Json.Encode as Encode
 import List
 import List.Extra
 import Path
 import Shape exposing (defaultPieConfig)
-import Svg.Attributes exposing (mode)
 import TypedSvg exposing (g, svg, text_)
 import TypedSvg.Attributes exposing (dy, stroke, textAnchor, transform, viewBox)
 import TypedSvg.Core exposing (Svg)
 import TypedSvg.Types exposing (AnchorAlignment(..), Paint(..), Transform(..), em)
 import Url exposing (..)
 import Url.Parser exposing ((</>), Parser, parse, query, s)
-import Url.Parser.Query as Query exposing (map2, string)
+import Url.Parser.Query exposing (map2, string)
 
 
 overhangList3 : List Overhang
@@ -167,7 +163,7 @@ checkAuthUrl url =
             getAuthentication authReq
 
         Nothing ->
-            Debug.log "extract code and state failed" Cmd.none
+            Cmd.none
 
 
 extractCodeAndState : Url -> Maybe Authentication
@@ -398,6 +394,7 @@ loginButton lgn =
         ]
     <|
         Element.link [ spacing 10, Font.size 18, Font.color (rgb 0 0 1) ] { url = lgn.url, label = Element.text lgn.name }
+
 
 
 
@@ -891,7 +888,6 @@ showHttpError err =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     let
-        -- _ = Debug.log "Some String" msg
         updateOverhangShape : Application -> List Overhang
         updateOverhangShape app =
             case app of
