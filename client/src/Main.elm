@@ -13,7 +13,7 @@ import Element.Border as Border exposing (rounded)
 import Element.Font as Font
 import Element.Input as Input exposing (OptionState(..))
 import Element.Region
-import Html exposing (Html, a, button, div, label, text)
+import Html exposing (Html, a, button, label)
 import Html.Attributes exposing (href, style)
 import Html.Events exposing (onClick)
 import Http exposing (Error(..), expectJson, expectString, jsonBody)
@@ -69,6 +69,7 @@ overhangList6 =
     , E__F
     , F__G
     ]
+
 
 type alias User =
     { id : Int
@@ -247,103 +248,158 @@ view model =
             , inFront <| navLinks
             ]
           <|
-            row []
+            row
+                [ Element.width Element.fill
+                , Element.height Element.fill
+                , spacing 10
+                ]
                 [ navLinks
-                , column [ spacing 25, Element.width Element.fill, centerX, padding 50 ]
-                    [ Element.html <| mainView model
-                    , el
-                        [ Element.Region.heading 2
-                        , Font.size 50
-                        , Font.color color.darkCharcoal
-                        ]
-                      <|
-                        Element.text "Level 1 construct design"
-                    , el
-                        [ Element.Region.heading 1
-                        , Font.size 25
-                        , Font.color color.darkCharcoal
-                        ]
-                      <|
-                        Element.text "Construct information"
-                    , Input.text []
-                        { onChange = ChangeConstructName
-                        , label = Input.labelLeft [] <| Element.text "Construct name: "
-                        , text = model.constructName
-                        , placeholder = Nothing
-                        }
-                    , Input.text []
-                        { onChange = ChangeConstructNumber
-                        , label = Input.labelLeft [] <| Element.text "Construct number: "
-                        , text = model.constructNumber
-                        , placeholder = Nothing
-                        }
-                    , row [ spacing 50 ]
-                        [ el [] <| Element.text "Length (bp):"
-                        , el [ Background.color color.lightGrey, padding 10 ] <| Element.text (String.fromInt model.constructLength)
-                        ]
-                    , Input.multiline [ Element.height <| px 150 ]
-                        { text = model.applicationNote
-                        , onChange = ChangeApplicationNote
-                        , label = Input.labelLeft [] <| Element.text "Application Note: "
-                        , spellcheck = True
-                        , placeholder = Nothing
-                        }
-                    , Input.text []
-                        { onChange = ChangeConstructDesignerName
-                        , label = Input.labelLeft [] <| Element.text "Designer Name: "
-                        , text = model.designerName
-                        , placeholder = Nothing
-                        }
-                    , Input.multiline [ Element.height <| px 150 ]
-                        { text = model.description
-                        , onChange = ChangeDescription
-                        , label = Input.labelLeft [] <| Element.text "Description: "
-                        , spellcheck = True
-                        , placeholder = Nothing
-                        }
-                    , el
-                        [ Element.Region.heading 2
-                        , Font.size 25
-                        , Font.color color.darkCharcoal
-                        ]
-                      <|
-                        Element.text "Destination vector selection"
-                    , backboneTable model
-                    , el
-                        [ Element.Region.heading 2
-                        , Font.size 25
-                        , Font.color color.darkCharcoal
-                        ]
-                      <|
-                        Element.text "Donor vector selection"
-                    , applicationRadioButton model
-                    , overhangRadioRow model
-                    , insertTable model
-                    , downloadButtonBar
-                    , el
-                        [ Element.Region.heading 2
-                        , Font.size 25
-                        , Font.color color.darkCharcoal
-                        ]
-                      <|
-                        Element.text "Construct visualisation"
-                    , Element.html <| visualRepresentation model
-                    ]
+                , mainView model
                 ]
         ]
     }
 
-mainView : Model -> Html Msg
-mainView model =
-    case model.user of
-        Just user -> Html.text <| Maybe.withDefault "No user name" user.name
-        Nothing -> div [] <| viewLoginUrls model.loginUrls
 
-viewLoginUrls : List Login -> List (Html Msg)
-viewLoginUrls loginUrls =
+mainView : Model -> Element Msg
+mainView model =
+    column
+        [ Element.width Element.fill
+        , Element.height Element.fill
+        ]
+    <|
+        case model.user of
+            Just user ->
+                [ Element.text ("Welcome " ++ Maybe.withDefault "No user name" user.name)
+                , addVectorView model
+                ]
+
+            Nothing ->
+                viewLoginForm model.loginUrls
+
+
+addVectorView : Model -> Element Msg
+addVectorView model =
+    column [ spacing 25, Element.width Element.fill, centerX, padding 50 ]
+        [ el
+            [ Element.Region.heading 2
+            , Font.size 50
+            , Font.color color.darkCharcoal
+            ]
+          <|
+            Element.text "Level 1 construct design"
+        , el
+            [ Element.Region.heading 1
+            , Font.size 25
+            , Font.color color.darkCharcoal
+            ]
+          <|
+            Element.text "Construct information"
+        , Input.text []
+            { onChange = ChangeConstructName
+            , label = Input.labelLeft [] <| Element.text "Construct name: "
+            , text = model.constructName
+            , placeholder = Nothing
+            }
+        , Input.text []
+            { onChange = ChangeConstructNumber
+            , label = Input.labelLeft [] <| Element.text "Construct number: "
+            , text = model.constructNumber
+            , placeholder = Nothing
+            }
+        , row [ spacing 50 ]
+            [ el [] <| Element.text "Length (bp):"
+            , el [ Background.color color.lightGrey, padding 10 ] <| Element.text (String.fromInt model.constructLength)
+            ]
+        , Input.multiline [ Element.height <| px 150 ]
+            { text = model.applicationNote
+            , onChange = ChangeApplicationNote
+            , label = Input.labelLeft [] <| Element.text "Application Note: "
+            , spellcheck = True
+            , placeholder = Nothing
+            }
+        , Input.text []
+            { onChange = ChangeConstructDesignerName
+            , label = Input.labelLeft [] <| Element.text "Designer Name: "
+            , text = model.designerName
+            , placeholder = Nothing
+            }
+        , Input.multiline [ Element.height <| px 150 ]
+            { text = model.description
+            , onChange = ChangeDescription
+            , label = Input.labelLeft [] <| Element.text "Description: "
+            , spellcheck = True
+            , placeholder = Nothing
+            }
+        , el
+            [ Element.Region.heading 2
+            , Font.size 25
+            , Font.color color.darkCharcoal
+            ]
+          <|
+            Element.text "Destination vector selection"
+        , backboneTable model
+        , el
+            [ Element.Region.heading 2
+            , Font.size 25
+            , Font.color color.darkCharcoal
+            ]
+          <|
+            Element.text "Donor vector selection"
+        , applicationRadioButton model
+        , overhangRadioRow model
+        , insertTable model
+        , downloadButtonBar
+        , el
+            [ Element.Region.heading 2
+            , Font.size 25
+            , Font.color color.darkCharcoal
+            ]
+          <|
+            Element.text "Construct visualisation"
+        , Element.html <| visualRepresentation model
+        ]
+
+
+viewLoginForm : List Login -> List (Element Msg)
+viewLoginForm loginUrls =
     case loginUrls of
-        [] -> [Html.text "Fetching..."]
-        _ -> List.map (\lgn -> a [ href lgn.url ] [ Html.text lgn.name ]) loginUrls
+        [] ->
+            [ Element.text "Fetching..." ]
+
+        _ ->
+            [ column
+                [ Element.width Element.fill
+                , Element.height Element.fill
+                , spacing 10
+                ]
+              <|
+                el
+                    [ centerX
+                    , centerY
+                    , padding 10
+                    , Font.size 18
+                    ]
+                    (text "Login with:")
+                    :: List.map loginButton loginUrls
+            ]
+
+
+loginButton : Login -> Element Msg
+loginButton lgn =
+    el
+        [ centerX
+        , centerY
+        , padding 10
+        , Border.rounded 10
+        , Border.solid
+        , Border.color (rgb 0 0 0)
+        , Border.width 1
+        , mouseOver [ Background.color (rgb 0.9 0.9 0.9) ]
+        ]
+    <|
+        Element.link [ spacing 10, Font.size 18, Font.color (rgb 0 0 1) ] { url = lgn.url, label = Element.text lgn.name }
+
+
 
 -- Visual representation
 
@@ -907,7 +963,7 @@ update msg model =
 
         UrlChanged _ ->
             ( model, Cmd.none )
-        
+
         GotLoginUrls res ->
             case res of
                 Ok urls ->
