@@ -1,5 +1,7 @@
 module Main exposing (..)
 
+import Accordion
+import Accordion.List as AccordionList
 import Array exposing (Array, length)
 import Browser exposing (Document, application)
 import Browser.Dom exposing (Error(..))
@@ -13,8 +15,8 @@ import Element.Border as Border exposing (rounded)
 import Element.Font as Font
 import Element.Input as Input exposing (OptionState(..))
 import Element.Region
-import Html exposing (Html, a, button, div, label, text)
-import Html.Attributes exposing (href, style)
+import Html exposing (Html, a, button, div, i, label, span, text)
+import Html.Attributes exposing (class, href, style)
 import Html.Events exposing (onClick)
 import Http exposing (Error(..), expectJson, expectString, jsonBody)
 import Json.Decode as Decode exposing (Decoder)
@@ -70,6 +72,7 @@ overhangList6 =
     , F__G
     ]
 
+
 type alias User =
     { id : Int
     , name : Maybe String
@@ -77,8 +80,14 @@ type alias User =
     }
 
 
+type DisplayPage
+    = Catalogue
+    | AddVector
+
+
 type alias Model =
-    { currApp : Application
+    { page : DisplayPage
+    , currApp : Application
     , currOverhang : Overhang
     , numberInserts : Int
     , backboneLevel : Int
@@ -96,6 +105,10 @@ type alias Model =
     , user : Maybe User
     , error : Maybe String
     , key : Nav.Key
+    , filter : String
+    , backboneAccordionStatus : Bool
+    , level0AccordionStatus : Bool
+    , level1AccordionStatus : Bool
     }
 
 
@@ -136,7 +149,8 @@ init _ url key =
                 _ ->
                     getLoginUrls
     in
-    ( { currApp = Standard
+    ( { page = AddVector
+      , currApp = Standard
       , currOverhang = A__B
       , numberInserts = 6
       , backboneLevel = 1
@@ -154,6 +168,12 @@ init _ url key =
       , user = Nothing
       , error = Nothing
       , key = key
+      , filter = ""
+
+      --   , multiOpen = False
+      , backboneAccordionStatus = False
+      , level0AccordionStatus = False
+      , level1AccordionStatus = False
       }
     , cmd
     )
@@ -231,15 +251,109 @@ type Msg
     | UrlChanged Url.Url
     | LinkClicked Browser.UrlRequest
     | GotAuthentication (Result Http.Error AuthenticationResponse)
+    | SwitchPage DisplayPage
+    | FilterTable String
+    | BackboneAccordionToggled
+    | Level0AccordionToggled
+    | Level1AccordionToggled
 
 
 
+-- | UpdateAccordion
 -- view
 
 
 view : Model -> Document Msg
 view model =
-    { title = "GGW"
+    case model.page of
+        AddVector ->
+            addVectorView model
+
+        Catalogue ->
+            catalogueView model
+
+
+catalogueView : Model -> Document Msg
+catalogueView model =
+    { title = "Vector Catalog"
+    , body =
+        [ layout [ centerX, Element.width Element.fill, spacing 50 ] <|
+            column [ spacing 25, Element.width Element.fill, centerX, padding 50 ]
+                [ el [ Element.Region.heading 1, Font.size 50, Font.color color.darkCharcoal ] <| Element.text "Vector Catalog"
+                , Input.text []
+                    { onChange = FilterTable
+                    , text = model.filter
+                    , label = Input.labelLeft [] <| Element.text "Filter:"
+                    , placeholder = Nothing
+                    }
+                , Element.html <|
+                    Accordion.accordion [ class "example-accordion" ]
+                        (Accordion.head
+                            [ onClick BackboneAccordionToggled
+                            , style "background-color" "steelblue"
+                            , style "padding" "10px"
+                            , style "margin" "10px"
+                            , style "padding" "20px"
+                            , style "border" "solid black 2px"
+                            , style "margin-left" "50px"
+                            , style "border-radius" "25px"
+                            ]
+                            [ Html.text "Backbones"
+                            , Html.span [ class "example-accordion__head__tail" ] [ Html.i [ class "material-icons" ] [ Html.text "arrow_drop_down" ] ]
+                            ]
+                        )
+                        (Accordion.body [ style "width" "100%", style "margin-left" "50px" ]
+                            [ Element.layout [] <| backboneTable model ]
+                        )
+                        model.backboneAccordionStatus
+                , Element.html <|
+                    Accordion.accordion [ class "example-accordion" ]
+                        (Accordion.head
+                            [ onClick Level0AccordionToggled
+                            , style "background-color" "steelblue"
+                            , style "padding" "10px"
+                            , style "margin" "10px"
+                            , style "padding" "20px"
+                            , style "border" "solid black 2px"
+                            , style "margin-left" "50px"
+                            , style "border-radius" "25px"
+                            ]
+                            [ Html.text "Level 0"
+                            , Html.span [ class "example-accordion__head__tail" ] [ Html.i [ class "material-icons" ] [ Html.text "arrow_drop_down" ] ]
+                            ]
+                        )
+                        (Accordion.body [ style "width" "100%", style "margin-left" "50px" ]
+                            [ Element.layout [] <| insertTable model ]
+                        )
+                        model.level0AccordionStatus
+                , Element.html <|
+                    Accordion.accordion [ class "example-accordion" ]
+                        (Accordion.head
+                            [ onClick Level1AccordionToggled
+                            , style "background-color" "steelblue"
+                            , style "padding" "10px"
+                            , style "margin" "10px"
+                            , style "padding" "20px"
+                            , style "border" "solid black 2px"
+                            , style "margin-left" "50px"
+                            , style "border-radius" "25px"
+                            ]
+                            [ Html.text "Level 1 vectors"
+                            , Html.span [ class "example-accordion__head__tail" ] [ Html.i [ class "material-icons" ] [ Html.text "arrow_drop_down" ] ]
+                            ]
+                        )
+                        (Accordion.body [ style "width" "100%", style "margin-left" "50px" ]
+                            [ Element.layout [] <| insertTable model ]
+                        )
+                        model.level1AccordionStatus
+                ]
+        ]
+    }
+
+
+addVectorView : Model -> Document Msg
+addVectorView model =
+    { title = "Constructing a Level 1"
     , body =
         [ layout
             [ -- Element.explain Debug.todo -- Adds debugging info to the console.
@@ -252,14 +366,14 @@ view model =
                 , column [ spacing 25, Element.width Element.fill, centerX, padding 50 ]
                     [ Element.html <| mainView model
                     , el
-                        [ Element.Region.heading 2
+                        [ Element.Region.heading 1
                         , Font.size 50
                         , Font.color color.darkCharcoal
                         ]
                       <|
                         Element.text "Level 1 construct design"
                     , el
-                        [ Element.Region.heading 1
+                        [ Element.Region.heading 2
                         , Font.size 25
                         , Font.color color.darkCharcoal
                         ]
@@ -333,17 +447,27 @@ view model =
         ]
     }
 
+
 mainView : Model -> Html Msg
 mainView model =
     case model.user of
-        Just user -> Html.text <| Maybe.withDefault "No user name" user.name
-        Nothing -> div [] <| viewLoginUrls model.loginUrls
+        Just user ->
+            Html.text <| Maybe.withDefault "No user name" user.name
+
+        Nothing ->
+            div [] <| viewLoginUrls model.loginUrls
+
 
 viewLoginUrls : List Login -> List (Html Msg)
 viewLoginUrls loginUrls =
     case loginUrls of
-        [] -> [Html.text "Fetching..."]
-        _ -> List.map (\lgn -> a [ href lgn.url ] [ Html.text lgn.name ]) loginUrls
+        [] ->
+            [ Html.text "Fetching..." ]
+
+        _ ->
+            List.map (\lgn -> a [ href lgn.url ] [ Html.text lgn.name ]) loginUrls
+
+
 
 -- Visual representation
 
@@ -488,13 +612,14 @@ visualRepresentation model =
 -- elements
 
 
-navLinks : Element msg
+navLinks : Element Msg
 navLinks =
     column [ Background.color color.blue, Element.height Element.fill, padding 10, spacing 10 ]
         [ link [ Font.size 15, Font.color color.white, Element.width Element.fill, Font.underline, Font.bold ] { url = "index.html", label = Element.text "Home" }
         , link [ Font.size 15, Font.color color.white, Element.width Element.fill, Font.underline, Font.bold ] { url = "catalog.html", label = Element.text "Vector Catalog" }
         , link [ Font.size 15, Font.color color.white, Element.width Element.fill, Font.underline, Font.bold ] { url = "index.html", label = Element.text "New Level 1 construct" }
         , link [ Font.size 15, Font.color color.white, Element.width Element.fill, Font.underline, Font.bold ] { url = "index.html", label = Element.text "New Level 2 construct" }
+        , Input.button [] { onPress = Just (SwitchPage Catalogue), label = Element.text "Catalogue" }
         ]
 
 
@@ -753,6 +878,62 @@ backboneTable model =
         ]
 
 
+catalogTabel : { a | backboneLevel : Int } -> Element Msg
+catalogTabel model =
+    let
+        headerAttrs =
+            [ Font.bold
+            , Font.color color.blue
+            , Border.widthEach { bottom = 2, top = 0, left = 0, right = 0 }
+            , Border.color color.blue
+            ]
+    in
+    column
+        [ Element.width Element.fill
+        ]
+        [ row
+            [ spacing 20
+            , Element.width Element.fill
+            , padding 30
+            ]
+            [ el ((Element.width <| fillPortion 3) :: headerAttrs) <| Element.text "MP-GX-Number"
+            , el ((Element.width <| fillPortion 5) :: headerAttrs) <| Element.text "Vector Name"
+            , el ((Element.width <| fillPortion 1) :: headerAttrs) <| Element.text "Length"
+            ]
+        , el
+            [ Element.width Element.fill
+            , Border.width 1
+            , Border.rounded 30
+            ]
+          <|
+            table
+                [ Element.width Element.fill
+                , Element.height <| px 250
+                , scrollbarY
+                , spacing 10
+                , padding 25
+                ]
+                { data = backboneList model.backboneLevel
+                , columns =
+                    [ { header = none
+                      , width = fillPortion 3
+                      , view = .mPGBNumber >> Element.text >> el [ centerY ]
+                      }
+                    , { header = none
+                      , width = fillPortion 5
+                      , view =
+                            \backbone ->
+                                Input.button [ Font.color color.blue, Font.bold, Font.underline ] { onPress = Just (ChangeBackbone backbone), label = Element.text backbone.name }
+                      }
+                    , { header = none
+                      , width = fillPortion 1
+                      , view = .length >> String.fromInt >> Element.text >> el [ centerY ]
+                      }
+                    ]
+                }
+        ]
+
+
 
 -- update
 
@@ -907,7 +1088,7 @@ update msg model =
 
         UrlChanged _ ->
             ( model, Cmd.none )
-        
+
         GotLoginUrls res ->
             case res of
                 Ok urls ->
@@ -936,6 +1117,21 @@ update msg model =
 
                 Err err ->
                     ( { model | error = Just <| showHttpError err }, navToRoot )
+
+        SwitchPage page ->
+            ( { model | page = page }, Cmd.none )
+
+        FilterTable filter ->
+            ( { model | filter = filter }, Cmd.none )
+
+        BackboneAccordionToggled ->
+            ( { model | backboneAccordionStatus = not model.backboneAccordionStatus }, Cmd.none )
+
+        Level0AccordionToggled ->
+            ( { model | level0AccordionStatus = not model.level0AccordionStatus }, Cmd.none )
+        
+        Level1AccordionToggled ->
+            ( { model | level1AccordionStatus = not model.level1AccordionStatus }, Cmd.none )
 
 
 getLoginUrls : Cmd Msg

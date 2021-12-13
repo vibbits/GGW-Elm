@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 	<meta charset="UTF-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -11,16 +12,20 @@
 			margin: 0;
 		}
 	</style>
+	<link rel="stylesheet" type="text/css" href="https://unpkg.com/elm-accordion@1.0.4/dist/elm-accordion.min.css" />
+	<script src="https://unpkg.com/elm-accordion@1.0.4/dist/elm-accordion.min.js"></script>
 </head>
+
 <body>
-	
+
 	<pre id="elm"></pre>
 
 	<script type="module" src="index.js"></script>
 	<script>
 		var app = Elm.HomePage.init({
-        node: document.getElementById("elm")
-      });
+			node: document.getElementById("elm")
+		});
 	</script>
 </body>
+
 </html>
