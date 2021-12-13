@@ -1,36 +1,33 @@
 module Main exposing (..)
 
-import Array exposing (Array, length)
-import Browser exposing (Document, application)
+import Array exposing (Array)
+import Browser exposing (Document)
 import Browser.Dom exposing (Error(..))
 import Browser.Navigation as Nav
 import Color
-import Debug exposing (toString, todo)
-import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border exposing (rounded)
 import Element.Font as Font
 import Element.Input as Input exposing (OptionState(..))
 import Element.Region
-import Html exposing (Html, a, button, div, label, text)
+import Html exposing (Html, a, button, div, label)
 import Html.Attributes exposing (href, style)
 import Html.Events exposing (onClick)
-import Http exposing (Error(..), expectJson, expectString, jsonBody)
-import Json.Decode as Decode exposing (Decoder)
+import Http exposing (Error(..), expectJson, jsonBody)
+import Json.Decode as Decode
 import Json.Encode as Encode
 import List
 import List.Extra
 import Path
 import Shape exposing (defaultPieConfig)
-import Svg.Attributes exposing (mode)
 import TypedSvg exposing (g, svg, text_)
 import TypedSvg.Attributes exposing (dy, stroke, textAnchor, transform, viewBox)
 import TypedSvg.Core exposing (Svg)
 import TypedSvg.Types exposing (AnchorAlignment(..), Paint(..), Transform(..), em)
 import Url exposing (..)
 import Url.Parser exposing ((</>), Parser, parse, query, s)
-import Url.Parser.Query as Query exposing (map2, string)
+import Url.Parser.Query exposing (map2, string)
 
 
 overhangList3 : List Overhang
@@ -69,6 +66,7 @@ overhangList6 =
     , E__F
     , F__G
     ]
+
 
 type alias User =
     { id : Int
@@ -166,7 +164,7 @@ checkAuthUrl url =
             getAuthentication authReq
 
         Nothing ->
-            Debug.log "extract code and state failed" Cmd.none
+            Cmd.none
 
 
 extractCodeAndState : Url -> Maybe Authentication
@@ -333,17 +331,27 @@ view model =
         ]
     }
 
+
 mainView : Model -> Html Msg
 mainView model =
     case model.user of
-        Just user -> Html.text <| Maybe.withDefault "No user name" user.name
-        Nothing -> div [] <| viewLoginUrls model.loginUrls
+        Just user ->
+            Html.text <| Maybe.withDefault "No user name" user.name
+
+        Nothing ->
+            div [] <| viewLoginUrls model.loginUrls
+
 
 viewLoginUrls : List Login -> List (Html Msg)
 viewLoginUrls loginUrls =
     case loginUrls of
-        [] -> [Html.text "Fetching..."]
-        _ -> List.map (\lgn -> a [ href lgn.url ] [ Html.text lgn.name ]) loginUrls
+        [] ->
+            [ Html.text "Fetching..." ]
+
+        _ ->
+            List.map (\lgn -> a [ href lgn.url ] [ Html.text lgn.name ]) loginUrls
+
+
 
 -- Visual representation
 
@@ -835,7 +843,6 @@ showHttpError err =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     let
-        -- _ = Debug.log "Some String" msg
         updateOverhangShape : Application -> List Overhang
         updateOverhangShape app =
             case app of
@@ -907,7 +914,7 @@ update msg model =
 
         UrlChanged _ ->
             ( model, Cmd.none )
-        
+
         GotLoginUrls res ->
             case res of
                 Ok urls ->
