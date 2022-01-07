@@ -589,7 +589,7 @@ constructLevel1View model =
                 ]
                 [ navLinks
                 , column [ spacing 25, Element.width Element.fill, centerX, padding 50 ]
-                    [ Element.html <| mainView model
+                    [ mainView model
                     , el
                         [ Element.Region.heading 1
                         , Font.size 50
@@ -794,7 +794,7 @@ viewLoginForm loginUrls =
                     , padding 10
                     , Font.size 18
                     ]
-                    (text "Login with:")
+                    (Element.text "Login with:")
                     :: List.map loginButton loginUrls
             ]
 
@@ -814,6 +814,32 @@ loginButton lgn =
     <|
         Element.link [ spacing 10, Font.size 18, Font.color (rgb 0 0 1) ] { url = lgn.url, label = Element.text lgn.name }
 
+
+viewLoginUrls : List Login -> List (Html Msg)
+viewLoginUrls loginUrls =
+    case loginUrls of
+        [] ->
+            [ Html.text "Fetching..." ]
+
+        _ ->
+            List.map (\lgn -> a [ HA.href lgn.url ] [ Html.text lgn.name ]) loginUrls
+
+
+customAddButton : String -> Msg -> Element Msg
+customAddButton buttonText msg =
+    Input.button
+        [ centerX
+        , Background.color color.blue
+        , Font.color color.white
+        , padding 25
+        , Border.width 3
+        , Border.solid
+        , Border.color color.darkCharcoal
+        , Border.rounded 100
+        ]
+        { label = Element.text buttonText
+        , onPress = Just msg
+        }
 
 -- Visual Representation
 
