@@ -5,7 +5,9 @@
   "source": "index.html",
   "scripts": {
     "start": "parcel serve --port 49999 index.html",
-    "build": "parcel build"
+    "build": "parcel build",
+    "check-format": "elm-format --validate src/",
+    "review": "elm-review"
   },
   "author": "",
   "license": "ISC",
@@ -13,6 +15,7 @@
     "@parcel/transformer-elm": "^2.1.1",
     "elm": "^0.19.1-5",
     "elm-format": "^0.8.5",
+    "elm-review": "^2.7.0",
     "parcel": "^2.1.1"
   }
 }

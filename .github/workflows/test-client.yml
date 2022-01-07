@@ -22,5 +22,10 @@ jobs:
         working-directory: ${{ env.working-directory }}
       - name: Build
         run: npm run build
+        working-directory: ${{ env.working-directory }}
       - name: Format
-        run: elm-format --validate src/
+        run: npm run check-format
+        working-directory: ${{ env.working-directory }}
+      - name: Review
+        run: npm run review
+        working-directory: ${{ env.working-directory }}
