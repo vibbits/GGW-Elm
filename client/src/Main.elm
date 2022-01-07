@@ -1,7 +1,6 @@
 module Main exposing (..)
 
 import Accordion
-import Accordion.List as AccordionList exposing (..)
 import Array exposing (Array, length)
 import Browser exposing (Document, application)
 import Browser.Dom exposing (Error(..))
@@ -12,6 +11,7 @@ import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border exposing (rounded)
+import Element.Events as EE
 import Element.Font as Font
 import Element.Input as Input exposing (OptionState(..))
 import Element.Region
@@ -28,7 +28,7 @@ import List.Extra
 import Path
 import Shape exposing (defaultPieConfig)
 import String exposing (toInt)
-import Svg.Attributes exposing (mode)
+import Svg.Attributes exposing (mode, style)
 import Task
 import TypedSvg exposing (g, svg, text_)
 import TypedSvg.Attributes exposing (dy, stroke, textAnchor, transform, viewBox)
@@ -37,6 +37,8 @@ import TypedSvg.Types exposing (AnchorAlignment(..), Paint(..), Transform(..), e
 import Url exposing (..)
 import Url.Parser exposing ((</>), Parser, int, parse, query, s)
 import Url.Parser.Query as Query exposing (map2, string)
+import Zoom exposing (events)
+import TypedSvg.Types exposing (Length(..))
 
 
 overhangList3 : List Overhang
@@ -76,6 +78,18 @@ overhangList6 =
     , F__G
     ]
 
+completeOverhangList : List Overhang
+completeOverhangList =
+    [ A__B
+    , B__C
+    , C__D
+    , C__G
+    , D__E
+    , D__G
+    , E__F
+    , E__G
+    , F__G
+    ]
 
 type alias User =
     { id : Int
@@ -112,7 +126,7 @@ type alias Model =
     , user : Maybe User
     , error : Maybe String
     , key : Nav.Key
-    
+
     -- Attributes for the vector catalog
     , backboneFilterString : Maybe String
     , level0FilterString : Maybe String
@@ -129,11 +143,18 @@ type alias Model =
     , levelBackboneToAdd : Int
     , lengthBackboneToAdd : Int
     , backboneGenbankContent : Maybe String
+
+    -- Attributes for adding Level0
+    , nameLevel0ToAdd : String
+    , mpg0NumberLevel0ToAdd : String
+    , overhangLevel0ToAdd : Maybe Overhang
+    , lengthLevel0ToAdd : Int
+    , level0GenbankContent : Maybe String
     }
 
 
 type alias Insert =
-    { name : String, mPG0Number : String, overhang : Overhang, length : Int }
+    { name : String, mPG0Number : String, overhang : Maybe Overhang, length : Int }
 
 
 emptyInsertList : List Insert
@@ -196,11 +217,20 @@ init _ url key =
       , level1AccordionStatus = False
       , backboneList = testBackboneList 1
       , insertList = testInsertList A__B
+
+      -- Backbone To Add attributes
       , nameBackboneToAdd = ""
       , mpgbNumberBackboneToAdd = ""
       , levelBackboneToAdd = 0
       , lengthBackboneToAdd = 0
       , backboneGenbankContent = Nothing
+
+      -- Level0 To Add Attributes
+      , nameLevel0ToAdd = ""
+      , mpg0NumberLevel0ToAdd = ""
+      , overhangLevel0ToAdd = Nothing
+      , lengthLevel0ToAdd = 0
+      , level0GenbankContent = Nothing
       }
     , cmd
     )
@@ -257,8 +287,7 @@ type ButtonPosition
 
 
 type Msg
-    = 
-    -- Level 1 construction Msg
+    = -- Level 1 construction Msg
       ChooseApplication Application
     | ChangeOverhang Overhang
     | ChangeNumberInserts Int
@@ -272,17 +301,14 @@ type Msg
     | ChangeBackbone Backbone
     | ResetInsertList
     | ResetBackbone
-
-    -- Login Msg
+      -- Login Msg
     | GotLoginUrls (Result Http.Error (List Login))
     | UrlChanged Url.Url
     | LinkClicked Browser.UrlRequest
     | GotAuthentication (Result Http.Error AuthenticationResponse)
-
-    -- Msg Switching pages
+      -- Msg Switching pages
     | SwitchPage DisplayPage
-
-    -- Vector catalogue Msg
+      -- Vector catalogue Msg
     | BackboneAccordionToggled
     | Level0AccordionToggled
     | Level1AccordionToggled
@@ -290,19 +316,24 @@ type Msg
     | FilterBackboneTable String
     | FilterLevel0Table String
     | FilterLevel1Table String
-
-    -- Msg for adding Backbones
+      -- Msg for adding Backbones
     | AddBackbone Backbone
     | ChangeBackboneNameToAdd String
     | ChangeBackboneMpgNumberToAdd String
     | ChangeBackboneLevelToAdd String
     | ChangeBackboneLengthToAdd String
-    | GbRequested
-    | GbSelected File
-    | GbLoaded String
-
-    -- Msg for adding Level 0
+    | GbNewBackboneRequested
+    | GbNewBackboneSelected File
+    | GbNewBackboneLoaded String
+      -- Msg for adding Level 0
     | AddLevel0 Insert
+    | ChangeLevel0NameToAdd String
+    | ChangeLevel0MpgNumberToAdd String
+    | ChangeLevel0OverhangToAdd Overhang
+    | ChangeLevel0LengthToAdd String
+    | GBNewLevel0Requested
+    | GBNewLevel0Selected File
+    | GbNewLevel0Loaded String
 
 
 
@@ -332,8 +363,12 @@ catalogueView : Model -> Document Msg
 catalogueView model =
     { title = "Vector Catalog"
     , body =
-        [ layout [ Element.height Element.fill ] <|
-            row [ centerX, Element.width Element.fill, Font.color color.white ]
+        [ layout
+            [ inFront <| navLinks
+            , Element.height Element.fill
+            ]
+          <|
+            row []
                 [ navLinks
                 , column [ spacing 25, Element.width Element.fill, centerX, padding 50 ]
                     [ el
@@ -362,96 +397,92 @@ catalogueView model =
                         { onPress = Just ToggleAll
                         , label = Element.text "Toggle all"
                         }
-                    , Element.html <|
-                        Accordion.accordion [ HA.class "example-accordion", HA.style "width" "100%" ]
-                            (Accordion.head
-                                [ onClick BackboneAccordionToggled
-                                , HA.style "background-color" "steelblue"
-                                , HA.style "padding" "10px"
-                                , HA.style "margin" "10px"
-                                , HA.style "padding" "20px"
-                                , HA.style "border" "solid black 2px"
-                                , HA.style "margin-left" "50px"
-                                , HA.style "border-radius" "25px"
-                                , HA.style "width" "80%"
-                                ]
-                                [ Html.text "Backbones"
-                                , Html.text "\t"
-                                , Html.text "▼"
-                                ]
-                            )
-                            (Accordion.body [ HA.style "width" "80%", HA.style "margin-left" "50px" ]
-                                [ Element.layout [] <| Input.text []
-                                    { onChange = FilterBackboneTable
-                                    , text = Maybe.withDefault "" model.backboneFilterString
-                                    , label = Input.labelLeft [] <| Element.text "Filter:"
-                                    , placeholder = Nothing
-                                    }
-                                , Element.layout [] <| backboneTable model
-                                , Element.layout [] <| Element.row [ centerX, spacing 50 ] [ customAddButton "+" (SwitchPage AddBackbonePage) ]
-                                ]
-                            )
-                            model.backboneAccordionStatus
-                    , Element.html <|
-                        Accordion.accordion [ HA.class "example-accordion", HA.style "width" "100%" ]
-                            (Accordion.head
-                                [ onClick Level0AccordionToggled
-                                , HA.style "background-color" "steelblue"
-                                , HA.style "padding" "10px"
-                                , HA.style "margin" "10px"
-                                , HA.style "padding" "20px"
-                                , HA.style "border" "solid black 2px"
-                                , HA.style "margin-left" "50px"
-                                , HA.style "border-radius" "25px"
-                                , HA.style "width" "80%"
-                                ]
-                                [ Html.text "Level 0"
-                                , Html.text "\t"
-                                , Html.text "▼"
-                                ]
-                            )
-                            (Accordion.body [ HA.style "width" "80%", HA.style "margin-left" "50px" ]
-                                [ Element.layout [Element.width Element.fill] <| Input.text []
-                                    { onChange = FilterLevel0Table
-                                    , text = Maybe.withDefault "" model.level0FilterString
-                                    , label = Input.labelLeft [] <| Element.text "Filter:"
-                                    , placeholder = Nothing
-                                    }
-                                , Element.layout [spacing 10, padding 10] <| overhangRadioRow model
-                                , Element.layout [] <| insertTable model
-                                , Element.layout [] <| Element.row [ centerX, spacing 50 ] [ customAddButton "+" (SwitchPage AddLevel0Page) ]
-                                ]
-                            )
-                            model.level0AccordionStatus
-                    , Element.html <|
-                        Accordion.accordion [ HA.class "example-accordion", HA.style "width" "100%" ]
-                            (Accordion.head
-                                [ onClick Level1AccordionToggled
-                                , HA.style "background-color" "steelblue"
-                                , HA.style "padding" "10px"
-                                , HA.style "margin" "10px"
-                                , HA.style "padding" "20px"
-                                , HA.style "border" "solid black 2px"
-                                , HA.style "margin-left" "50px"
-                                , HA.style "border-radius" "25px"
-                                , HA.style "width" "80%"
-                                ]
-                                [ Html.text "Level 1 vectors"
-                                , Html.text "\t"
-                                , Html.text "▼"
-                                ]
-                            )
-                            (Accordion.body [ HA.style "width" "80%", HA.style "margin-left" "50px" ]
-                                [ Element.layout [] <| Input.text []
-                                    { onChange = FilterLevel1Table
-                                    , text = Maybe.withDefault "" model.level1FilterString
-                                    , label = Input.labelLeft [] <| Element.text "Filter:"
-                                    , placeholder = Nothing
-                                    }
-                                , Element.layout [] <| insertTable model
-                                ]
-                            )
-                            model.level1AccordionStatus
+                    , Accordion.accordion
+                        (Accordion.head
+                            [ EE.onClick BackboneAccordionToggled
+
+                            -- , HA.style "background-color" "steelblue"
+                            -- , HA.style "padding" "10px"
+                            -- , HA.style "margin" "10px"
+                            -- , HA.style "padding" "20px"
+                            -- , HA.style "border" "solid black 2px"
+                            -- , HA.style "margin-left" "50px"
+                            -- , HA.style "border-radius" "25px"
+                            -- , HA.style "width" "80%"
+                            ]
+                            [ Element.text "Backbones\t▼"
+                            ]
+                        )
+                        (Accordion.body []
+                            [ Input.text []
+                                { onChange = FilterBackboneTable
+                                , text = Maybe.withDefault "" model.backboneFilterString
+                                , label = Input.labelLeft [] <| Element.text "Filter:"
+                                , placeholder = Nothing
+                                }
+                            , backboneTable model
+                            , Element.row
+                                [ centerX, spacing 50 ]
+                                [ customAddButton "+" (SwitchPage AddBackbonePage) ]
+                            ]
+                        )
+                        model.backboneAccordionStatus
+                    , Accordion.accordion
+                        (Accordion.head
+                            [ EE.onClick Level0AccordionToggled
+
+                            -- , HA.style "background-color" "steelblue"
+                            -- , HA.style "padding" "10px"
+                            -- , HA.style "margin" "10px"
+                            -- , HA.style "padding" "20px"
+                            -- , HA.style "border" "solid black 2px"
+                            -- , HA.style "margin-left" "50px"
+                            -- , HA.style "border-radius" "25px"
+                            -- , HA.style "width" "80%"
+                            ]
+                            [ Element.text "Level 0\t▼"
+                            ]
+                        )
+                        (Accordion.body []
+                            [ Input.text []
+                                { onChange = FilterLevel0Table
+                                , text = Maybe.withDefault "" model.level0FilterString
+                                , label = Input.labelLeft [] <| Element.text "Filter:"
+                                , placeholder = Nothing
+                                }
+                            , overhangRadioRow model
+                            , insertTable model
+                            , Element.row [ centerX, spacing 50 ] [ customAddButton "+" (SwitchPage AddLevel0Page) ]
+                            ]
+                        )
+                        model.level0AccordionStatus
+                    , Accordion.accordion
+                        (Accordion.head
+                            [ EE.onClick Level1AccordionToggled
+
+                            -- , HA.style "background-color" "steelblue"
+                            -- , HA.style "padding" "10px"
+                            -- , HA.style "margin" "10px"
+                            -- , HA.style "padding" "20px"
+                            -- , HA.style "border" "solid black 2px"
+                            -- , HA.style "margin-left" "50px"
+                            -- , HA.style "border-radius" "25px"
+                            -- , HA.style "width" "80%"
+                            ]
+                            [ Element.text "Level 1 vectors\t▼"
+                            ]
+                        )
+                        (Accordion.body []
+                            [ Input.text []
+                                { onChange = FilterLevel1Table
+                                , text = Maybe.withDefault "" model.level1FilterString
+                                , label = Input.labelLeft [] <| Element.text "Filter:"
+                                , placeholder = Nothing
+                                }
+                            , insertTable model
+                            ]
+                        )
+                        model.level1AccordionStatus
                     ]
                 ]
         ]
@@ -460,13 +491,65 @@ catalogueView model =
 
 addLevel0View : Model -> Document Msg
 addLevel0View model =
-    { title = "Add new Level 0"
+    { title = "Add new Level 0 vector"
     , body =
         [ Element.layout [] <|
-            row [ Element.height Element.fill ] [ navLinks ]
+            row [ Element.height Element.fill ]
+                [ navLinks
+                , column [ padding 25, spacing 25 ]
+                    [ el [ Element.Region.heading 1, Font.size 50 ] <| Element.text "Add new Level 0 donor vector"
+                    , Input.text []
+                        { label = Input.labelLeft [] <| Element.text "Name:\t"
+                        , onChange = ChangeLevel0NameToAdd
+                        , placeholder = Nothing
+                        , text = model.nameLevel0ToAdd
+                        }
+                    , Input.text []
+                        { label = Input.labelLeft [] <| Element.text "MP-G0-number:\tMP-G0- "
+                        , onChange = ChangeLevel0MpgNumberToAdd
+                        , placeholder = Nothing
+                        , text = model.mpg0NumberLevel0ToAdd
+                        }
+                    , row []
+                        [ el [] <| Element.text "Length (bp):\t"
+                        , Element.html <|
+                            Html.input
+                                [ HA.type_ "number"
+                                , HA.min "0"
+                                , Html.Events.onInput ChangeLevel0LengthToAdd
+                                , HA.value (String.fromInt model.lengthLevel0ToAdd)
+                                , HA.style "padding" "10px"
+                                ]
+                                []
+                        ]
+                    , Input.radioRow [spacing 5, padding 10]
+                        { label = Input.labelAbove [] <| Element.text "Overhang Type:\t"
+                            , onChange = ChangeLevel0OverhangToAdd
+                            , options =
+                                makeOverhangOptions completeOverhangList
+                            , selected = model.overhangLevel0ToAdd
+                         }
+                    , Element.html <| Html.button [ HA.style "margin" "50px", onClick GBNewLevel0Requested ] [ Html.text "Load Genbank file" ]
+                    , Input.button
+                        [ centerX
+                        , Background.color color.blue
+                        , padding 10
+                        , Font.color color.white
+                        , Border.width 3
+                        , Border.solid
+                        , Border.color color.darkCharcoal
+                        , Border.rounded 25
+                        ]
+                        { label = Element.text "Add"
+                        , onPress = Just (AddLevel0 { name = model.nameLevel0ToAdd, mPG0Number = "MP-G0-" ++ model.mpg0NumberLevel0ToAdd, overhang = model.overhangLevel0ToAdd, length = model.lengthLevel0ToAdd })
+                        }
+                    ]
+                ]
         ]
     }
 
+makeOverhangOptions overHangList =
+    List.map2 Input.option overHangList (List.map Element.text (List.map showOverhang overHangList))
 
 addBackboneView : Model -> Document Msg
 addBackboneView model =
@@ -486,12 +569,18 @@ addBackboneView model =
                     , Input.text []
                         { onChange = ChangeBackboneMpgNumberToAdd
                         , text = model.mpgbNumberBackboneToAdd
-                        , label = Input.labelLeft [] <| Element.text "MP-GB-number:"
+                        , label = Input.labelLeft [] <| Element.text "MP-GB-number:\tMP-GB-"
                         , placeholder = Nothing
                         }
-                    , Element.html <| Html.input [ HA.type_ "number", HA.min "0", HA.max "2", Html.Events.onInput ChangeBackboneLevelToAdd, HA.value (String.fromInt model.levelBackboneToAdd) ] []
-                    , Element.html <| Html.input [ HA.type_ "number", HA.min "1", Html.Events.onInput ChangeBackboneLengthToAdd, HA.value (String.fromInt model.lengthBackboneToAdd) ] []
-                    , Element.html <| Html.button [ onClick GbRequested ] [ Html.text "Load Genbank file" ]
+                    , row []
+                        [ el [] <| Element.text "Choose a level:"
+                        , Element.html <| Html.input [ HA.style "margin" "25px", HA.type_ "number", HA.min "0", HA.max "2", Html.Events.onInput ChangeBackboneLevelToAdd, HA.value (String.fromInt model.levelBackboneToAdd) ] []
+                        ]
+                    , row []
+                        [ el [] <| Element.text "Length (bp):"
+                        , Element.html <| Html.input [ HA.style "margin" "25px", HA.type_ "number", HA.min "1", Html.Events.onInput ChangeBackboneLengthToAdd, HA.value (String.fromInt model.lengthBackboneToAdd) ] []
+                        ]
+                    , Element.html <| Html.button [ HA.style "margin" "50px", onClick GbNewBackboneRequested ] [ Html.text "Load Genbank file" ]
                     , Input.button
                         [ centerX
                         , Background.color color.blue
@@ -503,9 +592,7 @@ addBackboneView model =
                         , Border.rounded 25
                         ]
                         { label = Element.text "Add"
-
-                        -- , onPress = Just (AddBackbone (addBackbone (model.nameBackboneToAdd model.mpgbNumberBackboneToAdd model.levelBackboneToAdd model.lengthBackboneToAdd)))
-                        , onPress = Just (AddBackbone { name = model.nameBackboneToAdd, mPGBNumber = model.mpgbNumberBackboneToAdd, level = model.levelBackboneToAdd, length = model.lengthBackboneToAdd })
+                        , onPress = Just (AddBackbone { name = model.nameBackboneToAdd, mPGBNumber = "MP-GB-" ++ model.mpgbNumberBackboneToAdd, level = model.levelBackboneToAdd, length = model.lengthBackboneToAdd })
                         }
                     ]
                 ]
@@ -658,7 +745,7 @@ customAddButton buttonText msg =
 
 
 
--- Visual representation
+-- Visual Representation
 
 
 w : Float
@@ -719,7 +806,7 @@ visualRepresentation model =
     let
         -- Note: The reversing is for making sure insert 1 is at position 0. This way the destination vector is appended on the back of the list!
         insertOverhangs =
-            List.map showOverhang <| List.map .overhang model.selectedInserts
+            List.map showOverhang <| List.map (Maybe.withDefault Invalid) <| List.map .overhang model.selectedInserts
 
         insertNames =
             List.map .name model.selectedInserts
@@ -796,15 +883,51 @@ visualRepresentation model =
             ]
         ]
 
+
+
 -- elements
+
 
 navLinks : Element Msg
 navLinks =
-    column [ Background.color color.blue, Element.height Element.fill, padding 10, spacing 10 ]
-        [ Input.button [ Font.size 15, Font.color color.white, Element.width Element.fill, Font.underline, Font.bold ] { onPress = Just (SwitchPage Catalogue), label = Element.text "Home" }
-        , Input.button [ Font.size 15, Font.color color.white, Element.width Element.fill, Font.underline, Font.bold ] { onPress = Just (SwitchPage Catalogue), label = Element.text "Vector Catalog" }
-        , Input.button [ Font.size 15, Font.color color.white, Element.width Element.fill, Font.underline, Font.bold ] { onPress = Just (SwitchPage ConstructLevel1), label = Element.text "New Level 1 construct" }
-        , Input.button [ Font.size 15, Font.color color.white, Element.width Element.fill, Font.underline, Font.bold ] { onPress = Just (SwitchPage ConstructLevel2), label = Element.text "New Level 2 construct" }
+    column
+        [ Background.color color.blue
+        , Element.height Element.fill
+        , padding 10
+        , spacing 10
+        ]
+        [ Input.button
+            [ Font.size 15
+            , Font.color color.white
+            , Element.width Element.fill
+            , Font.underline
+            , Font.bold
+            ]
+            { onPress = Just (SwitchPage Catalogue), label = Element.text "Home" }
+        , Input.button
+            [ Font.size 15
+            , Font.color color.white
+            , Element.width Element.fill
+            , Font.underline
+            , Font.bold
+            ]
+            { onPress = Just (SwitchPage Catalogue), label = Element.text "Vector Catalog" }
+        , Input.button
+            [ Font.size 15
+            , Font.color color.white
+            , Element.width Element.fill
+            , Font.underline
+            , Font.bold
+            ]
+            { onPress = Just (SwitchPage ConstructLevel1), label = Element.text "New Level 1 construct" }
+        , Input.button
+            [ Font.size 15
+            , Font.color color.white
+            , Element.width Element.fill
+            , Font.underline
+            , Font.bold
+            ]
+            { onPress = Just (SwitchPage ConstructLevel2), label = Element.text "New Level 2 construct" }
         ]
 
 
@@ -988,8 +1111,8 @@ insertTable model =
                 , padding 25
                 ]
                 -- { data = List.filter(filterLevel0 model.level0FilterString) <| model.insertList
-                -- { data = List.filter(filterLevel0OnOverhang (showOverhang model.currOverhang) model.insertList 
-                { data = model.insertList |> List.filter(filterLevel0OnOverhang model.currOverhang) |> List.filter(filterLevel0 model.level0FilterString)
+                -- { data = List.filter(filterLevel0OnOverhang (showOverhang model.currOverhang) model.insertList
+                { data = model.insertList |> List.filter (filterLevel0OnOverhang( Just model.currOverhang)) |> List.filter (filterLevel0 model.level0FilterString)
                 , columns =
                     [ { header = none
                       , width = fillPortion 3
@@ -1007,7 +1130,7 @@ insertTable model =
                       }
                     , { header = none
                       , width = fillPortion 1
-                      , view = .overhang >> showOverhang >> Element.text >> el [ centerY ]
+                      , view = .overhang >> Maybe.withDefault Invalid >> showOverhang >> Element.text >> el [ centerY ]
                       }
                     ]
                 }
@@ -1285,9 +1408,6 @@ update msg model =
             , Cmd.none
             )
 
-        AddLevel0 newIns ->
-            ( { model | insertList = newIns :: model.insertList }, Cmd.none )
-
         AddBackbone newBB ->
             ( { model | backboneList = newBB :: model.backboneList }, Cmd.none )
 
@@ -1303,36 +1423,74 @@ update msg model =
         ChangeBackboneLengthToAdd len_str ->
             ( { model | lengthBackboneToAdd = len_str |> String.toInt |> Maybe.withDefault model.lengthBackboneToAdd }, Cmd.none )
 
-        GbRequested ->
-            ( model, Select.file [ "text" ] GbSelected )
+        GbNewBackboneRequested ->
+            ( model, Select.file [ "text" ] GbNewBackboneSelected )
 
-        GbSelected file ->
-            ( model, Task.perform GbLoaded (File.toString file) )
+        GbNewBackboneSelected file ->
+            ( model, Task.perform GbNewBackboneLoaded (File.toString file) )
 
-        GbLoaded content ->
+        GbNewBackboneLoaded content ->
             ( { model | backboneGenbankContent = Just <| Debug.log "Genbank Content:" content }, Cmd.none )
+
+        AddLevel0 newIns ->
+            ( { model | insertList = newIns :: model.insertList }, Cmd.none )
+
+        ChangeLevel0NameToAdd name ->
+            ( { model | nameLevel0ToAdd = name }, Cmd.none )
+
+        ChangeLevel0MpgNumberToAdd mpg0Number ->
+            ( { model | mpg0NumberLevel0ToAdd = mpg0Number }, Cmd.none )
+
+        ChangeLevel0OverhangToAdd overhang ->
+            ( { model | overhangLevel0ToAdd = Just overhang }, Cmd.none )
+
+        ChangeLevel0LengthToAdd len_str ->
+            ( { model | lengthLevel0ToAdd = len_str |> String.toInt |> Maybe.withDefault model.lengthLevel0ToAdd }, Cmd.none )
+
+        GBNewLevel0Requested ->
+            ( model, Select.file [ "text" ] GBNewLevel0Selected )
+
+        GBNewLevel0Selected file ->
+            ( model, Task.perform GbNewLevel0Loaded (File.toString file) )
+
+        GbNewLevel0Loaded content ->
+            ( { model | level0GenbankContent = Just <| Debug.log "Genbank Content:" content }, Cmd.none )
 
 
 addInsert =
     Nothing
 
+
+
 -- Filter functions
-   
+
+
 filterBackbone : Maybe String -> Backbone -> Bool
 filterBackbone needle val =
     case needle of
-       Nothing -> True
-       Just ndle -> String.contains ndle val.name || String.contains ndle val.mPGBNumber
+        Nothing ->
+            True
+
+        Just ndle ->
+            String.contains ndle val.name || String.contains ndle val.mPGBNumber
+
 
 filterLevel0 needle val =
     case needle of
-       Nothing -> True
-       Just ndle -> String.contains ndle val.name || String.contains ndle val.mPG0Number
+        Nothing ->
+            True
+
+        Just ndle ->
+            String.contains ndle val.name || String.contains ndle val.mPG0Number
+
 
 filterLevel0OnOverhang needle val =
-     needle == val.overhang
+    needle == val.overhang
+
+
 
 -- End Filter functions
+
 
 getLoginUrls : Cmd Msg
 getLoginUrls =
@@ -1376,6 +1534,8 @@ main =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.none
+
+
 
 --
 
@@ -1460,69 +1620,69 @@ stringToOverhang strOverhang =
 
 testInsertList : Overhang -> List Insert
 testInsertList overhang =
-    [ { name = "Insert A1", mPG0Number = "MG-G0-000001", overhang = A__B, length = 952 }
-    , { name = "Insert A2", mPG0Number = "MG-G0-000002", overhang = A__B, length = 1526 }
-    , { name = "Insert A3", mPG0Number = "MG-G0-000003", overhang = A__B, length = 1874 }
-    , { name = "Insert A4", mPG0Number = "MG-G0-000004", overhang = A__B, length = 2698 }
-    , { name = "Insert A5", mPG0Number = "MG-G0-000005", overhang = A__B, length = 528 }
-    , { name = "Insert A6", mPG0Number = "MG-G0-000006", overhang = A__B, length = 865 }
-    , { name = "Insert A7", mPG0Number = "MG-G0-000007", overhang = A__B, length = 1058 }
-    , { name = "Insert B1", mPG0Number = "MG-G0-000008", overhang = B__C, length = 952 }
-    , { name = "Insert B2", mPG0Number = "MG-G0-000009", overhang = B__C, length = 1526 }
-    , { name = "Insert B3", mPG0Number = "MG-G0-000010", overhang = B__C, length = 1874 }
-    , { name = "Insert B4", mPG0Number = "MG-G0-000011", overhang = B__C, length = 2698 }
-    , { name = "Insert B5", mPG0Number = "MG-G0-000012", overhang = B__C, length = 528 }
-    , { name = "Insert B6", mPG0Number = "MG-G0-000013", overhang = B__C, length = 865 }
-    , { name = "Insert B7", mPG0Number = "MG-G0-000014", overhang = B__C, length = 1058 }
-    , { name = "Insert C1", mPG0Number = "MG-G0-000015", overhang = C__D, length = 952 }
-    , { name = "Insert C2", mPG0Number = "MG-G0-000016", overhang = C__D, length = 1526 }
-    , { name = "Insert C3", mPG0Number = "MG-G0-000017", overhang = C__D, length = 1874 }
-    , { name = "Insert C4", mPG0Number = "MG-G0-000018", overhang = C__D, length = 2698 }
-    , { name = "Insert C5", mPG0Number = "MG-G0-000019", overhang = C__D, length = 528 }
-    , { name = "Insert C6", mPG0Number = "MG-G0-000020", overhang = C__D, length = 865 }
-    , { name = "Insert C7", mPG0Number = "MG-G0-000021", overhang = C__D, length = 1058 }
-    , { name = "Insert D1", mPG0Number = "MG-G0-000022", overhang = C__G, length = 952 }
-    , { name = "Insert D2", mPG0Number = "MG-G0-000023", overhang = C__G, length = 1526 }
-    , { name = "Insert D3", mPG0Number = "MG-G0-000024", overhang = C__G, length = 1874 }
-    , { name = "Insert D4", mPG0Number = "MG-G0-000025", overhang = C__G, length = 2698 }
-    , { name = "Insert D5", mPG0Number = "MG-G0-000026", overhang = C__G, length = 528 }
-    , { name = "Insert D6", mPG0Number = "MG-G0-000027", overhang = C__G, length = 865 }
-    , { name = "Insert D7", mPG0Number = "MG-G0-000028", overhang = C__G, length = 1058 }
-    , { name = "Insert E1", mPG0Number = "MG-G0-000029", overhang = D__E, length = 952 }
-    , { name = "Insert E2", mPG0Number = "MG-G0-000030", overhang = D__E, length = 1526 }
-    , { name = "Insert E3", mPG0Number = "MG-G0-000031", overhang = D__E, length = 1874 }
-    , { name = "Insert E4", mPG0Number = "MG-G0-000032", overhang = D__E, length = 2698 }
-    , { name = "Insert E5", mPG0Number = "MG-G0-000033", overhang = D__E, length = 528 }
-    , { name = "Insert E6", mPG0Number = "MG-G0-000034", overhang = D__E, length = 865 }
-    , { name = "Insert E7", mPG0Number = "MG-G0-000035", overhang = D__E, length = 1058 }
-    , { name = "Insert F1", mPG0Number = "MG-G0-000036", overhang = D__G, length = 952 }
-    , { name = "Insert F2", mPG0Number = "MG-G0-000037", overhang = D__G, length = 1526 }
-    , { name = "Insert F3", mPG0Number = "MG-G0-000038", overhang = D__G, length = 1874 }
-    , { name = "Insert F4", mPG0Number = "MG-G0-000039", overhang = D__G, length = 2698 }
-    , { name = "Insert F5", mPG0Number = "MG-G0-000040", overhang = D__G, length = 528 }
-    , { name = "Insert F6", mPG0Number = "MG-G0-000041", overhang = D__G, length = 865 }
-    , { name = "Insert F7", mPG0Number = "MG-G0-000042", overhang = D__G, length = 1058 }
-    , { name = "Insert G1", mPG0Number = "MG-G0-000043", overhang = E__F, length = 952 }
-    , { name = "Insert G2", mPG0Number = "MG-G0-000044", overhang = E__F, length = 1526 }
-    , { name = "Insert G3", mPG0Number = "MG-G0-000045", overhang = E__F, length = 1874 }
-    , { name = "Insert G4", mPG0Number = "MG-G0-000046", overhang = E__F, length = 2698 }
-    , { name = "Insert G5", mPG0Number = "MG-G0-000047", overhang = E__F, length = 528 }
-    , { name = "Insert G6", mPG0Number = "MG-G0-000048", overhang = E__F, length = 865 }
-    , { name = "Insert G7", mPG0Number = "MG-G0-000049", overhang = E__F, length = 1058 }
-    , { name = "Insert H1", mPG0Number = "MG-G0-000050", overhang = E__G, length = 952 }
-    , { name = "Insert H2", mPG0Number = "MG-G0-000051", overhang = E__G, length = 1526 }
-    , { name = "Insert H3", mPG0Number = "MG-G0-000052", overhang = E__G, length = 1874 }
-    , { name = "Insert H4", mPG0Number = "MG-G0-000053", overhang = E__G, length = 2698 }
-    , { name = "Insert H5", mPG0Number = "MG-G0-000054", overhang = E__G, length = 528 }
-    , { name = "Insert H6", mPG0Number = "MG-G0-000055", overhang = E__G, length = 865 }
-    , { name = "Insert H7", mPG0Number = "MG-G0-000056", overhang = E__G, length = 1058 }
-    , { name = "Insert I1", mPG0Number = "MG-G0-000057", overhang = F__G, length = 952 }
-    , { name = "Insert I2", mPG0Number = "MG-G0-000058", overhang = F__G, length = 1526 }
-    , { name = "Insert I3", mPG0Number = "MG-G0-000059", overhang = F__G, length = 1874 }
-    , { name = "Insert I4", mPG0Number = "MG-G0-000060", overhang = F__G, length = 2698 }
-    , { name = "Insert I5", mPG0Number = "MG-G0-000061", overhang = F__G, length = 528 }
-    , { name = "Insert I6", mPG0Number = "MG-G0-000062", overhang = F__G, length = 865 }
-    , { name = "Insert I7", mPG0Number = "MG-G0-000063", overhang = F__G, length = 1058 }
+    [ { name = "Insert A1", mPG0Number = "MG-G0-000001", overhang = Just A__B, length = 952 }
+    , { name = "Insert A2", mPG0Number = "MG-G0-000002", overhang = Just A__B, length = 1526 }
+    , { name = "Insert A3", mPG0Number = "MG-G0-000003", overhang = Just A__B, length = 1874 }
+    , { name = "Insert A4", mPG0Number = "MG-G0-000004", overhang = Just A__B, length = 2698 }
+    , { name = "Insert A5", mPG0Number = "MG-G0-000005", overhang = Just A__B, length = 528 }
+    , { name = "Insert A6", mPG0Number = "MG-G0-000006", overhang = Just A__B, length = 865 }
+    , { name = "Insert A7", mPG0Number = "MG-G0-000007", overhang = Just A__B, length = 1058 }
+    , { name = "Insert B1", mPG0Number = "MG-G0-000008", overhang = Just B__C, length = 952 }
+    , { name = "Insert B2", mPG0Number = "MG-G0-000009", overhang = Just B__C, length = 1526 }
+    , { name = "Insert B3", mPG0Number = "MG-G0-000010", overhang = Just B__C, length = 1874 }
+    , { name = "Insert B4", mPG0Number = "MG-G0-000011", overhang = Just B__C, length = 2698 }
+    , { name = "Insert B5", mPG0Number = "MG-G0-000012", overhang = Just B__C, length = 528 }
+    , { name = "Insert B6", mPG0Number = "MG-G0-000013", overhang = Just B__C, length = 865 }
+    , { name = "Insert B7", mPG0Number = "MG-G0-000014", overhang = Just B__C, length = 1058 }
+    , { name = "Insert C1", mPG0Number = "MG-G0-000015", overhang = Just C__D, length = 952 }
+    , { name = "Insert C2", mPG0Number = "MG-G0-000016", overhang = Just C__D, length = 1526 }
+    , { name = "Insert C3", mPG0Number = "MG-G0-000017", overhang = Just C__D, length = 1874 }
+    , { name = "Insert C4", mPG0Number = "MG-G0-000018", overhang = Just C__D, length = 2698 }
+    , { name = "Insert C5", mPG0Number = "MG-G0-000019", overhang = Just C__D, length = 528 }
+    , { name = "Insert C6", mPG0Number = "MG-G0-000020", overhang = Just C__D, length = 865 }
+    , { name = "Insert C7", mPG0Number = "MG-G0-000021", overhang = Just C__D, length = 1058 }
+    , { name = "Insert D1", mPG0Number = "MG-G0-000022", overhang = Just C__G, length = 952 }
+    , { name = "Insert D2", mPG0Number = "MG-G0-000023", overhang = Just C__G, length = 1526 }
+    , { name = "Insert D3", mPG0Number = "MG-G0-000024", overhang = Just C__G, length = 1874 }
+    , { name = "Insert D4", mPG0Number = "MG-G0-000025", overhang = Just C__G, length = 2698 }
+    , { name = "Insert D5", mPG0Number = "MG-G0-000026", overhang = Just C__G, length = 528 }
+    , { name = "Insert D6", mPG0Number = "MG-G0-000027", overhang = Just C__G, length = 865 }
+    , { name = "Insert D7", mPG0Number = "MG-G0-000028", overhang = Just C__G, length = 1058 }
+    , { name = "Insert E1", mPG0Number = "MG-G0-000029", overhang = Just D__E, length = 952 }
+    , { name = "Insert E2", mPG0Number = "MG-G0-000030", overhang = Just D__E, length = 1526 }
+    , { name = "Insert E3", mPG0Number = "MG-G0-000031", overhang = Just D__E, length = 1874 }
+    , { name = "Insert E4", mPG0Number = "MG-G0-000032", overhang = Just D__E, length = 2698 }
+    , { name = "Insert E5", mPG0Number = "MG-G0-000033", overhang = Just D__E, length = 528 }
+    , { name = "Insert E6", mPG0Number = "MG-G0-000034", overhang = Just D__E, length = 865 }
+    , { name = "Insert E7", mPG0Number = "MG-G0-000035", overhang = Just D__E, length = 1058 }
+    , { name = "Insert F1", mPG0Number = "MG-G0-000036", overhang = Just D__G, length = 952 }
+    , { name = "Insert F2", mPG0Number = "MG-G0-000037", overhang = Just D__G, length = 1526 }
+    , { name = "Insert F3", mPG0Number = "MG-G0-000038", overhang = Just D__G, length = 1874 }
+    , { name = "Insert F4", mPG0Number = "MG-G0-000039", overhang = Just D__G, length = 2698 }
+    , { name = "Insert F5", mPG0Number = "MG-G0-000040", overhang = Just D__G, length = 528 }
+    , { name = "Insert F6", mPG0Number = "MG-G0-000041", overhang = Just D__G, length = 865 }
+    , { name = "Insert F7", mPG0Number = "MG-G0-000042", overhang = Just D__G, length = 1058 }
+    , { name = "Insert G1", mPG0Number = "MG-G0-000043", overhang = Just E__F, length = 952 }
+    , { name = "Insert G2", mPG0Number = "MG-G0-000044", overhang = Just E__F, length = 1526 }
+    , { name = "Insert G3", mPG0Number = "MG-G0-000045", overhang = Just E__F, length = 1874 }
+    , { name = "Insert G4", mPG0Number = "MG-G0-000046", overhang = Just E__F, length = 2698 }
+    , { name = "Insert G5", mPG0Number = "MG-G0-000047", overhang = Just E__F, length = 528 }
+    , { name = "Insert G6", mPG0Number = "MG-G0-000048", overhang = Just E__F, length = 865 }
+    , { name = "Insert G7", mPG0Number = "MG-G0-000049", overhang = Just E__F, length = 1058 }
+    , { name = "Insert H1", mPG0Number = "MG-G0-000050", overhang = Just E__G, length = 952 }
+    , { name = "Insert H2", mPG0Number = "MG-G0-000051", overhang = Just E__G, length = 1526 }
+    , { name = "Insert H3", mPG0Number = "MG-G0-000052", overhang = Just E__G, length = 1874 }
+    , { name = "Insert H4", mPG0Number = "MG-G0-000053", overhang = Just E__G, length = 2698 }
+    , { name = "Insert H5", mPG0Number = "MG-G0-000054", overhang = Just E__G, length = 528 }
+    , { name = "Insert H6", mPG0Number = "MG-G0-000055", overhang = Just E__G, length = 865 }
+    , { name = "Insert H7", mPG0Number = "MG-G0-000056", overhang = Just E__G, length = 1058 }
+    , { name = "Insert I1", mPG0Number = "MG-G0-000057", overhang = Just F__G, length = 952 }
+    , { name = "Insert I2", mPG0Number = "MG-G0-000058", overhang = Just F__G, length = 1526 }
+    , { name = "Insert I3", mPG0Number = "MG-G0-000059", overhang = Just F__G, length = 1874 }
+    , { name = "Insert I4", mPG0Number = "MG-G0-000060", overhang = Just F__G, length = 2698 }
+    , { name = "Insert I5", mPG0Number = "MG-G0-000061", overhang = Just F__G, length = 528 }
+    , { name = "Insert I6", mPG0Number = "MG-G0-000062", overhang = Just F__G, length = 865 }
+    , { name = "Insert I7", mPG0Number = "MG-G0-000063", overhang = Just F__G, length = 1058 }
     ]
 
 
@@ -1549,5 +1709,4 @@ testBackboneList bbLevel =
     , { name = "Backbone L2-5", mPGBNumber = "MP-GB-000025", level = 2, length = 11470 }
     , { name = "Backbone L2-6", mPGBNumber = "MP-GB-000026", level = 2, length = 13690 }
     , { name = "Backbone L2-7", mPGBNumber = "MP-GB-000027", level = 2, length = 12580 }
-    
     ]
