@@ -34,7 +34,7 @@ async def get_http_client() -> AsyncGenerator:
 
 
 def get_current_user(
-    database: Session = Depends(get_db), authorization: str = Header(...)
+    database: Session = Depends(get_db), authorization: str = Header(None)
 ) -> model.User:
     "Provide access to the User currently accessing the API."
     unknown_user = HTTPException(

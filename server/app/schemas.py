@@ -52,3 +52,37 @@ class Provider(BaseModel):
 class LoginUrl(BaseModel):
     name: str
     url: str
+
+# Adding data
+
+
+class Reference(BaseModel):
+    authors: str
+    title: str
+
+class Qualifier(BaseModel):
+    key: str
+    value: str
+
+
+class Feature(BaseModel):
+    type: str
+    qualifiers: List[Qualifier] 
+    start_pos: int
+    end_pos: int
+    strand: int
+
+
+class Annotation(BaseModel):
+    key: str
+    value: str
+
+class Vector(BaseModel):
+    name: str
+    mpg_number: str
+    sequence: str
+    sequence_length: int
+    annotations: List[Annotation]
+    features: List[Feature]
+    references: List[Reference]
+

@@ -6,8 +6,6 @@ import Browser exposing (Document, application)
 import Browser.Dom exposing (Error(..))
 import Browser.Navigation as Nav
 import Color
-import Debug exposing (toString, todo)
-import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border exposing (rounded)
@@ -20,8 +18,8 @@ import File.Select as Select
 import Html exposing (Html, a, button, div, i, label, span, text)
 import Html.Attributes as HA
 import Html.Events exposing (onClick)
-import Http exposing (Error(..), expectJson, expectString, jsonBody)
-import Json.Decode as Decode exposing (Decoder)
+import Http exposing (Error(..), expectJson, jsonBody)
+import Json.Decode as Decode
 import Json.Encode as Encode
 import List
 import List.Extra
@@ -39,6 +37,7 @@ import Url.Parser exposing ((</>), Parser, int, parse, query, s)
 import Url.Parser.Query as Query exposing (map2, string)
 import Zoom exposing (events)
 import TypedSvg.Types exposing (Length(..))
+
 
 
 overhangList3 : List Overhang
@@ -243,7 +242,7 @@ checkAuthUrl url =
             getAuthentication authReq
 
         Nothing ->
-            Debug.log "extract code and state failed" Cmd.none
+            Cmd.none
 
 
 extractCodeAndState : Url -> Maybe Authentication
@@ -583,7 +582,11 @@ constructLevel1View model =
             , inFront <| navLinks
             ]
           <|
-            row []
+            row
+                [ Element.width Element.fill
+                , Element.height Element.fill
+                , spacing 10
+                ]
                 [ navLinks
                 , column [ spacing 25, Element.width Element.fill, centerX, padding 50 ]
                     [ Element.html <| mainView model
@@ -665,47 +668,151 @@ constructLevel1View model =
                         Element.text "Construct visualisation"
                     , Element.html <| visualRepresentation model
                     ]
+
                 ]
         ]
     }
 
 
-mainView : Model -> Html Msg
+mainView : Model -> Element Msg
 mainView model =
-    case model.user of
-        Just user ->
-            Html.text <| Maybe.withDefault "No user name" user.name
+    column
+        [ Element.width Element.fill
+        , Element.height Element.fill
+        ]
+    <|
+        case model.user of
+            Just user ->
+                [ Element.text ("Welcome " ++ Maybe.withDefault "No user name" user.name)
+                , addVectorView model
+                ]
 
-        Nothing ->
-            div [] <| viewLoginUrls model.loginUrls
+            Nothing ->
+                viewLoginForm model.loginUrls
 
 
-viewLoginUrls : List Login -> List (Html Msg)
-viewLoginUrls loginUrls =
+addVectorView : Model -> Element Msg
+addVectorView model =
+    column [ spacing 25, Element.width Element.fill, centerX, padding 50 ]
+        [ el
+            [ Element.Region.heading 2
+            , Font.size 50
+            , Font.color color.darkCharcoal
+            ]
+          <|
+            Element.text "Level 1 construct design"
+        , el
+            [ Element.Region.heading 1
+            , Font.size 25
+            , Font.color color.darkCharcoal
+            ]
+          <|
+            Element.text "Construct information"
+        , Input.text []
+            { onChange = ChangeConstructName
+            , label = Input.labelLeft [] <| Element.text "Construct name: "
+            , text = model.constructName
+            , placeholder = Nothing
+            }
+        , Input.text []
+            { onChange = ChangeConstructNumber
+            , label = Input.labelLeft [] <| Element.text "Construct number: "
+            , text = model.constructNumber
+            , placeholder = Nothing
+            }
+        , row [ spacing 50 ]
+            [ el [] <| Element.text "Length (bp):"
+            , el [ Background.color color.lightGrey, padding 10 ] <| Element.text (String.fromInt model.constructLength)
+            ]
+        , Input.multiline [ Element.height <| px 150 ]
+            { text = model.applicationNote
+            , onChange = ChangeApplicationNote
+            , label = Input.labelLeft [] <| Element.text "Application Note: "
+            , spellcheck = True
+            , placeholder = Nothing
+            }
+        , Input.text []
+            { onChange = ChangeConstructDesignerName
+            , label = Input.labelLeft [] <| Element.text "Designer Name: "
+            , text = model.designerName
+            , placeholder = Nothing
+            }
+        , Input.multiline [ Element.height <| px 150 ]
+            { text = model.description
+            , onChange = ChangeDescription
+            , label = Input.labelLeft [] <| Element.text "Description: "
+            , spellcheck = True
+            , placeholder = Nothing
+            }
+        , el
+            [ Element.Region.heading 2
+            , Font.size 25
+            , Font.color color.darkCharcoal
+            ]
+          <|
+            Element.text "Destination vector selection"
+        , backboneTable model
+        , el
+            [ Element.Region.heading 2
+            , Font.size 25
+            , Font.color color.darkCharcoal
+            ]
+          <|
+            Element.text "Donor vector selection"
+        , applicationRadioButton model
+        , overhangRadioRow model
+        , insertTable model
+        , downloadButtonBar
+        , el
+            [ Element.Region.heading 2
+            , Font.size 25
+            , Font.color color.darkCharcoal
+            ]
+          <|
+            Element.text "Construct visualisation"
+        , Element.html <| visualRepresentation model
+        ]
+
+
+viewLoginForm : List Login -> List (Element Msg)
+viewLoginForm loginUrls =
     case loginUrls of
         [] ->
-            [ Html.text "Fetching..." ]
+        
+            [ Element.text "Fetching..." ]
 
         _ ->
-            List.map (\lgn -> a [ HA.href lgn.url ] [ Html.text lgn.name ]) loginUrls
+            [ column
+                [ Element.width Element.fill
+                , Element.height Element.fill
+                , spacing 10
+                ]
+              <|
+                el
+                    [ centerX
+                    , centerY
+                    , padding 10
+                    , Font.size 18
+                    ]
+                    (text "Login with:")
+                    :: List.map loginButton loginUrls
+            ]
 
 
-customAddButton : String -> Msg -> Element Msg
-customAddButton buttonText msg =
-    Input.button
+loginButton : Login -> Element Msg
+loginButton lgn =
+    el
         [ centerX
-        , Background.color color.blue
-        , Font.color color.white
-        , padding 25
-        , Border.width 3
+        , centerY
+        , padding 10
+        , Border.rounded 10
         , Border.solid
-        , Border.color color.darkCharcoal
-        , Border.rounded 100
+        , Border.color (rgb 0 0 0)
+        , Border.width 1
+        , mouseOver [ Background.color (rgb 0.9 0.9 0.9) ]
         ]
-        { label = Element.text buttonText
-        , onPress = Just msg
-        }
-
+    <|
+        Element.link [ spacing 10, Font.size 18, Font.color (rgb 0 0 1) ] { url = lgn.url, label = Element.text lgn.name }
 
 
 -- Visual Representation
@@ -1231,7 +1338,6 @@ showHttpError err =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     let
-        -- _ = Debug.log "Some String" msg
         updateOverhangShape : Application -> List Overhang
         updateOverhangShape app =
             case app of

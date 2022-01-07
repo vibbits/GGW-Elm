@@ -9,12 +9,8 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@parcel/transformer-elm": "^2.0.0",
+    "@parcel/transformer-elm": "^2.0.1",
     "elm": "^0.19.1-5",
-    "elm-live": "^4.0.2",
-    "parcel": "^2.0.0"
-  },
-  "dependencies": {
-    "elm-accordion": "^1.0.4"
+    "parcel": "^2.0.1"
   }
 }

@@ -31,7 +31,7 @@ def create_admin(iss, sub, name):
 
         user = schemas.UserCreate(name=name, role="admin", iss=provider.issuer, sub=sub)
         crud.create_user(database, user)
-        click.echo(f"Admin ({name}) created with issuer \"{provider.name}\"")
+        click.echo(f'Admin ({name}) created with issuer "{provider.name}"')
 
 
 @cli.command()
