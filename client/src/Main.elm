@@ -8,6 +8,7 @@ import Color
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border exposing (rounded)
+import Element.Font as Font
 import Element.Input as Input exposing (OptionState(..))
 import Element.Region
 import Html exposing (Html, a, button, label)
@@ -397,7 +398,6 @@ loginButton lgn =
 
 
 
-
 -- Visual representation
 
 
@@ -493,18 +493,6 @@ visualRepresentation model =
 
                 GT ->
                     GT
-
-        descending : comparable -> comparable -> Order
-        descending a b =
-            case compare a b of
-                LT ->
-                    GT
-
-                EQ ->
-                    EQ
-
-                GT ->
-                    LT
 
         sortedInsertRecordList =
             sortByWith .overhang ascending insertRecordList
@@ -1030,7 +1018,7 @@ main =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
 
