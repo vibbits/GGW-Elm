@@ -20,7 +20,6 @@
             "folkertdev/one-true-path-experiment": "6.0.0",
             "folkertdev/svg-path-lowlevel": "4.0.1",
             "gampleman/elm-visualization": "2.3.0",
-            "hallelujahdrive/elm-accordion": "1.0.4",
             "mdgriffith/elm-ui": "1.1.8"
         },
         "indirect": {
