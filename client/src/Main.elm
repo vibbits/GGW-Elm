@@ -400,20 +400,15 @@ catalogueView model =
                     , Accordion.accordion
                         (Accordion.head
                             [ EE.onClick BackboneAccordionToggled
-
-                            -- , HA.style "background-color" "steelblue"
-                            -- , HA.style "padding" "10px"
-                            -- , HA.style "margin" "10px"
-                            -- , HA.style "padding" "20px"
-                            -- , HA.style "border" "solid black 2px"
-                            -- , HA.style "margin-left" "50px"
-                            -- , HA.style "border-radius" "25px"
-                            -- , HA.style "width" "80%"
+                            , Background.color color.blue
+                            , padding 25
+                            , Border.solid
+                            , Border.rounded 6
                             ]
                             [ Element.text "Backbones\t▼"
                             ]
                         )
-                        (Accordion.body []
+                        (Accordion.body [spacing 25]
                             [ Input.text []
                                 { onChange = FilterBackboneTable
                                 , text = Maybe.withDefault "" model.backboneFilterString
@@ -430,20 +425,15 @@ catalogueView model =
                     , Accordion.accordion
                         (Accordion.head
                             [ EE.onClick Level0AccordionToggled
-
-                            -- , HA.style "background-color" "steelblue"
-                            -- , HA.style "padding" "10px"
-                            -- , HA.style "margin" "10px"
-                            -- , HA.style "padding" "20px"
-                            -- , HA.style "border" "solid black 2px"
-                            -- , HA.style "margin-left" "50px"
-                            -- , HA.style "border-radius" "25px"
-                            -- , HA.style "width" "80%"
+                            , Background.color color.blue
+                            , padding 25
+                            , Border.solid
+                            , Border.rounded 6
                             ]
                             [ Element.text "Level 0\t▼"
                             ]
                         )
-                        (Accordion.body []
+                        (Accordion.body [spacing 25]
                             [ Input.text []
                                 { onChange = FilterLevel0Table
                                 , text = Maybe.withDefault "" model.level0FilterString
@@ -456,33 +446,6 @@ catalogueView model =
                             ]
                         )
                         model.level0AccordionStatus
-                    , Accordion.accordion
-                        (Accordion.head
-                            [ EE.onClick Level1AccordionToggled
-
-                            -- , HA.style "background-color" "steelblue"
-                            -- , HA.style "padding" "10px"
-                            -- , HA.style "margin" "10px"
-                            -- , HA.style "padding" "20px"
-                            -- , HA.style "border" "solid black 2px"
-                            -- , HA.style "margin-left" "50px"
-                            -- , HA.style "border-radius" "25px"
-                            -- , HA.style "width" "80%"
-                            ]
-                            [ Element.text "Level 1 vectors\t▼"
-                            ]
-                        )
-                        (Accordion.body []
-                            [ Input.text []
-                                { onChange = FilterLevel1Table
-                                , text = Maybe.withDefault "" model.level1FilterString
-                                , label = Input.labelLeft [] <| Element.text "Filter:"
-                                , placeholder = Nothing
-                                }
-                            , insertTable model
-                            ]
-                        )
-                        model.level1AccordionStatus
                     ]
                 ]
         ]
@@ -920,14 +883,6 @@ navLinks =
             , Font.bold
             ]
             { onPress = Just (SwitchPage ConstructLevel1), label = Element.text "New Level 1 construct" }
-        , Input.button
-            [ Font.size 15
-            , Font.color color.white
-            , Element.width Element.fill
-            , Font.underline
-            , Font.bold
-            ]
-            { onPress = Just (SwitchPage ConstructLevel2), label = Element.text "New Level 2 construct" }
         ]
 
 
