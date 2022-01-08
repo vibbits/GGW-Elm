@@ -276,7 +276,6 @@ type Overhang
     | E__F
     | E__G
     | F__G
-    | Invalid
 
 
 type ButtonPosition
@@ -289,8 +288,6 @@ type Msg
     = -- Level 1 construction Msg
       ChooseApplication Application
     | ChangeOverhang Overhang
-    | ChangeNumberInserts Int
-    | ChangeBackboneLevel Int
     | ChangeConstructName String
     | ChangeConstructNumber String
     | ChangeApplicationNote String
@@ -302,7 +299,7 @@ type Msg
     | ResetBackbone
       -- Login Msg
     | GotLoginUrls (Result Http.Error (List Login))
-    | UrlChanged Url.Url
+    | UrlChanged
     | LinkClicked Browser.UrlRequest
     | GotAuthentication (Result Http.Error AuthenticationResponse)
       -- Msg Switching pages
@@ -844,6 +841,7 @@ customAddButton buttonText msg =
 -- Visual Representation
 
 
+
 w : Float
 w =
     990
@@ -936,18 +934,6 @@ visualRepresentation model =
 
                 GT ->
                     GT
-
-        descending : comparable -> comparable -> Order
-        descending a b =
-            case compare a b of
-                LT ->
-                    GT
-
-                EQ ->
-                    EQ
-
-                GT ->
-                    LT
 
         sortedInsertRecordList =
             sortByWith .overhang ascending insertRecordList
@@ -1386,12 +1372,6 @@ update msg model =
         ChooseApplication newApp ->
             ( { model | currApp = newApp, overhangShape = updateOverhangShape newApp }, Cmd.none )
 
-        ChangeNumberInserts newNumber ->
-            ( { model | numberInserts = newNumber }, Cmd.none )
-
-        ChangeBackboneLevel newLevel ->
-            ( { model | backboneLevel = newLevel }, Cmd.none )
-
         ChangeConstructName newName ->
             ( { model | constructName = newName }, Cmd.none )
 
@@ -1433,7 +1413,7 @@ update msg model =
         ResetBackbone ->
             ( { model | selectedInserts = [], selectedBackbone = { name = "", length = 0, mPGBNumber = "", level = 0 } }, Cmd.none )
 
-        UrlChanged _ ->
+        UrlChanged ->
             ( model, Cmd.none )
 
         GotLoginUrls res ->
@@ -1610,7 +1590,7 @@ main =
         , update = update
         , subscriptions = subscriptions
         , onUrlRequest = LinkClicked
-        , onUrlChange = UrlChanged
+        , onUrlChange = always UrlChanged
         }
 
 
@@ -1619,7 +1599,7 @@ main =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
 
@@ -1666,9 +1646,6 @@ showOverhang overhang =
 
         F__G ->
             "F__G"
-
-        _ ->
-            ""
 
 
 stringToOverhang : String -> Maybe Overhang

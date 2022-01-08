@@ -1,0 +1,31 @@
+name: Test Client
+on:
+  pull_request:
+    paths:
+      - 'client/**'
+
+jobs:
+  test-client:
+    runs-on: ubuntu-latest
+    env:
+      working-directory: ./client
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        uses: actions/setup-node@v1
+        with:
+          node-version: '16.x'
+      - name: Install
+        run: |
+          npm ci
+        working-directory: ${{ env.working-directory }}
+      - name: Build
+        run: npm run build
+        working-directory: ${{ env.working-directory }}
+      - name: Format
+        run: npm run check-format
+        working-directory: ${{ env.working-directory }}
+      - name: Review
+        run: npm run review
+        working-directory: ${{ env.working-directory }}
