@@ -1,7 +1,7 @@
 --| An accordion (hidable view) container
 
 
-module Accordion exposing (accordion, body, head, Body, Head, Display)
+module Accordion exposing (Body, Display, Head, accordion, body, head)
 
 import Element exposing (..)
 

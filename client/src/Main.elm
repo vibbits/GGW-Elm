@@ -500,6 +500,7 @@ addLevel0View model =
         ]
     }
 
+
 makeOverhangOptions : List Overhang -> List (Input.Option Overhang msg)
 makeOverhangOptions overHangList =
     List.map2 Input.option overHangList (List.map Element.text (List.map showOverhang overHangList))
@@ -1511,6 +1512,7 @@ update msg model =
             ( { model | level0GenbankContent = Just content }, Cmd.none )
 
 
+
 -- Filter functions
 
 
@@ -1523,6 +1525,7 @@ filterBackbone needle val =
         Just ndle ->
             String.contains ndle val.name || String.contains ndle val.mPGBNumber
 
+
 filterLevel0 : Maybe String -> Insert -> Bool
 filterLevel0 needle val =
     case needle of
@@ -1531,6 +1534,7 @@ filterLevel0 needle val =
 
         Just ndle ->
             String.contains ndle val.name || String.contains ndle val.mPG0Number
+
 
 filterLevel0OnOverhang : Maybe Overhang -> Insert -> Bool
 filterLevel0OnOverhang needle val =
