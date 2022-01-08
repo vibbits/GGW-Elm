@@ -1,8 +1,8 @@
 module Main exposing (..)
 
 import Accordion
-import Array exposing (Array, length)
-import Browser exposing (Document, application)
+import Array exposing (Array)
+import Browser exposing (Document)
 import Browser.Dom exposing (Error(..))
 import Browser.Navigation as Nav
 import Color
@@ -11,11 +11,11 @@ import Element.Background as Background
 import Element.Border as Border exposing (rounded)
 import Element.Events as EE
 import Element.Font as Font
-import Element.Input as Input exposing (OptionState(..))
+import Element.Input as Input
 import Element.Region
 import File exposing (File)
 import File.Select as Select
-import Html exposing (Html, a, button, div, i, label, span, text)
+import Html exposing (Html, a)
 import Html.Attributes as HA
 import Html.Events exposing (onClick)
 import Http exposing (Error(..), expectJson, jsonBody)
@@ -25,17 +25,15 @@ import List
 import List.Extra
 import Path
 import Shape exposing (defaultPieConfig)
-import String exposing (toInt)
-import Svg.Attributes exposing (mode, style)
+import String
 import Task
 import TypedSvg exposing (g, svg, text_)
 import TypedSvg.Attributes exposing (dy, stroke, textAnchor, transform, viewBox)
 import TypedSvg.Core exposing (Svg)
-import TypedSvg.Types exposing (AnchorAlignment(..), Length(..), Paint(..), Transform(..), em)
+import TypedSvg.Types exposing (AnchorAlignment(..), Paint(..), Transform(..), em)
 import Url exposing (..)
-import Url.Parser exposing ((</>), Parser, int, parse, query, s)
-import Url.Parser.Query as Query exposing (map2, string)
-import Zoom exposing (events)
+import Url.Parser exposing ((</>), Parser, parse, query, s)
+import Url.Parser.Query exposing (map2, string)
 
 
 overhangList3 : List Overhang
@@ -100,7 +98,6 @@ type alias User =
 type DisplayPage
     = Catalogue
     | ConstructLevel1
-    | ConstructLevel2
     | AddLevel0Page
     | AddBackbonePage
 
@@ -308,11 +305,9 @@ type Msg
       -- Vector catalogue Msg
     | BackboneAccordionToggled
     | Level0AccordionToggled
-    | Level1AccordionToggled
     | ToggleAll
     | FilterBackboneTable String
     | FilterLevel0Table String
-    | FilterLevel1Table String
       -- Msg for adding Backbones
     | AddBackbone Backbone
     | ChangeBackboneNameToAdd String
@@ -342,9 +337,6 @@ view model =
     case model.page of
         ConstructLevel1 ->
             constructLevel1View model
-
-        ConstructLevel2 ->
-            constructLevel2View model
 
         Catalogue ->
             catalogueView model
@@ -508,7 +500,7 @@ addLevel0View model =
         ]
     }
 
-
+makeOverhangOptions : List Overhang -> List (Input.Option Overhang msg)
 makeOverhangOptions overHangList =
     List.map2 Input.option overHangList (List.map Element.text (List.map showOverhang overHangList))
 
@@ -563,7 +555,7 @@ addBackboneView model =
 
 
 constructLevel2View : Model -> Document Msg
-constructLevel2View model =
+constructLevel2View _ =
     { title = "Construct new Level 2 - Coming soon!"
     , body =
         [ Element.layout [] <|
@@ -1455,17 +1447,11 @@ update msg model =
         FilterLevel0Table filter ->
             ( { model | level0FilterString = Just filter }, Cmd.none )
 
-        FilterLevel1Table filter ->
-            ( { model | level1FilterString = Just filter }, Cmd.none )
-
         BackboneAccordionToggled ->
             ( { model | backboneAccordionStatus = not model.backboneAccordionStatus }, Cmd.none )
 
         Level0AccordionToggled ->
             ( { model | level0AccordionStatus = not model.level0AccordionStatus }, Cmd.none )
-
-        Level1AccordionToggled ->
-            ( { model | level1AccordionStatus = not model.level1AccordionStatus }, Cmd.none )
 
         ToggleAll ->
             ( { model
@@ -1525,11 +1511,6 @@ update msg model =
             ( { model | level0GenbankContent = Just content }, Cmd.none )
 
 
-addInsert =
-    Nothing
-
-
-
 -- Filter functions
 
 
@@ -1542,7 +1523,7 @@ filterBackbone needle val =
         Just ndle ->
             String.contains ndle val.name || String.contains ndle val.mPGBNumber
 
-
+filterLevel0 : Maybe String -> Insert -> Bool
 filterLevel0 needle val =
     case needle of
         Nothing ->
@@ -1551,7 +1532,7 @@ filterLevel0 needle val =
         Just ndle ->
             String.contains ndle val.name || String.contains ndle val.mPG0Number
 
-
+filterLevel0OnOverhang : Maybe Overhang -> Insert -> Bool
 filterLevel0OnOverhang needle val =
     needle == val.overhang
 
@@ -1687,7 +1668,7 @@ stringToOverhang strOverhang =
 
 
 testInsertList : Overhang -> List Insert
-testInsertList overhang =
+testInsertList _ =
     [ { name = "Insert A1", mPG0Number = "MG-G0-000001", overhang = Just A__B, length = 952 }
     , { name = "Insert A2", mPG0Number = "MG-G0-000002", overhang = Just A__B, length = 1526 }
     , { name = "Insert A3", mPG0Number = "MG-G0-000003", overhang = Just A__B, length = 1874 }
@@ -1755,7 +1736,7 @@ testInsertList overhang =
 
 
 testBackboneList : Int -> List Backbone
-testBackboneList bbLevel =
+testBackboneList _ =
     [ { name = "Backbone L0-1", mPGBNumber = "MP-GB-000001", level = 0, length = 10520 }
     , { name = "Backbone L0-2", mPGBNumber = "MP-GB-000002", level = 0, length = 11840 }
     , { name = "Backbone L0-3", mPGBNumber = "MP-GB-000003", level = 0, length = 9520 }
