@@ -8,10 +8,11 @@ import Color
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border exposing (rounded)
-import Element.Input as Input exposing (OptionState(..))
+import Element.Font as Font
+import Element.Input as Input
 import Element.Region
-import Html exposing (Html, a, button, label)
-import Html.Attributes exposing (href, style)
+import Html exposing (Html)
+import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
 import Http exposing (Error(..), expectJson, jsonBody)
 import Json.Decode as Decode
@@ -201,7 +202,6 @@ type Overhang
     | E__F
     | E__G
     | F__G
-    | Invalid
 
 
 type ButtonPosition
@@ -213,8 +213,6 @@ type ButtonPosition
 type Msg
     = ChooseApplication Application
     | ChangeOverhang Overhang
-    | ChangeNumberInserts Int
-    | ChangeBackboneLevel Int
     | ChangeConstructName String
     | ChangeConstructNumber String
     | ChangeApplicationNote String
@@ -225,7 +223,7 @@ type Msg
     | ResetInsertList
     | ResetBackbone
     | GotLoginUrls (Result Http.Error (List Login))
-    | UrlChanged Url.Url
+    | UrlChanged
     | LinkClicked Browser.UrlRequest
     | GotAuthentication (Result Http.Error AuthenticationResponse)
 
@@ -397,7 +395,6 @@ loginButton lgn =
 
 
 
-
 -- Visual representation
 
 
@@ -493,18 +490,6 @@ visualRepresentation model =
 
                 GT ->
                     GT
-
-        descending : comparable -> comparable -> Order
-        descending a b =
-            case compare a b of
-                LT ->
-                    GT
-
-                EQ ->
-                    EQ
-
-                GT ->
-                    LT
 
         sortedInsertRecordList =
             sortByWith .overhang ascending insertRecordList
@@ -910,12 +895,6 @@ update msg model =
         ChooseApplication newApp ->
             ( { model | currApp = newApp, overhangShape = updateOverhangShape newApp }, Cmd.none )
 
-        ChangeNumberInserts newNumber ->
-            ( { model | numberInserts = newNumber }, Cmd.none )
-
-        ChangeBackboneLevel newLevel ->
-            ( { model | backboneLevel = newLevel }, Cmd.none )
-
         ChangeConstructName newName ->
             ( { model | constructName = newName }, Cmd.none )
 
@@ -957,7 +936,7 @@ update msg model =
         ResetBackbone ->
             ( { model | selectedInserts = [], selectedBackbone = { name = "", length = 0, mPGBNumber = "", level = 0 } }, Cmd.none )
 
-        UrlChanged _ ->
+        UrlChanged ->
             ( model, Cmd.none )
 
         GotLoginUrls res ->
@@ -1021,7 +1000,7 @@ main =
         , update = update
         , subscriptions = subscriptions
         , onUrlRequest = LinkClicked
-        , onUrlChange = UrlChanged
+        , onUrlChange = always UrlChanged
         }
 
 
@@ -1030,7 +1009,7 @@ main =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
 
@@ -1077,9 +1056,6 @@ showOverhang overhang =
 
         F__G ->
             "F__G"
-
-        _ ->
-            ""
 
 
 stringToOverhang : String -> Maybe Overhang
