@@ -575,8 +575,7 @@ constructLevel1View model =
     { title = "Constructing a Level 1"
     , body =
         [ layout
-            [ -- Element.explain Debug.todo -- Adds debugging info to the console.
-              Font.size 11
+            [ Font.size 11
             , inFront <| navLinks
             ]
           <|
@@ -1498,7 +1497,7 @@ update msg model =
             ( model, Task.perform GbNewBackboneLoaded (File.toString file) )
 
         GbNewBackboneLoaded content ->
-            ( { model | backboneGenbankContent = Just <| Debug.log "Genbank Content:" content }, Cmd.none )
+            ( { model | backboneGenbankContent = Just content }, Cmd.none )
 
         AddLevel0 newIns ->
             ( { model | insertList = newIns :: model.insertList }, Cmd.none )
@@ -1522,7 +1521,7 @@ update msg model =
             ( model, Task.perform GbNewLevel0Loaded (File.toString file) )
 
         GbNewLevel0Loaded content ->
-            ( { model | level0GenbankContent = Just <| Debug.log "Genbank Content:" content }, Cmd.none )
+            ( { model | level0GenbankContent = Just content }, Cmd.none )
 
 
 addInsert =
