@@ -31,13 +31,11 @@ import Task
 import TypedSvg exposing (g, svg, text_)
 import TypedSvg.Attributes exposing (dy, stroke, textAnchor, transform, viewBox)
 import TypedSvg.Core exposing (Svg)
-import TypedSvg.Types exposing (AnchorAlignment(..), Paint(..), Transform(..), em)
+import TypedSvg.Types exposing (AnchorAlignment(..), Length(..), Paint(..), Transform(..), em)
 import Url exposing (..)
 import Url.Parser exposing ((</>), Parser, int, parse, query, s)
 import Url.Parser.Query as Query exposing (map2, string)
 import Zoom exposing (events)
-import TypedSvg.Types exposing (Length(..))
-
 
 
 overhangList3 : List Overhang
@@ -77,6 +75,7 @@ overhangList6 =
     , F__G
     ]
 
+
 completeOverhangList : List Overhang
 completeOverhangList =
     [ A__B
@@ -89,6 +88,7 @@ completeOverhangList =
     , E__G
     , F__G
     ]
+
 
 type alias User =
     { id : Int
@@ -405,7 +405,7 @@ catalogueView model =
                             [ Element.text "Backbones\t▼"
                             ]
                         )
-                        (Accordion.body [spacing 25]
+                        (Accordion.body [ spacing 25 ]
                             [ Input.text []
                                 { onChange = FilterBackboneTable
                                 , text = Maybe.withDefault "" model.backboneFilterString
@@ -430,7 +430,7 @@ catalogueView model =
                             [ Element.text "Level 0\t▼"
                             ]
                         )
-                        (Accordion.body [spacing 25]
+                        (Accordion.body [ spacing 25 ]
                             [ Input.text []
                                 { onChange = FilterLevel0Table
                                 , text = Maybe.withDefault "" model.level0FilterString
@@ -482,13 +482,13 @@ addLevel0View model =
                                 ]
                                 []
                         ]
-                    , Input.radioRow [spacing 5, padding 10]
+                    , Input.radioRow [ spacing 5, padding 10 ]
                         { label = Input.labelAbove [] <| Element.text "Overhang Type:\t"
-                            , onChange = ChangeLevel0OverhangToAdd
-                            , options =
-                                makeOverhangOptions completeOverhangList
-                            , selected = model.overhangLevel0ToAdd
-                         }
+                        , onChange = ChangeLevel0OverhangToAdd
+                        , options =
+                            makeOverhangOptions completeOverhangList
+                        , selected = model.overhangLevel0ToAdd
+                        }
                     , Element.html <| Html.button [ HA.style "margin" "50px", onClick GBNewLevel0Requested ] [ Html.text "Load Genbank file" ]
                     , Input.button
                         [ centerX
@@ -508,8 +508,10 @@ addLevel0View model =
         ]
     }
 
+
 makeOverhangOptions overHangList =
     List.map2 Input.option overHangList (List.map Element.text (List.map showOverhang overHangList))
+
 
 addBackboneView : Model -> Document Msg
 addBackboneView model =
@@ -665,7 +667,6 @@ constructLevel1View model =
                         Element.text "Construct visualisation"
                     , Element.html <| visualRepresentation model
                     ]
-
                 ]
         ]
     }
@@ -775,7 +776,6 @@ viewLoginForm : List Login -> List (Element Msg)
 viewLoginForm loginUrls =
     case loginUrls of
         [] ->
-        
             [ Element.text "Fetching..." ]
 
         _ ->
@@ -838,8 +838,9 @@ customAddButton buttonText msg =
         , onPress = Just msg
         }
 
--- Visual Representation
 
+
+-- Visual Representation
 
 
 w : Float
@@ -1186,7 +1187,7 @@ insertTable model =
                 ]
                 -- { data = List.filter(filterLevel0 model.level0FilterString) <| model.insertList
                 -- { data = List.filter(filterLevel0OnOverhang (showOverhang model.currOverhang) model.insertList
-                { data = model.insertList |> List.filter (filterLevel0OnOverhang( Just model.currOverhang)) |> List.filter (filterLevel0 model.level0FilterString)
+                { data = model.insertList |> List.filter (filterLevel0OnOverhang (Just model.currOverhang)) |> List.filter (filterLevel0 model.level0FilterString)
                 , columns =
                     [ { header = none
                       , width = fillPortion 3
@@ -1646,6 +1647,7 @@ showOverhang overhang =
 
         F__G ->
             "F__G"
+
         Invalid ->
             "Invalid"
 
