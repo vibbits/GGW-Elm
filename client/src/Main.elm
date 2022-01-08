@@ -276,6 +276,7 @@ type Overhang
     | E__F
     | E__G
     | F__G
+    | Invalid
 
 
 type ButtonPosition
@@ -1646,6 +1647,8 @@ showOverhang overhang =
 
         F__G ->
             "F__G"
+        Invalid ->
+            "Invalid"
 
 
 stringToOverhang : String -> Maybe Overhang
