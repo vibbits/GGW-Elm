@@ -1,0 +1,38 @@
+name: Test Server
+on:
+  pull_request:
+    paths:
+      - 'server/**'
+
+jobs:
+  test-server:
+    runs-on: ubuntu-latest
+    env:
+      working-directory: ./server
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2.3.1
+        with:
+          python-version: '3.10'
+      - uses: snok/install-poetry@v1
+
+      - name: Install dependencies
+        run: poetry install
+        working-directory: ${{ env.working-directory }}
+
+      - name: Lint
+        run: poetry run pylint-fail-under --fail_under "8" main.py app
+        working-directory: ${{ env.working-directory }}
+
+      - name: Formatting
+        run: poetry run black --check .
+        working-directory: ${{ env.working-directory }}
+
+      - name: Typecheck
+        run: poetry run mypy --ignore-missing-imports main.py app
+        working-directory: ${{ env.working-directory }}
+
+      - name: Tests
+        run: poetry run pytest --doctest-modules --ignore-glob=alembic
+        working-directory: ${{ env.working-directory }}
