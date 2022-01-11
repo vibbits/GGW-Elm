@@ -22,7 +22,7 @@ jobs:
         working-directory: ${{ env.working-directory }}
 
       - name: Lint
-        run: poetry run pylint-fail-under --fail_under "8" main.py app
+        run: poetry run pylint-fail-under --fail_under "8" main.py ggwc.py app
         working-directory: ${{ env.working-directory }}
 
       - name: Formatting
@@ -30,7 +30,7 @@ jobs:
         working-directory: ${{ env.working-directory }}
 
       - name: Typecheck
-        run: poetry run mypy --ignore-missing-imports main.py app
+        run: poetry run mypy --ignore-missing-imports main.py ggwc.py app
         working-directory: ${{ env.working-directory }}
 
       - name: Tests
