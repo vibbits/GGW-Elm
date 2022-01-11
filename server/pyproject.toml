@@ -6,12 +6,12 @@ authors = ["James Collier <james.collier@vib.be>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-Hypercorn = "^0.11.2"
+Hypercorn = "^0.13.2"
 SQLAlchemy = "^1.4.26"
 alembic = "^1.7.4"
 python-jose = {version = "^3.3.0", extras = ["cryptography"]}
-httpx = "^0.20.0"
-fastapi = "^0.70.0"
+httpx = "^0.21.0"
+fastapi = "^0.71.0"
 biopython = "^1.79"
 python-multipart = "^0.0.5"
 
