@@ -63,8 +63,6 @@ async def verify_authorization(
             detail="Could not query identity provider",
         )
 
-    keys = await oidc.jwks(http_client, config)
-
     token_request = (
         oidc.TokenRequestBuilder()
         .with_clientid(provider.clientid)
@@ -82,7 +80,7 @@ async def verify_authorization(
     try:
         id_token = jose.jwt.decode(
             response["id_token"],
-            keys,
+            await oidc.jwks(http_client, config),
             audience=provider.clientid,
             access_token=response["access_token"],
         )
