@@ -5,7 +5,6 @@ updating the database schema, adding an admin user,
 adding an identity provider, etc.
 """
 
-from distutils import command
 from pathlib import Path
 import click
 import httpx
