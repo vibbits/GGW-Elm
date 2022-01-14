@@ -54,6 +54,7 @@ class Vector(Base):
         "Reference", uselist=True, collection_class=list
     )
 
+
 class Annotation(Base):
     "Annotations relating to a Vector."
     __tablename__ = "annotations"
@@ -87,6 +88,7 @@ class Reference(Base):
     authors: str = Column(String)
     title: str = Column(String)
     vector = Column(Integer, ForeignKey("vectors.id"), nullable=False)
+
 
 class Qualifier(Base):
     "Qualifier relating to a vector."

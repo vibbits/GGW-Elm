@@ -87,8 +87,7 @@ def add_vector(database: Session, vector: schemas.Vector):
 
         database.add_all(
             [
-                model.Annotation(key=ann.key, value=ann.value,
-                                 vector=new_vector.id)
+                model.Annotation(key=ann.key, value=ann.value, vector=new_vector.id)
                 for ann in vector.annotations
             ]
         )
@@ -108,7 +107,8 @@ def add_vector(database: Session, vector: schemas.Vector):
             database.add_all(
                 [
                     model.Qualifier(
-                        key=qual.key, value=qual.value, feature=new_feature.id)
+                        key=qual.key, value=qual.value, feature=new_feature.id
+                    )
                     for qual in feat.qualifiers
                 ]
             )

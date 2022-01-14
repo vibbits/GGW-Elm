@@ -1,5 +1,4 @@
 from Bio import SeqIO
-import json
 
 from app.schemas import Vector, Annotation, Feature, Reference, Qualifier
 
@@ -26,30 +25,26 @@ def convert_gbk_to_vector(genbank_file) -> Vector:
     # Getting the features:
     features = []
     for feature in record.features:
-        # new_feature = Feature()
-        # Getting the qualifiers of each feature
-
-        new_qualifiers =[] 
-        for k, v in feature.qualifiers.items():
-            new_qualifiers.append(
-                Qualifier(key=k, value=str(v))
+        new_qualifiers = [
+            Qualifier(key=key, value=str(value))
+            for key, value in feature.qualifiers.items()
+        ]
+        features.append(
+            Feature(
+                type=feature.type,
+                qualifiers=new_qualifiers,
+                start_pos=feature.location.nofuzzy_start,
+                end_pos=feature.location.nofuzzy_end,
+                strand=feature.location.strand,
             )
-        features.append(Feature(type=feature.type,
-                                qualifiers=new_qualifiers,
-                                # qualifier="qualifiers",
-                                start_pos=feature.location.nofuzzy_start,
-                                end_pos=feature.location.nofuzzy_end,
-                                strand=feature.location.strand,
-                                )
-                        )
-
+        )
 
     return Vector(
-        name = "".join(str(record.name).split("_")[1:]),
-        mpg_number = str(record.name).split("_")[0],
-        sequence = str(record.seq),
-        sequence_length = len(record.seq),
-        annotations = annotations,
-        features = features,
-        references = references,
+        name="".join(str(record.name).split("_")[1:]),
+        mpg_number=str(record.name).split("_", maxsplit=1)[0],
+        sequence=str(record.seq),
+        sequence_length=len(record.seq),
+        annotations=annotations,
+        features=features,
+        references=references,
     )
