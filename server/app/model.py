@@ -5,7 +5,6 @@ from typing import Optional, List
 
 from sqlalchemy import Column, DateTime, Integer, String, UniqueConstraint, ForeignKey
 from sqlalchemy.orm import relationship, Mapped
-from sqlalchemy.sql.expression import null
 
 from app.database import Base
 
