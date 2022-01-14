@@ -5,9 +5,16 @@ updating the database schema, adding an admin user,
 adding an identity provider, etc.
 """
 
+from distutils import command
 import click
 import httpx
+import csv
+import json
+from Bio import SeqIO
 from sqlalchemy.exc import SQLAlchemyError
+
+from typing import List
+from app.model import Vector, Annotation, Reference, Qualifier, Feature
 
 from app.database import SessionLocal
 from app import model, crud, oidc, schemas
@@ -102,6 +109,163 @@ def login(iss):
             )
         else:
             click.echo(oidc.login_url(config["authorization_endpoint"], provider))
+
+
+@cli.command()
+@click.argument("csv_path")
+@click.argument("gbk_path")
+def import0(csv_path, gbk_path):
+    # read the cvs-file
+    csv_content = []
+
+    with open(csv_path) as csv_file:
+        csv_reader = csv.DictReader(csv_file, delimiter=";")
+        for item in csv_reader:
+            csv_content.append(item)
+    csv_file.close()
+
+    files_to_read = [entry["Name Genbank file"] for entry in csv_content]
+
+    vec_list = []
+
+    for file in files_to_read:
+        # Create vector and fill in data from csv file
+        vec = Vector()
+        vec.name = csv_content[0]["Plasmid name"]
+        vec.bacterial_strain = csv_content[0]["Bacterial strain"]
+        vec.mpg_number = csv_content[0]["MP-G0- number"]
+        vec.responsible = csv_content[0]["Responsible"]
+        vec.group = csv_content[0]["Group"]
+        vec.bsa1_overhang = csv_content[0]["BsaI overhang"]
+        vec.selection = csv_content[0]["Selection"]
+        vec.cloning_technique = csv_content[0]["DNA synthesis or PCR?"]
+        vec.is_BsmB1_free = csv_content[0]["BsmBI free? (Yes/No)"]
+        vec.notes = csv_content[0]["Notes"]
+        vec.REase_digest = csv_content[0]["REase digest"]
+
+        # Reading the sequence from the genbank file
+        str_location = gbk_path + file
+        print(str_location)
+        record = SeqIO.read(str_location, "genbank")
+        vec.sequence = str(record.seq)
+        vec.sequence_length = len(vec.sequence)
+
+        # Getting the annotations
+        annotations = []
+        references = []
+        for k, v in record.annotations.items():
+            # All annotations are strings, integers or list of them but references are a special case.
+            # References are objects that can be deconstructed to an author and a title, both strings.
+            if k == "references":
+                for reference in record.annotations["references"]:
+                    references.append(
+                        Reference(authors=reference.authors, title=reference.title)
+                    )
+            else:
+                annotations.append(Annotation(key=k, value=str(v)))
+
+        vec.annotations = annotations
+        vec.references = references
+
+        # Getting the features:
+        features = []
+        for feature in record.features:
+            # Getting the qualifiers of each feature
+
+            new_qualifiers = []
+            for k, v in feature.qualifiers.items():
+                new_qualifiers.append(Qualifier(key=k, value=str(v)))
+            features.append(
+                Feature(
+                    type=feature.type,
+                    qualifiers=new_qualifiers,
+                    start_pos=feature.location.nofuzzy_start,
+                    end_pos=feature.location.nofuzzy_end,
+                    strand=feature.location.strand,
+                )
+            )
+
+        vec.features = features
+
+        # Append to vec_list
+        vec_list.append(vec)
+
+    with SessionLocal() as database:
+        for vec in vec_list:
+            crud.add_vector(database=database, vector=vec)
+            click.echo(f"Vector '{vec.name}' added.")
+
+
+@cli.command()
+@click.argument("json_file", nargs=-1)
+@click.option("--iss", default=1, help="identity provider")
+def json_to_vec_list(json_file, iss):
+    vec_list: List[Vector] = []
+
+    # read the json-file
+    with open(json_file[0], "r") as jf:
+        json_string = json.load(jf)
+        for item in json_string:
+            # Reading the annotations
+            ann_list: List[Annotation] = []
+            for ann in item["annotations"]:
+                ann_list.append(Annotation(key=ann["key"], value=ann["value"]))
+
+            # Reading the references
+            ref_list: List[Reference] = []
+            for ref in item["references"]:
+                ref_list.append(Reference(authors=ref["authors"], title=ref["title"]))
+
+            # Reading the features
+            feat_list: List[Feature] = []
+            for feat in item["features"]:
+
+                # Reading the qualifiers
+                qual_list: List[Qualifier] = []
+                for qual_key, qual_val in feat["qualifiers"]:
+                    qual_list.append(Qualifier(key=qual_key, value=qual_val))
+
+                # appending the features to the list
+                feat_list.append(
+                    Feature(
+                        type=feat["type"],
+                        qualifiers=qual_list,
+                        start_pos=feat["start_pos"],
+                        end_pos=feat["end_pos"],
+                        strand=feat["strand"],
+                    )
+                )
+
+            vec_list.append(
+                Vector(
+                    name=item["name"],
+                    bacterial_strain=item["bacterial_strain"],
+                    mpg_number=item["mpg_number"],
+                    responsible=item["responsible"],
+                    group=item["group"],
+                    bsa1_overhang=item["bsa1_overhang"],
+                    selection=item["selection"],
+                    cloning_technique=item["cloning_technique"],
+                    is_BsmB1_free=item["is_BsmB1_free"],
+                    notes=item["notes"],
+                    REase_digest=item["REase_digest"],
+                    sequence=item["sequence"],
+                    sequence_length=item["sequence_length"],
+                    annotations=ann_list,
+                    references=ref_list,
+                    features=feat_list,
+                )
+            )
+    jf.close()
+
+    with SessionLocal() as database:
+        if (provider := crud.get_provider_by_id(database, provider_id=iss)) is None:
+            click.echo(f"No identity provider with id={iss}", err=True)
+            return
+
+        for vec in vec_list:
+            crud.add_vector(database=database, vector=vec)
+            click.echo(f"Vector '{vec.name}' added.")
 
 
 if __name__ == "__main__":

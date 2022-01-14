@@ -1,5 +1,7 @@
 " Provides low-level Create, Read, Update, and Delete functions for API resources. "
 
+from asyncio import base_subprocess
+from tokenize import group
 from typing import List, Optional
 from datetime import datetime
 
@@ -77,6 +79,15 @@ def add_vector(database: Session, vector: schemas.Vector):
     new_vector = model.Vector(
         name=vector.name,
         mpg_number=vector.mpg_number,
+        bacterial_strain=vector.bacterial_strain,
+        responsible=vector.responsible,
+        group=vector.group,
+        bsa1_overhang=vector.bsa1_overhang,
+        selection=vector.selection,
+        cloning_technique=vector.cloning_technique,
+        is_BsmB1_free=vector.is_BsmB1_free,
+        notes=vector.notes,
+        REase_digest=vector.REase_digest,
         sequence=vector.sequence,
         sequence_length=vector.sequence_length,
     )

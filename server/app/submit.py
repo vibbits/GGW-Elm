@@ -25,3 +25,4 @@ async def submit_vector(
         genbank_temp.seek(0)
         vector = genbank.convert_gbk_to_vector(genbank_temp)
     crud.add_vector(database, vector)
+    print(f"Vector '{vector.name}' has been added to the database")
