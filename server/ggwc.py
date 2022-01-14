@@ -6,6 +6,7 @@ adding an identity provider, etc.
 """
 
 from distutils import command
+from pathlib import Path
 import click
 import httpx
 import csv
@@ -124,29 +125,30 @@ def import0(csv_path, gbk_path):
             csv_content.append(item)
     csv_file.close()
 
-    files_to_read = [entry["Name Genbank file"] for entry in csv_content]
+    files_to_read = [
+        (i, entry["Name Genbank file"]) for i, entry in enumerate(csv_content)
+    ]
 
     vec_list = []
 
-    for file in files_to_read:
+    for i, gbk_file in files_to_read:
         # Create vector and fill in data from csv file
         vec = Vector()
-        vec.name = csv_content[0]["Plasmid name"]
-        vec.bacterial_strain = csv_content[0]["Bacterial strain"]
-        vec.mpg_number = csv_content[0]["MP-G0- number"]
-        vec.responsible = csv_content[0]["Responsible"]
-        vec.group = csv_content[0]["Group"]
-        vec.bsa1_overhang = csv_content[0]["BsaI overhang"]
-        vec.selection = csv_content[0]["Selection"]
-        vec.cloning_technique = csv_content[0]["DNA synthesis or PCR?"]
-        vec.is_BsmB1_free = csv_content[0]["BsmBI free? (Yes/No)"]
-        vec.notes = csv_content[0]["Notes"]
-        vec.REase_digest = csv_content[0]["REase digest"]
+        vec.name = csv_content[i]["Plasmid name"]
+        vec.bacterial_strain = csv_content[i]["Bacterial strain"]
+        vec.mpg_number = csv_content[i]["MP-G0- number"]
+        vec.responsible = csv_content[i]["Responsible"]
+        vec.group = csv_content[i]["Group"]
+        vec.bsa1_overhang = csv_content[i]["BsaI overhang"]
+        vec.selection = csv_content[i]["Selection"]
+        vec.cloning_technique = csv_content[i]["DNA synthesis or PCR?"]
+        vec.is_BsmB1_free = csv_content[i]["BsmBI free? (Yes/No)"]
+        vec.notes = csv_content[i]["Notes"]
+        vec.REase_digest = csv_content[i]["REase digest"]
 
         # Reading the sequence from the genbank file
-        str_location = gbk_path + file
-        print(str_location)
-        record = SeqIO.read(str_location, "genbank")
+        gbk_file_path = Path(gbk_path) / Path(gbk_file)
+        record = SeqIO.read(gbk_file_path, "genbank")
         vec.sequence = str(record.seq)
         vec.sequence_length = len(vec.sequence)
 
