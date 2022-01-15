@@ -83,6 +83,15 @@ class Annotation(BaseModel):
 class Vector(BaseModel):
     name: str
     mpg_number: str
+    bacterial_strain: str
+    responsible: str
+    group: str
+    bsa1_overhang: str
+    selection: str
+    cloning_technique: str
+    is_BsmB1_free: str
+    notes: str
+    REase_digest: str
     sequence: str
     sequence_length: int
     annotations: List[Annotation]
