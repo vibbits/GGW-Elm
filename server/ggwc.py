@@ -5,6 +5,7 @@ updating the database schema, adding an admin user,
 adding an identity provider, etc.
 """
 
+import sys
 from pathlib import Path
 import click
 import httpx
@@ -114,7 +115,17 @@ def login(iss):
 @cli.command()
 @click.argument("csv_path")
 @click.argument("gbk_path")
-def import0(csv_path, gbk_path):
+@click.argument("user")
+def import0(csv_path, gbk_path, user):
+    with SessionLocal() as database:
+        # Lookup user
+        if (
+            db_user := database.query(model.User).filter(model.User.sub == user).first()
+        ) is None:
+            click.echo(f"No user with subject: {user}")
+            sys.exit(1)
+
+    print(f"Looked up user: {db_user}")
     # read the cvs-file
     csv_content = []
 
@@ -135,7 +146,6 @@ def import0(csv_path, gbk_path):
         vec = Vector()
         vec.name = csv_content[i]["Plasmid name"]
         vec.bacterial_strain = csv_content[i]["Bacterial strain"]
-        vec.mpg_number = csv_content[i]["MP-G0- number"]
         vec.responsible = csv_content[i]["Responsible"]
         vec.group = csv_content[i]["Group"]
         vec.bsa1_overhang = csv_content[i]["BsaI overhang"]
@@ -144,12 +154,13 @@ def import0(csv_path, gbk_path):
         vec.is_BsmB1_free = csv_content[i]["BsmBI free? (Yes/No)"]
         vec.notes = csv_content[i]["Notes"]
         vec.REase_digest = csv_content[i]["REase digest"]
+        vec.level = 0
+        vec.children = []
 
         # Reading the sequence from the genbank file
         gbk_file_path = Path(gbk_path) / Path(gbk_file)
         record = SeqIO.read(gbk_file_path, "genbank")
         vec.sequence = str(record.seq)
-        vec.sequence_length = len(vec.sequence)
 
         # Getting the annotations
         annotations = []
@@ -193,8 +204,8 @@ def import0(csv_path, gbk_path):
 
     with SessionLocal() as database:
         for vec in vec_list:
-            crud.add_vector(database=database, vector=vec)
-            click.echo(f"Vector '{vec.name}' added.")
+            if crud.add_vector(database=database, vector=vec, user=db_user) is not None:
+                click.echo(f"Vector '{vec.name}' added.")
 
 
 if __name__ == "__main__":

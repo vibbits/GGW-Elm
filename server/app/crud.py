@@ -70,13 +70,14 @@ def get_provider_by_id(
     )
 
 
-# Submitting data
+# Vectors
 
 
-def add_vector(database: Session, vector: schemas.Vector):
+def add_vector(
+    database: Session, vector: schemas.Vector, user: schemas.User
+) -> Optional[model.Vector]:
     new_vector = model.Vector(
         name=vector.name,
-        mpg_number=vector.mpg_number,
         bacterial_strain=vector.bacterial_strain,
         responsible=vector.responsible,
         group=vector.group,
@@ -87,12 +88,15 @@ def add_vector(database: Session, vector: schemas.Vector):
         notes=vector.notes,
         REase_digest=vector.REase_digest,
         sequence=vector.sequence,
-        sequence_length=vector.sequence_length,
+        level=vector.level,
+        BsmB1_site=vector.BsmB1_site,
+        gateway_site=vector.gateway_site,
     )
     try:
         database.add(new_vector)
         database.flush()
         database.refresh(new_vector)
+        database.add(model.UserVectorMapping(user=user.id, vector=new_vector.id))
 
         database.add_all(
             [
@@ -132,7 +136,24 @@ def add_vector(database: Session, vector: schemas.Vector):
                 for ref in vector.references
             ]
         )
-    except SQLAlchemyError:
+
+        if vector.level > 0:
+            database.add_all(
+                [
+                    model.VectorHierarchy(child=child, parent=new_vector.id)
+                    for child in vector.children
+                ]
+            )
+
+    except SQLAlchemyError as err:
+        print(f"Error: {err}")
         database.rollback()
+        return None
     else:
+        print(f"committed {new_vector}")
         database.commit()
+        return new_vector
+
+
+def get_vectors_for_user(database: Session, user: schemas.User) -> List[schemas.Vector]:
+    return database.query(model.Vector).filter(model.users.any(id=user.id)).all()

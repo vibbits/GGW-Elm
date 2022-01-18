@@ -9,6 +9,32 @@ from sqlalchemy.orm import relationship, Mapped
 from app.database import Base
 
 
+class UserVectorMapping(Base):
+    "A many-to-many mapping between users and vectors"
+    __tablename__ = "user_vector_mapping"
+
+    id = Column(Integer, primary_key=True)
+    user = Column(Integer, ForeignKey("users.id"))
+    vector = Column(Integer, ForeignKey("vectors.id"))
+
+
+class VectorHierarchy(Base):
+    """
+    Level 1 vectors are made out of many level 0 vectors.
+    A level 0 vector can be used in multiple level 1 vectors.
+
+    Svens lab names level 1 vectors to encode the level 0 vectors it is made from.
+    Instead, and to avoid likely human error, we also store this hierarchial
+    relationship. This table maps children to parents (level 0 to level 1)
+    """
+
+    __tablename__ = "vector_hierarchy"
+
+    id = Column(Integer, primary_key=True)
+    parent = Column(Integer, ForeignKey("vectors.id"), primary_key=True)
+    child = Column(Integer, ForeignKey("vectors.id"), primary_key=True)
+
+
 class User(Base):
     "An authenticated user"
     __tablename__ = "users"
@@ -19,6 +45,9 @@ class User(Base):
     created: datetime = Column(DateTime, nullable=False, default=datetime.now())
     name: Optional[str] = Column(String)
     role: str = Column(String, nullable=False, default="user")
+    vectors: Mapped[List["Vector"]] = relationship(
+        "Vector", secondary="user_vector_mapping", back_populates="users"
+    )
 
     __table_args__ = (UniqueConstraint("iss", "sub", name="login_id"),)
 
@@ -41,17 +70,16 @@ class Vector(Base):
     id: int = Column(Integer, primary_key=True, index=True)
 
     # General information
-    name: str = Column(String, nullable=False, unique=True)
-    mpg_number: str = Column(String, nullable=False, unique=True)
+    name: str = Column(String, nullable=False, unique=True)  # Plasmid name
     bacterial_strain: str = Column(String, nullable=False)
     responsible: str = Column(String, nullable=False)
     group: str = Column(String, nullable=False)
     bsa1_overhang: str = Column(String, nullable=False)
     selection: str = Column(String, nullable=False)
     cloning_technique: str = Column(String, nullable=False)  # DNA or PCR synthesis?
-    is_BsmB1_free: str = Column(String, nullable=False)  # Might be removed...
+    is_BsmB1_free: str = Column(String, nullable=False)  # TODO: Might be removed...
     notes: str = Column(String, nullable=True)
-    REase_digest: str = Column(String, nullable=True)  # Might be removed...
+    REase_digest: str = Column(String, nullable=True)  # TODO: Might be removed...
 
     # Genbank information
     sequence: str = Column(String, nullable=False)
@@ -60,13 +88,33 @@ class Vector(Base):
     annotations: Mapped[List["Annotation"]] = relationship(
         "Annotation", uselist=True, collection_class=list
     )
-    sequence_length: int = Column(Integer, nullable=False)
     features: Mapped[List["Feature"]] = relationship(
         "Feature", uselist=True, collection_class=list
     )
     references: Mapped[List["Reference"]] = relationship(
         "Reference", uselist=True, collection_class=list
     )
+
+    users: Mapped[List["User"]] = relationship(
+        "User", secondary="user_vector_mapping", back_populates="vectors"
+    )
+
+    ## JAMES PROPOSES:
+    level: int = Column(Integer)
+    BsmB1_site: str = Column(String)
+    gateway_site: str = Column(String)
+    children: Mapped[List["Vector"]] = relationship(
+        "Vector",
+        secondary="vector_hierarchy",
+        primaryjoin=id == VectorHierarchy.parent,
+        secondaryjoin=id == VectorHierarchy.child,
+        backref="parents",
+    )
+    ##
+
+
+# class Backbone(Base):
+#     pass
 
 
 class Annotation(Base):
