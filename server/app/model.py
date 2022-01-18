@@ -99,7 +99,7 @@ class Vector(Base):
         "User", secondary="user_vector_mapping", back_populates="vectors"
     )
 
-    ## JAMES PROPOSES:
+    # Extra fields for level 1
     level: int = Column(Integer)
     BsmB1_site: str = Column(String)
     gateway_site: str = Column(String)
@@ -110,11 +110,10 @@ class Vector(Base):
         secondaryjoin=id == VectorHierarchy.child,
         backref="parents",
     )
-    ##
 
 
-# class Backbone(Base):
-#     pass
+class Backbone(Base):
+    pass
 
 
 class Annotation(Base):
