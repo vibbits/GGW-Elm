@@ -9,4 +9,5 @@ router = APIRouter()
 
 
 @router.get("/vectors/level0", response_model=List[schemas.Vector])
-def get
+def get_vectors():
+    pass
