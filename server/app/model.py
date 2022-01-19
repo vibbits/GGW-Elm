@@ -112,8 +112,12 @@ class Vector(Base):
     )
 
 
+# TODO: This table needs to be specified
 class Backbone(Base):
-    pass
+    "Backbones"
+    __tablename__ = "backbones"
+
+    id: int = Column(Integer, primary_key=True)
 
 
 class Annotation(Base):
