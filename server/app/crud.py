@@ -155,6 +155,10 @@ def add_vector(
         return new_vector
 
 
-def get_vectors_for_user(database: Session, user: schemas.User) -> List[model.Vector]:
+def get_level0_for_user(database: Session, user: schemas.User) -> List[model.Vector]:
     "Query all vectors from the database."
-    return database.query(model.Vector).filter(model.Vector.users.any(id=user.id)).all()
+    return (
+        database.query(model.Vector)
+        .filter(model.Vector.users.any(id=user.id), model.Vector.level == 0)
+        .all()
+    )
