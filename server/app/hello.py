@@ -8,4 +8,4 @@ router = APIRouter()
 
 @router.get("/hello", response_model=schemas.User)
 def hello(db: Session = Depends(deps.get_db)):
-    return crud.get_user(db, 2)
+    return crud.get_user(db, 1)

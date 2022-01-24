@@ -111,6 +111,10 @@ class Vector(Base):
         backref="parents",
     )
 
+    def __str__(self):
+        first_ann = str(self.annotations[0]) if len(self.annotations) > 0 else "null"
+        return f"Vector({self.name=}, {len(self.annotations)=} [{first_ann}])"
+
 
 # TODO: This table needs to be specified
 class Backbone(Base):
@@ -128,6 +132,9 @@ class Annotation(Base):
     key: str = Column(String, nullable=False)
     value: str = Column(String)
     vector = Column(Integer, ForeignKey("vectors.id"), nullable=False)
+
+    def __str__(self):
+        return f"Annotation({self.id=}, {self.key=}, {self.value=}, {self.vector=}"
 
 
 class Feature(Base):
