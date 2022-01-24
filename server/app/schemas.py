@@ -61,10 +61,16 @@ class Reference(BaseModel):
     authors: str
     title: str
 
+    class Config:
+        from_orm = True
+
 
 class Qualifier(BaseModel):
     key: str
     value: str
+
+    class Config:
+        from_orm = True
 
 
 class Feature(BaseModel):
@@ -74,15 +80,21 @@ class Feature(BaseModel):
     end_pos: int
     strand: int
 
+    class Config:
+        from_orm = True
+
 
 class Annotation(BaseModel):
     key: str
     value: str
 
+    class Config:
+        from_orm = True
+
 
 class Vector(BaseModel):
+    id: int = 0
     name: str
-    mpg_number: str
     bacterial_strain: str
     responsible: str
     group: str
@@ -93,7 +105,13 @@ class Vector(BaseModel):
     notes: str
     REase_digest: str
     sequence: str
-    sequence_length: int
     annotations: List[Annotation]
     features: List[Feature]
     references: List[Reference]
+    children: List["Vector"]
+    level: int
+    BsmB1_site: Optional[str]
+    gateway_site: Optional[str]
+
+    class Config:
+        orm_mode = True

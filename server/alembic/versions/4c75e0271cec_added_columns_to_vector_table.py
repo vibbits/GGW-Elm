@@ -22,6 +22,8 @@ def upgrade():
         batch_op.alter_column("feature", existing_type=sa.INTEGER(), nullable=False)
 
     with op.batch_alter_table("vectors", schema=None) as batch_op:
+        batch_op.drop_column("mpg_number")
+        batch_op.drop_column("sequence_length")
         batch_op.add_column(sa.Column("bacterial_strain", sa.String()))
         batch_op.add_column(sa.Column("responsible", sa.String()))
         batch_op.add_column(sa.Column("group", sa.String()))
@@ -47,9 +49,41 @@ def upgrade():
         batch_op.alter_column(
             "is_BsmB1_free", existing_type=sa.String(), nullable=False
         )
-        batch_op.alter_column("notes", existing_type=sa.String(), nullable=False)
-        batch_op.alter_column("REase_digest", existing_type=sa.String(), nullable=False)
+        batch_op.add_column(sa.Column("level", sa.Integer(), nullable=True))
+        batch_op.add_column(sa.Column("BsmB1_site", sa.String(), nullable=True))
+        batch_op.add_column(sa.Column("gateway_site", sa.String(), nullable=True))
 
+    op.create_table(
+        "user_vector_mapping",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("user", sa.Integer(), nullable=False),
+        sa.Column("vector", sa.Integer(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["user"],
+            ["users.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["vector"],
+            ["vectors.id"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
+    )
+
+    op.create_table(
+        "vector_hierarchy",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("parent", sa.Integer(), nullable=False),
+        sa.Column("child", sa.Integer(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["child"],
+            ["vectors.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["parent"],
+            ["vectors.id"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
+    )
     # ### end Alembic commands ###
 
 
@@ -65,8 +99,15 @@ def downgrade():
         batch_op.drop_column("group")
         batch_op.drop_column("responsible")
         batch_op.drop_column("bacterial_strain")
+        batch_op.drop_column("gateway_site")
+        batch_op.drop_column("BsmB1_site")
+        batch_op.drop_column("level")
+        batch_op.add_column(sa.Column("mpg_number", sa.String(), nullable=False))
+        batch_op.add_column(sa.Column("sequence_length", sa.Integer(), nullable=False))
 
     with op.batch_alter_table("qualifiers", schema=None) as batch_op:
         batch_op.alter_column("feature", existing_type=sa.INTEGER(), nullable=True)
 
+    op.drop_table("user_vector_mapping")
+    op.drop_table("vector_hierarchy")
     # ### end Alembic commands ###

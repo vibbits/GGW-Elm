@@ -42,15 +42,24 @@ def convert_gbk_to_vector(genbank_file) -> Vector:
     return Vector(
         name="".join(str(record.name).split("_")[1:]),
         mpg_number=str(record.name).split("_", maxsplit=1)[0],
-        bacterial_strain="Not provided",  # Not provided through a genbank file => Additional information
-        responsible="Not provided",  # Not provided through a genbank file => Additional information
-        group="Not provided",  # Not provided through a genbank file => Additional information
-        bsa1_overhang="Not provided",  # Not provided through a genbank file => Additional information
-        selection="Not provided",  # Not provided through a genbank file => Additional information
-        cloning_technique="Not provided",  # Not provided through a genbank file => Additional information
-        is_BsmB1_free="Not provided",  # Not provided through a genbank file => Additional information
-        notes="Not provided",  # Not provided through a genbank file => Additional information
-        REase_digest="Not provided",  # Not provided through a genbank file => Additional information
+        # Not provided through a genbank file => Additional information
+        bacterial_strain="Not provided",
+        # Not provided through a genbank file => Additional information
+        responsible="Not provided",
+        # Not provided through a genbank file => Additional information
+        group="Not provided",
+        # Not provided through a genbank file => Additional information
+        bsa1_overhang="Not provided",
+        # Not provided through a genbank file => Additional information
+        selection="Not provided",
+        # Not provided through a genbank file => Additional information
+        cloning_technique="Not provided",
+        # Not provided through a genbank file => Additional information
+        is_BsmB1_free="Not provided",
+        # Not provided through a genbank file => Additional information
+        notes="Not provided",
+        # Not provided through a genbank file => Additional information
+        REase_digest="Not provided",
         sequence=str(record.seq),
         sequence_length=len(record.seq),
         annotations=annotations,

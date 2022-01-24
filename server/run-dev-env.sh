@@ -15,5 +15,8 @@ poetry run ggwc add-identity-provider --issuer https://services-staging.vib.be/ 
 # Add the admin auth by keycloak
 poetry run ggwc create-admin --iss 1 --sub 4af3d9fb-beb3-4b59-af33-d325addbf1bb ggw
 
+# Populate the database
+poetry run ggwc import0 ./Test_data/MP-G0-elements_Import_File.csv  ./Test_data/Example_Level_0/ 4af3d9fb-beb3-4b59-af33-d325addbf1bb
+
 # Run the app
 poetry run hypercorn --bind "0.0.0.0:8000" main:app --reload
