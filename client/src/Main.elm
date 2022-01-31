@@ -1487,7 +1487,12 @@ update msg model =
             if not (List.member newInsert.bsa1_overhang (List.map .bsa1_overhang model.selectedInserts)) then
                 ( { model
                     | selectedInserts = List.append model.selectedInserts [ newInsert ]
-                    , constructLength = List.sum (model.selectedBackbone.length :: String.length newInsert.sequence :: List.map (.sequence >> String.length) model.selectedInserts)
+                    , constructLength =
+                        List.sum
+                            (model.selectedBackbone.length
+                                :: String.length newInsert.sequence
+                                :: List.map (.sequence >> String.length) model.selectedInserts
+                            )
                   }
                 , Cmd.none
                 )
@@ -1617,7 +1622,23 @@ update msg model =
             ( model, Cmd.none )
 
         RequestAllLevel0 ->
-            ( model, authenticatedGet (Maybe.withDefault "" model.token) "http://localhost:8000/vectors/level0" Level0Received (Decode.list level0Decoder) )
+            case model.token of
+                Just token ->
+                    ( model
+                    , authenticatedGet token
+                        "http://localhost:8000/vectors/level0"
+                        Level0Received
+                        (Decode.list level0Decoder)
+                    )
+
+                Nothing ->
+                    ( { model
+                        | error =
+                            Just <|
+                                showHttpError (BadBody "Permission denied! Token is empty!")
+                      }
+                    , Cmd.none
+                    )
 
 
 
