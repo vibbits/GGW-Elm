@@ -1634,8 +1634,7 @@ update msg model =
                 Nothing ->
                     ( { model
                         | error =
-                            Just <|
-                                showHttpError (BadBody "Permission denied! Token is empty!")
+                            Just <| "Permission denied! Token is empty!"
                       }
                     , Cmd.none
                     )
