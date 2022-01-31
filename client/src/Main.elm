@@ -6,7 +6,6 @@ import Browser exposing (Document)
 import Browser.Dom exposing (Error(..))
 import Browser.Navigation as Nav
 import Color
-import Debug exposing (todo)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border exposing (rounded)
@@ -17,7 +16,7 @@ import Element.Region
 import File exposing (File)
 import File.Select as Select
 import Html exposing (Html, a)
-import Html.Attributes as HA exposing (required)
+import Html.Attributes as HA
 import Html.Events exposing (onClick)
 import Http exposing (Error(..), expectJson, jsonBody)
 import Json.Decode as Decode
@@ -32,7 +31,7 @@ import Task
 import TypedSvg exposing (g, svg, text_)
 import TypedSvg.Attributes exposing (dy, stroke, textAnchor, transform, viewBox)
 import TypedSvg.Core exposing (Svg)
-import TypedSvg.Types exposing (AnchorAlignment(..), Paint(..), Transform(..), YesNo, em)
+import TypedSvg.Types exposing (AnchorAlignment(..), Paint(..), Transform(..), em)
 import Url exposing (..)
 import Url.Parser exposing ((</>), Parser, parse, query, s)
 import Url.Parser.Query exposing (map2, string)
@@ -1614,7 +1613,7 @@ update msg model =
         Level0Received (Ok level0s) ->
             ( { model | insertList = level0s }, Cmd.none )
 
-        Level0Received (Err err) ->
+        Level0Received (Err _) ->
             ( model, Cmd.none )
 
         RequestAllLevel0 ->
