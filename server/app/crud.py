@@ -156,7 +156,7 @@ def add_vector(
 
 
 def get_level0_for_user(database: Session, user: schemas.User) -> List[model.Vector]:
-    "Query all vectors from the database."
+    "Query all vectors from the database that a given user has access to."
     return (
         database.query(model.Vector)
         .filter(model.Vector.users.any(id=user.id), model.Vector.level == 0)
