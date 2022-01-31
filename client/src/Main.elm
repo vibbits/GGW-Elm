@@ -1049,15 +1049,37 @@ visualRepresentation model =
         -- sortingFn sets the sorting function -> default = sorting by value (inserts length in this case)
     in
     Html.div [ HA.style "width" "100%" ]
-        [ svg [ HA.style "padding" "10px", HA.style "border" "solid 1px steelblue", HA.style "margin" "10px", HA.style "border-radius" "25px", viewBox 0 0 w h ]
+        [ svg
+            [ HA.style "padding" "10px"
+            , HA.style "border" "solid 1px steelblue"
+            , HA.style "margin" "10px"
+            , HA.style "border-radius" "25px"
+            , viewBox 0 0 w h
+            ]
             [ g [ transform [ Translate (w / 2) (h / 2) ] ]
                 [ g [] <| List.indexedMap pieSlice pieData
                 , g [] <| List.map2 pieLabel pieData data
                 ]
             ]
         , Html.div [ HA.style "justify-content" "center", HA.style "align-items" "center", HA.style "display" "flex" ]
-            [ Html.button [ onClick ResetInsertList, HA.style "margin-right" "75px", HA.style "padding" "10px", HA.style "background-color" "white", HA.style "border-radius" "6px", HA.style "border" "solid 3px rgb(152, 171, 198)" ] [ Html.text "Reset Level0 List" ]
-            , Html.button [ onClick ResetBackbone, HA.style "margin-left" "75px", HA.style "padding" "10px", HA.style "background-color" "white", HA.style "border-radius" "6px", HA.style "border" "solid 3px rgb(152, 171, 198)" ] [ Html.text "Reset All" ]
+            [ Html.button
+                [ onClick ResetInsertList
+                , HA.style "margin-right" "75px"
+                , HA.style "padding" "10px"
+                , HA.style "background-color" "white"
+                , HA.style "border-radius" "6px"
+                , HA.style "border" "solid 3px rgb(152, 171, 198)"
+                ]
+                [ Html.text "Reset Level0 List" ]
+            , Html.button
+                [ onClick ResetBackbone
+                , HA.style "margin-left" "75px"
+                , HA.style "padding" "10px"
+                , HA.style "background-color" "white"
+                , HA.style "border-radius" "6px"
+                , HA.style "border" "solid 3px rgb(152, 171, 198)"
+                ]
+                [ Html.text "Reset All" ]
             ]
         ]
 
@@ -1280,9 +1302,10 @@ insertTable model =
                 , spacing 10
                 , padding 25
                 ]
-                -- { data = List.filter(filterLevel0 model.level0FilterString) <| model.insertList
-                -- { data = List.filter(filterLevel0OnOverhang (showOverhang model.currOverhang) model.insertList
-                { data = model.insertList |> List.filter (filterLevel0OnOverhang model.currOverhang) |> List.filter (filterLevel0 model.level0FilterString)
+                { data =
+                    model.insertList
+                        |> List.filter (filterLevel0OnOverhang model.currOverhang)
+                        |> List.filter (filterLevel0 model.level0FilterString)
                 , columns =
                     [ { header = none
                       , width = fillPortion 3
@@ -1292,7 +1315,10 @@ insertTable model =
                       , width = fillPortion 5
                       , view =
                             \level0 ->
-                                Input.button [ Font.color color.blue, Font.bold, Font.underline ] { onPress = Just (AppendInsert level0), label = Element.text level0.name }
+                                Input.button [ Font.color color.blue, Font.bold, Font.underline ]
+                                    { onPress = Just (AppendInsert level0)
+                                    , label = Element.text level0.name
+                                    }
                       }
                     , { header = none
                       , width = fillPortion 1
@@ -1499,8 +1525,25 @@ update msg model =
 
             else
                 ( { model
-                    | selectedInserts = newInsert :: List.filter (\level0 -> not (level0.bsa1_overhang == newInsert.bsa1_overhang)) model.selectedInserts
-                    , constructLength = List.sum (model.selectedBackbone.length :: List.map (.sequence >> String.length) (newInsert :: List.filter (\level0 -> not (level0.bsa1_overhang == newInsert.bsa1_overhang)) model.selectedInserts))
+                    | selectedInserts =
+                        newInsert
+                            :: List.filter
+                                (\level0 ->
+                                    not (level0.bsa1_overhang == newInsert.bsa1_overhang)
+                                )
+                                model.selectedInserts
+                    , constructLength =
+                        List.sum
+                            (model.selectedBackbone.length
+                                :: List.map (.sequence >> String.length)
+                                    (newInsert
+                                        :: List.filter
+                                            (\level0 ->
+                                                not (level0.bsa1_overhang == newInsert.bsa1_overhang)
+                                            )
+                                            model.selectedInserts
+                                    )
+                            )
                   }
                 , Cmd.none
                 )
@@ -1512,7 +1555,13 @@ update msg model =
             ( { model | selectedInserts = [] }, Cmd.none )
 
         ResetBackbone ->
-            ( { model | selectedInserts = [], selectedBackbone = { name = "", length = 0, mPGBNumber = "", level = 0 } }, Cmd.none )
+            ( { model
+                | selectedInserts = []
+                , selectedBackbone =
+                    { name = "", length = 0, mPGBNumber = "", level = 0 }
+              }
+            , Cmd.none
+            )
 
         UrlChanged ->
             ( model, Cmd.none )
