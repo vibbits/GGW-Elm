@@ -62,7 +62,7 @@ class Reference(BaseModel):
     title: str
 
     class Config:
-        from_orm = True
+        orm_mode = True
 
 
 class Qualifier(BaseModel):
@@ -70,7 +70,7 @@ class Qualifier(BaseModel):
     value: str
 
     class Config:
-        from_orm = True
+        orm_mode = True
 
 
 class Feature(BaseModel):
@@ -81,7 +81,7 @@ class Feature(BaseModel):
     strand: int
 
     class Config:
-        from_orm = True
+        orm_mode = True
 
 
 class Annotation(BaseModel):
@@ -89,7 +89,7 @@ class Annotation(BaseModel):
     value: str
 
     class Config:
-        from_orm = True
+        orm_mode = True
 
 
 class Vector(BaseModel):

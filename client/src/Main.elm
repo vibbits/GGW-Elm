@@ -20,6 +20,7 @@ import Html.Attributes as HA
 import Html.Events exposing (onClick)
 import Http exposing (Error(..), expectJson, jsonBody)
 import Json.Decode as Decode
+import Json.Decode.Pipeline as JDP
 import Json.Encode as Encode
 import List
 import List.Extra
@@ -115,7 +116,7 @@ type alias Model =
     , applicationNote : String
     , designerName : String
     , description : String
-    , selectedInserts : List Insert
+    , selectedInserts : List Level0
     , selectedBackbone : Backbone
     , loginUrls : List Login
     , token : Maybe String
@@ -131,7 +132,7 @@ type alias Model =
     , level0AccordionStatus : Bool
     , level1AccordionStatus : Bool
     , backboneList : List Backbone
-    , insertList : List Insert
+    , insertList : List Level0
 
     -- Attributes for adding backbones
     , nameBackboneToAdd : String
@@ -143,17 +144,71 @@ type alias Model =
     -- Attributes for adding Level0
     , nameLevel0ToAdd : String
     , mpg0NumberLevel0ToAdd : String
-    , overhangLevel0ToAdd : Maybe Overhang
+    , bsa1OverhangLevel0ToAdd : Maybe Overhang
     , lengthLevel0ToAdd : Int
+    , bacterialStrainLevel0ToAdd : String
+    , responsibleLevel0ToAdd : String
+    , groupLevel0ToAdd : String
+    , selectionLevel0ToAdd : String
+    , cloningTechniqueLevel0ToAdd : String
+    , isBsmB1FreeLevel0ToAdd : IsPresent
+    , notesLevel0ToAdd : Maybe String
+    , reAseDigestLevel0ToAdd : String
+    , sequenceLevel0ToAdd : String
+    , annotationsLevel0ToAdd : List Annotation
+    , featuresLevel0ToAdd : List Feature
+    , referencesLevel0ToAdd : List Reference
     , level0GenbankContent : Maybe String
     }
 
 
-type alias Insert =
-    { name : String, mPG0Number : String, overhang : Maybe Overhang, length : Int }
+type alias Annotation =
+    { key : String
+    , value : String
+    }
 
 
-emptyInsertList : List Insert
+type alias Qualifier =
+    { key : String
+    , value : String
+    }
+
+
+type alias Feature =
+    { feature_type : String
+    , qualifiers : List Qualifier
+    , start_pos : Int
+    , end_pos : Int
+    , strand : Int
+    }
+
+
+type alias Reference =
+    { authors : String
+    , title : String
+    }
+
+
+type alias Level0 =
+    { name : String
+    , mPG0Number : String
+    , bsa1_overhang : Overhang
+    , bacterial_strain : String
+    , responsible : String
+    , group : String
+    , selection : String
+    , cloning_technique : String
+    , is_BsmB1_free : IsPresent
+    , notes : Maybe String
+    , re_ase_digest : String
+    , sequence : String
+    , annotations : List Annotation
+    , features : List Feature
+    , references : List Reference
+    }
+
+
+emptyInsertList : List Level0
 emptyInsertList =
     []
 
@@ -211,8 +266,8 @@ init _ url key =
       , backboneAccordionStatus = False
       , level0AccordionStatus = False
       , level1AccordionStatus = False
-      , backboneList = testBackboneList 1
-      , insertList = testInsertList A__B
+      , backboneList = []
+      , insertList = []
 
       -- Backbone To Add attributes
       , nameBackboneToAdd = ""
@@ -224,8 +279,20 @@ init _ url key =
       -- Level0 To Add Attributes
       , nameLevel0ToAdd = ""
       , mpg0NumberLevel0ToAdd = ""
-      , overhangLevel0ToAdd = Nothing
+      , bsa1OverhangLevel0ToAdd = Nothing
       , lengthLevel0ToAdd = 0
+      , bacterialStrainLevel0ToAdd = ""
+      , responsibleLevel0ToAdd = ""
+      , groupLevel0ToAdd = ""
+      , selectionLevel0ToAdd = ""
+      , cloningTechniqueLevel0ToAdd = ""
+      , isBsmB1FreeLevel0ToAdd = Unknown
+      , notesLevel0ToAdd = Nothing
+      , reAseDigestLevel0ToAdd = ""
+      , sequenceLevel0ToAdd = ""
+      , annotationsLevel0ToAdd = []
+      , featuresLevel0ToAdd = []
+      , referencesLevel0ToAdd = []
       , level0GenbankContent = Nothing
       }
     , cmd
@@ -273,7 +340,6 @@ type Overhang
     | E__F
     | E__G
     | F__G
-    | Invalid
 
 
 type ButtonPosition
@@ -291,7 +357,7 @@ type Msg
     | ChangeApplicationNote String
     | ChangeConstructDesignerName String
     | ChangeDescription String
-    | AppendInsert Insert
+    | AppendInsert Level0
     | ChangeBackbone Backbone
     | ResetInsertList
     | ResetBackbone
@@ -318,14 +384,16 @@ type Msg
     | GbNewBackboneSelected File
     | GbNewBackboneLoaded String
       -- Msg for adding Level 0
-    | AddLevel0 Insert
+    | AddLevel0 Level0
     | ChangeLevel0NameToAdd String
     | ChangeLevel0MpgNumberToAdd String
     | ChangeLevel0OverhangToAdd Overhang
-    | ChangeLevel0LengthToAdd String
     | GBNewLevel0Requested
     | GBNewLevel0Selected File
     | GbNewLevel0Loaded String
+      -- Msg for retrieving Vectors
+    | RequestAllLevel0
+    | Level0Received (Result Http.Error (List Level0))
 
 
 
@@ -357,7 +425,11 @@ catalogueView model =
             , Element.height Element.fill
             ]
           <|
-            row []
+            row
+                [ Element.width Element.fill
+                , spacing 25
+                , padding 10
+                ]
                 [ navLinks
                 , column [ spacing 25, Element.width Element.fill, centerX, padding 50 ]
                     [ el
@@ -367,25 +439,46 @@ catalogueView model =
                         ]
                       <|
                         Element.text "Vector Catalog"
-                    , Input.button
-                        [ Border.solid
-                        , Border.color color.blue
-                        , padding 10
-                        , Border.width 3
-                        , Border.rounded 6
-                        , Background.color color.white
-                        , mouseDown
-                            [ Background.color color.blue
-                            , Font.color color.white
+                    , row [ spacing 20 ]
+                        [ Input.button
+                            [ Border.solid
+                            , Border.color color.blue
+                            , padding 10
+                            , Border.width 3
+                            , Border.rounded 6
+                            , Background.color color.white
+                            , mouseDown
+                                [ Background.color color.blue
+                                , Font.color color.white
+                                ]
+                            , mouseOver
+                                [ Background.color color.lightBlue
+                                , Border.color color.lightGrey
+                                ]
                             ]
-                        , mouseOver
-                            [ Background.color color.lightBlue
-                            , Border.color color.lightGrey
+                            { onPress = Just ToggleAll
+                            , label = Element.text "Toggle all"
+                            }
+                        , Input.button
+                            [ Border.solid
+                            , Border.color color.blue
+                            , padding 10
+                            , Border.width 3
+                            , Border.rounded 6
+                            , Background.color color.white
+                            , mouseDown
+                                [ Background.color color.blue
+                                , Font.color color.white
+                                ]
+                            , mouseOver
+                                [ Background.color color.lightBlue
+                                , Border.color color.lightGrey
+                                ]
                             ]
+                            { onPress = Just RequestAllLevel0
+                            , label = Element.text "Populate table from DB"
+                            }
                         ]
-                        { onPress = Just ToggleAll
-                        , label = Element.text "Toggle all"
-                        }
                     , Accordion.accordion
                         (Accordion.head
                             [ EE.onClick BackboneAccordionToggled
@@ -397,7 +490,7 @@ catalogueView model =
                             [ Element.text "Backbones\t▼"
                             ]
                         )
-                        (Accordion.body [ spacing 25 ]
+                        (Accordion.body [ padding 25 ]
                             [ Input.text []
                                 { onChange = FilterBackboneTable
                                 , text = Maybe.withDefault "" model.backboneFilterString
@@ -422,7 +515,7 @@ catalogueView model =
                             [ Element.text "Level 0\t▼"
                             ]
                         )
-                        (Accordion.body [ spacing 25 ]
+                        (Accordion.body [ padding 25 ]
                             [ Input.text []
                                 { onChange = FilterLevel0Table
                                 , text = Maybe.withDefault "" model.level0FilterString
@@ -462,24 +555,12 @@ addLevel0View model =
                         , placeholder = Nothing
                         , text = model.mpg0NumberLevel0ToAdd
                         }
-                    , row []
-                        [ el [] <| Element.text "Length (bp):\t"
-                        , Element.html <|
-                            Html.input
-                                [ HA.type_ "number"
-                                , HA.min "0"
-                                , Html.Events.onInput ChangeLevel0LengthToAdd
-                                , HA.value (String.fromInt model.lengthLevel0ToAdd)
-                                , HA.style "padding" "10px"
-                                ]
-                                []
-                        ]
                     , Input.radioRow [ spacing 5, padding 10 ]
                         { label = Input.labelAbove [] <| Element.text "Overhang Type:\t"
                         , onChange = ChangeLevel0OverhangToAdd
                         , options =
                             makeOverhangOptions completeOverhangList
-                        , selected = model.overhangLevel0ToAdd
+                        , selected = model.bsa1OverhangLevel0ToAdd
                         }
                     , Element.html <| Html.button [ HA.style "margin" "50px", onClick GBNewLevel0Requested ] [ Html.text "Load Genbank file" ]
                     , Input.button
@@ -493,12 +574,33 @@ addLevel0View model =
                         , Border.rounded 25
                         ]
                         { label = Element.text "Add"
-                        , onPress = Just (AddLevel0 { name = model.nameLevel0ToAdd, mPG0Number = "MP-G0-" ++ model.mpg0NumberLevel0ToAdd, overhang = model.overhangLevel0ToAdd, length = model.lengthLevel0ToAdd })
+                        , onPress = Maybe.map (makeLevel0 model) model.bsa1OverhangLevel0ToAdd
                         }
                     ]
                 ]
         ]
     }
+
+
+makeLevel0 : Model -> Overhang -> Msg
+makeLevel0 model bsa1_overhang =
+    AddLevel0
+        { name = model.nameLevel0ToAdd
+        , mPG0Number = "MP-G0-" ++ model.mpg0NumberLevel0ToAdd
+        , bsa1_overhang = bsa1_overhang
+        , bacterial_strain = model.bacterialStrainLevel0ToAdd
+        , responsible = model.responsibleLevel0ToAdd
+        , group = model.groupLevel0ToAdd
+        , selection = model.selectionLevel0ToAdd
+        , cloning_technique = model.cloningTechniqueLevel0ToAdd
+        , is_BsmB1_free = model.isBsmB1FreeLevel0ToAdd
+        , notes = model.notesLevel0ToAdd
+        , re_ase_digest = model.reAseDigestLevel0ToAdd
+        , sequence = model.sequenceLevel0ToAdd
+        , annotations = model.annotationsLevel0ToAdd
+        , features = model.featuresLevel0ToAdd
+        , references = model.referencesLevel0ToAdd
+        }
 
 
 makeOverhangOptions : List Overhang -> List (Input.Option Overhang msg)
@@ -884,23 +986,23 @@ pieLabel slice ( label, _ ) =
         [ TypedSvg.Core.text label ]
 
 
-tupleToRecord : ( String, String, Int ) -> { name : String, overhang : String, length : Int }
+tupleToRecord : ( String, String, Int ) -> { name : String, bsa1_overhang : String, length : Int }
 tupleToRecord ( t_name, t_overhang, t_length ) =
-    { name = t_name, overhang = t_overhang, length = t_length }
+    { name = t_name, bsa1_overhang = t_overhang, length = t_length }
 
 
 visualRepresentation : Model -> Html Msg
 visualRepresentation model =
     let
-        -- Note: The reversing is for making sure insert 1 is at position 0. This way the destination vector is appended on the back of the list!
+        -- Note: The reversing is for making sure Level0 1 is at position 0. This way the destination vector is appended on the back of the list!
         insertOverhangs =
-            List.map showOverhang <| List.map (Maybe.withDefault Invalid) <| List.map .overhang model.selectedInserts
+            List.map showOverhang <| List.map .bsa1_overhang model.selectedInserts
 
         insertNames =
             List.map .name model.selectedInserts
 
         insertLengths =
-            List.map .length model.selectedInserts
+            List.map (String.length << .sequence) model.selectedInserts
 
         insertTuple =
             List.Extra.zip3 insertNames insertOverhangs insertLengths
@@ -930,7 +1032,7 @@ visualRepresentation model =
                     GT
 
         sortedInsertRecordList =
-            sortByWith .overhang ascending insertRecordList
+            sortByWith .bsa1_overhang ascending insertRecordList
 
         chartLabels =
             List.reverse (model.selectedBackbone.name :: List.reverse (List.map .name sortedInsertRecordList))
@@ -947,15 +1049,37 @@ visualRepresentation model =
         -- sortingFn sets the sorting function -> default = sorting by value (inserts length in this case)
     in
     Html.div [ HA.style "width" "100%" ]
-        [ svg [ HA.style "padding" "10px", HA.style "border" "solid 1px steelblue", HA.style "margin" "10px", HA.style "border-radius" "25px", viewBox 0 0 w h ]
+        [ svg
+            [ HA.style "padding" "10px"
+            , HA.style "border" "solid 1px steelblue"
+            , HA.style "margin" "10px"
+            , HA.style "border-radius" "25px"
+            , viewBox 0 0 w h
+            ]
             [ g [ transform [ Translate (w / 2) (h / 2) ] ]
                 [ g [] <| List.indexedMap pieSlice pieData
                 , g [] <| List.map2 pieLabel pieData data
                 ]
             ]
         , Html.div [ HA.style "justify-content" "center", HA.style "align-items" "center", HA.style "display" "flex" ]
-            [ Html.button [ onClick ResetInsertList, HA.style "margin-right" "75px", HA.style "padding" "10px", HA.style "background-color" "white", HA.style "border-radius" "6px", HA.style "border" "solid 3px rgb(152, 171, 198)" ] [ Html.text "Reset Insert List" ]
-            , Html.button [ onClick ResetBackbone, HA.style "margin-left" "75px", HA.style "padding" "10px", HA.style "background-color" "white", HA.style "border-radius" "6px", HA.style "border" "solid 3px rgb(152, 171, 198)" ] [ Html.text "Reset All" ]
+            [ Html.button
+                [ onClick ResetInsertList
+                , HA.style "margin-right" "75px"
+                , HA.style "padding" "10px"
+                , HA.style "background-color" "white"
+                , HA.style "border-radius" "6px"
+                , HA.style "border" "solid 3px rgb(152, 171, 198)"
+                ]
+                [ Html.text "Reset Level0 List" ]
+            , Html.button
+                [ onClick ResetBackbone
+                , HA.style "margin-left" "75px"
+                , HA.style "padding" "10px"
+                , HA.style "background-color" "white"
+                , HA.style "border-radius" "6px"
+                , HA.style "border" "solid 3px rgb(152, 171, 198)"
+                ]
+                [ Html.text "Reset All" ]
             ]
         ]
 
@@ -1062,8 +1186,8 @@ overhangRadioRow model =
             List.map (makeButton Last) <| List.drop midLength model.overhangShape
 
         makeButton : ButtonPosition -> Overhang -> Input.Option Overhang Msg
-        makeButton position overhang =
-            Input.optionWith overhang <| button position <| showOverhang overhang
+        makeButton position bsa1_overhang =
+            Input.optionWith bsa1_overhang <| button position <| showOverhang bsa1_overhang
     in
     Input.radioRow
         [ Border.rounded 6
@@ -1161,7 +1285,7 @@ insertTable model =
             , clipY
             ]
             [ el ((Element.width <| fillPortion 3) :: headerAttrs) <| Element.text "MP-G0-Number"
-            , el ((Element.width <| fillPortion 5) :: headerAttrs) <| Element.text "Insert Name"
+            , el ((Element.width <| fillPortion 5) :: headerAttrs) <| Element.text "Level0 Name"
             , el ((Element.width <| fillPortion 1) :: headerAttrs) <| Element.text "Length"
             , el ((Element.width <| fillPortion 1) :: headerAttrs) <| Element.text "Overhang"
             ]
@@ -1178,9 +1302,10 @@ insertTable model =
                 , spacing 10
                 , padding 25
                 ]
-                -- { data = List.filter(filterLevel0 model.level0FilterString) <| model.insertList
-                -- { data = List.filter(filterLevel0OnOverhang (showOverhang model.currOverhang) model.insertList
-                { data = model.insertList |> List.filter (filterLevel0OnOverhang (Just model.currOverhang)) |> List.filter (filterLevel0 model.level0FilterString)
+                { data =
+                    model.insertList
+                        |> List.filter (filterLevel0OnOverhang model.currOverhang)
+                        |> List.filter (filterLevel0 model.level0FilterString)
                 , columns =
                     [ { header = none
                       , width = fillPortion 3
@@ -1189,16 +1314,19 @@ insertTable model =
                     , { header = none
                       , width = fillPortion 5
                       , view =
-                            \insert ->
-                                Input.button [ Font.color color.blue, Font.bold, Font.underline ] { onPress = Just (AppendInsert insert), label = Element.text insert.name }
+                            \level0 ->
+                                Input.button [ Font.color color.blue, Font.bold, Font.underline ]
+                                    { onPress = Just (AppendInsert level0)
+                                    , label = Element.text level0.name
+                                    }
                       }
                     , { header = none
                       , width = fillPortion 1
-                      , view = .length >> String.fromInt >> Element.text >> el [ centerY ]
+                      , view = .sequence >> String.length >> String.fromInt >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 1
-                      , view = .overhang >> Maybe.withDefault Invalid >> showOverhang >> Element.text >> el [ centerY ]
+                      , view = .bsa1_overhang >> showOverhang >> Element.text >> el [ centerY ]
                       }
                     ]
                 }
@@ -1382,18 +1510,40 @@ update msg model =
             ( { model | description = newDescription }, Cmd.none )
 
         AppendInsert newInsert ->
-            if not (List.member newInsert.overhang (List.map .overhang model.selectedInserts)) then
+            if not (List.member newInsert.bsa1_overhang (List.map .bsa1_overhang model.selectedInserts)) then
                 ( { model
                     | selectedInserts = List.append model.selectedInserts [ newInsert ]
-                    , constructLength = List.sum (model.selectedBackbone.length :: newInsert.length :: List.map .length model.selectedInserts)
+                    , constructLength =
+                        List.sum
+                            (model.selectedBackbone.length
+                                :: String.length newInsert.sequence
+                                :: List.map (.sequence >> String.length) model.selectedInserts
+                            )
                   }
                 , Cmd.none
                 )
 
             else
                 ( { model
-                    | selectedInserts = newInsert :: List.filter (\insert -> not (insert.overhang == newInsert.overhang)) model.selectedInserts
-                    , constructLength = List.sum (model.selectedBackbone.length :: List.map .length (newInsert :: List.filter (\insert -> not (insert.overhang == newInsert.overhang)) model.selectedInserts))
+                    | selectedInserts =
+                        newInsert
+                            :: List.filter
+                                (\level0 ->
+                                    not (level0.bsa1_overhang == newInsert.bsa1_overhang)
+                                )
+                                model.selectedInserts
+                    , constructLength =
+                        List.sum
+                            (model.selectedBackbone.length
+                                :: List.map (.sequence >> String.length)
+                                    (newInsert
+                                        :: List.filter
+                                            (\level0 ->
+                                                not (level0.bsa1_overhang == newInsert.bsa1_overhang)
+                                            )
+                                            model.selectedInserts
+                                    )
+                            )
                   }
                 , Cmd.none
                 )
@@ -1405,7 +1555,13 @@ update msg model =
             ( { model | selectedInserts = [] }, Cmd.none )
 
         ResetBackbone ->
-            ( { model | selectedInserts = [], selectedBackbone = { name = "", length = 0, mPGBNumber = "", level = 0 } }, Cmd.none )
+            ( { model
+                | selectedInserts = []
+                , selectedBackbone =
+                    { name = "", length = 0, mPGBNumber = "", level = 0 }
+              }
+            , Cmd.none
+            )
 
         UrlChanged ->
             ( model, Cmd.none )
@@ -1496,11 +1652,8 @@ update msg model =
         ChangeLevel0MpgNumberToAdd mpg0Number ->
             ( { model | mpg0NumberLevel0ToAdd = mpg0Number }, Cmd.none )
 
-        ChangeLevel0OverhangToAdd overhang ->
-            ( { model | overhangLevel0ToAdd = Just overhang }, Cmd.none )
-
-        ChangeLevel0LengthToAdd len_str ->
-            ( { model | lengthLevel0ToAdd = len_str |> String.toInt |> Maybe.withDefault model.lengthLevel0ToAdd }, Cmd.none )
+        ChangeLevel0OverhangToAdd bsa1_overhang ->
+            ( { model | bsa1OverhangLevel0ToAdd = Just bsa1_overhang }, Cmd.none )
 
         GBNewLevel0Requested ->
             ( model, Select.file [ "text" ] GBNewLevel0Selected )
@@ -1510,6 +1663,30 @@ update msg model =
 
         GbNewLevel0Loaded content ->
             ( { model | level0GenbankContent = Just content }, Cmd.none )
+
+        Level0Received (Ok level0s) ->
+            ( { model | insertList = level0s }, Cmd.none )
+
+        Level0Received (Err _) ->
+            ( model, Cmd.none )
+
+        RequestAllLevel0 ->
+            case model.token of
+                Just token ->
+                    ( model
+                    , authenticatedGet token
+                        "http://localhost:8000/vectors/level0"
+                        Level0Received
+                        (Decode.list level0Decoder)
+                    )
+
+                Nothing ->
+                    ( { model
+                        | error =
+                            Just "Permission denied! Token is empty!"
+                      }
+                    , Cmd.none
+                    )
 
 
 
@@ -1526,7 +1703,7 @@ filterBackbone needle val =
             String.contains ndle val.name || String.contains ndle val.mPGBNumber
 
 
-filterLevel0 : Maybe String -> Insert -> Bool
+filterLevel0 : Maybe String -> Level0 -> Bool
 filterLevel0 needle val =
     case needle of
         Nothing ->
@@ -1536,13 +1713,109 @@ filterLevel0 needle val =
             String.contains ndle val.name || String.contains ndle val.mPG0Number
 
 
-filterLevel0OnOverhang : Maybe Overhang -> Insert -> Bool
+filterLevel0OnOverhang : Overhang -> Level0 -> Bool
 filterLevel0OnOverhang needle val =
-    needle == val.overhang
+    needle == val.bsa1_overhang
 
 
 
 -- End Filter functions
+
+
+authenticatedGet : String -> String -> (Result Http.Error a -> Msg) -> Decode.Decoder a -> Cmd Msg
+authenticatedGet token url msg decoder =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
+        , url = url
+        , body = Http.emptyBody
+        , expect = Http.expectJson msg decoder
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+annotationDecoder : Decode.Decoder Annotation
+annotationDecoder =
+    Decode.map2 Annotation
+        (Decode.field "key" Decode.string)
+        (Decode.field "value" Decode.string)
+
+
+featureDecoder : Decode.Decoder Feature
+featureDecoder =
+    Decode.succeed Feature
+        |> JDP.required "type" Decode.string
+        |> JDP.required "qualifiers" (Decode.list qualifierDecoder)
+        |> JDP.required "start_pos" Decode.int
+        |> JDP.required "end_pos" Decode.int
+        |> JDP.required "strand" Decode.int
+
+
+qualifierDecoder : Decode.Decoder Qualifier
+qualifierDecoder =
+    Decode.map2 Qualifier
+        (Decode.field "key" Decode.string)
+        (Decode.field "value" Decode.string)
+
+
+referenceDecoder : Decode.Decoder Reference
+referenceDecoder =
+    Decode.map2 Reference
+        (Decode.field "authors" Decode.string)
+        (Decode.field "title" Decode.string)
+
+
+type IsPresent
+    = Yes
+    | No
+    | Unknown
+
+
+level0Decoder : Decode.Decoder Level0
+level0Decoder =
+    let
+        str2IsPresent : String -> IsPresent
+        str2IsPresent s =
+            case String.toLower s |> String.trim of
+                "yes" ->
+                    Yes
+
+                "no" ->
+                    No
+
+                _ ->
+                    Unknown
+
+        decodeOverhang : String -> Decode.Decoder Overhang
+        decodeOverhang str =
+            case stringToOverhang (String.trim str) of
+                Just oh ->
+                    Decode.succeed oh
+
+                _ ->
+                    Decode.fail "Not a valid overhang"
+    in
+    Decode.succeed Level0
+        |> JDP.required "name" Decode.string
+        |> JDP.required "id" (Decode.int |> Decode.map String.fromInt)
+        |> JDP.required "bsa1_overhang" (Decode.string |> Decode.andThen decodeOverhang)
+        |> JDP.required "bacterial_strain" Decode.string
+        |> JDP.required "responsible" Decode.string
+        |> JDP.required "group" Decode.string
+        |> JDP.required "selection" Decode.string
+        |> JDP.required "cloning_technique" Decode.string
+        |> JDP.optional "is_BsmB1_free" (Decode.string |> Decode.map str2IsPresent) Unknown
+        |> JDP.optional "notes" (Decode.maybe Decode.string) Nothing
+        |> JDP.required "REase_digest" Decode.string
+        |> JDP.required "sequence" Decode.string
+        |> JDP.required "annotations" (Decode.list annotationDecoder)
+        |> JDP.required "features" (Decode.list featureDecoder)
+        |> JDP.required "references" (Decode.list referenceDecoder)
+
+
+
+-- Login & Authentication functions
 
 
 getLoginUrls : Cmd Msg
@@ -1566,6 +1839,10 @@ getAuthentication auth =
                 )
         , expect = expectJson GotAuthentication authUrlsDecoder
         }
+
+
+
+-- End Login & Authentication functions
 
 
 main : Program () Model Msg
@@ -1604,8 +1881,8 @@ color =
 
 
 showOverhang : Overhang -> String
-showOverhang overhang =
-    case overhang of
+showOverhang bsa1_overhang =
+    case bsa1_overhang of
         A__B ->
             "A__B"
 
@@ -1633,133 +1910,36 @@ showOverhang overhang =
         F__G ->
             "F__G"
 
-        Invalid ->
-            "Invalid"
-
 
 stringToOverhang : String -> Maybe Overhang
 stringToOverhang strOverhang =
     case strOverhang of
-        "A__B" ->
+        "AB" ->
             Just A__B
 
-        "B__C" ->
+        "BC" ->
             Just B__C
 
-        "C__D" ->
+        "CD" ->
             Just C__D
 
-        "C__G" ->
+        "CG" ->
             Just C__G
 
-        "D__E" ->
+        "DE" ->
             Just D__E
 
-        "D__G" ->
+        "DG" ->
             Just D__G
 
-        "E__F" ->
+        "EF" ->
             Just E__F
 
-        "E__G" ->
+        "EG" ->
             Just E__G
 
-        "F__G" ->
+        "FG" ->
             Just F__G
 
         _ ->
             Nothing
-
-
-testInsertList : Overhang -> List Insert
-testInsertList _ =
-    [ { name = "Insert A1", mPG0Number = "MG-G0-000001", overhang = Just A__B, length = 952 }
-    , { name = "Insert A2", mPG0Number = "MG-G0-000002", overhang = Just A__B, length = 1526 }
-    , { name = "Insert A3", mPG0Number = "MG-G0-000003", overhang = Just A__B, length = 1874 }
-    , { name = "Insert A4", mPG0Number = "MG-G0-000004", overhang = Just A__B, length = 2698 }
-    , { name = "Insert A5", mPG0Number = "MG-G0-000005", overhang = Just A__B, length = 528 }
-    , { name = "Insert A6", mPG0Number = "MG-G0-000006", overhang = Just A__B, length = 865 }
-    , { name = "Insert A7", mPG0Number = "MG-G0-000007", overhang = Just A__B, length = 1058 }
-    , { name = "Insert B1", mPG0Number = "MG-G0-000008", overhang = Just B__C, length = 952 }
-    , { name = "Insert B2", mPG0Number = "MG-G0-000009", overhang = Just B__C, length = 1526 }
-    , { name = "Insert B3", mPG0Number = "MG-G0-000010", overhang = Just B__C, length = 1874 }
-    , { name = "Insert B4", mPG0Number = "MG-G0-000011", overhang = Just B__C, length = 2698 }
-    , { name = "Insert B5", mPG0Number = "MG-G0-000012", overhang = Just B__C, length = 528 }
-    , { name = "Insert B6", mPG0Number = "MG-G0-000013", overhang = Just B__C, length = 865 }
-    , { name = "Insert B7", mPG0Number = "MG-G0-000014", overhang = Just B__C, length = 1058 }
-    , { name = "Insert C1", mPG0Number = "MG-G0-000015", overhang = Just C__D, length = 952 }
-    , { name = "Insert C2", mPG0Number = "MG-G0-000016", overhang = Just C__D, length = 1526 }
-    , { name = "Insert C3", mPG0Number = "MG-G0-000017", overhang = Just C__D, length = 1874 }
-    , { name = "Insert C4", mPG0Number = "MG-G0-000018", overhang = Just C__D, length = 2698 }
-    , { name = "Insert C5", mPG0Number = "MG-G0-000019", overhang = Just C__D, length = 528 }
-    , { name = "Insert C6", mPG0Number = "MG-G0-000020", overhang = Just C__D, length = 865 }
-    , { name = "Insert C7", mPG0Number = "MG-G0-000021", overhang = Just C__D, length = 1058 }
-    , { name = "Insert D1", mPG0Number = "MG-G0-000022", overhang = Just C__G, length = 952 }
-    , { name = "Insert D2", mPG0Number = "MG-G0-000023", overhang = Just C__G, length = 1526 }
-    , { name = "Insert D3", mPG0Number = "MG-G0-000024", overhang = Just C__G, length = 1874 }
-    , { name = "Insert D4", mPG0Number = "MG-G0-000025", overhang = Just C__G, length = 2698 }
-    , { name = "Insert D5", mPG0Number = "MG-G0-000026", overhang = Just C__G, length = 528 }
-    , { name = "Insert D6", mPG0Number = "MG-G0-000027", overhang = Just C__G, length = 865 }
-    , { name = "Insert D7", mPG0Number = "MG-G0-000028", overhang = Just C__G, length = 1058 }
-    , { name = "Insert E1", mPG0Number = "MG-G0-000029", overhang = Just D__E, length = 952 }
-    , { name = "Insert E2", mPG0Number = "MG-G0-000030", overhang = Just D__E, length = 1526 }
-    , { name = "Insert E3", mPG0Number = "MG-G0-000031", overhang = Just D__E, length = 1874 }
-    , { name = "Insert E4", mPG0Number = "MG-G0-000032", overhang = Just D__E, length = 2698 }
-    , { name = "Insert E5", mPG0Number = "MG-G0-000033", overhang = Just D__E, length = 528 }
-    , { name = "Insert E6", mPG0Number = "MG-G0-000034", overhang = Just D__E, length = 865 }
-    , { name = "Insert E7", mPG0Number = "MG-G0-000035", overhang = Just D__E, length = 1058 }
-    , { name = "Insert F1", mPG0Number = "MG-G0-000036", overhang = Just D__G, length = 952 }
-    , { name = "Insert F2", mPG0Number = "MG-G0-000037", overhang = Just D__G, length = 1526 }
-    , { name = "Insert F3", mPG0Number = "MG-G0-000038", overhang = Just D__G, length = 1874 }
-    , { name = "Insert F4", mPG0Number = "MG-G0-000039", overhang = Just D__G, length = 2698 }
-    , { name = "Insert F5", mPG0Number = "MG-G0-000040", overhang = Just D__G, length = 528 }
-    , { name = "Insert F6", mPG0Number = "MG-G0-000041", overhang = Just D__G, length = 865 }
-    , { name = "Insert F7", mPG0Number = "MG-G0-000042", overhang = Just D__G, length = 1058 }
-    , { name = "Insert G1", mPG0Number = "MG-G0-000043", overhang = Just E__F, length = 952 }
-    , { name = "Insert G2", mPG0Number = "MG-G0-000044", overhang = Just E__F, length = 1526 }
-    , { name = "Insert G3", mPG0Number = "MG-G0-000045", overhang = Just E__F, length = 1874 }
-    , { name = "Insert G4", mPG0Number = "MG-G0-000046", overhang = Just E__F, length = 2698 }
-    , { name = "Insert G5", mPG0Number = "MG-G0-000047", overhang = Just E__F, length = 528 }
-    , { name = "Insert G6", mPG0Number = "MG-G0-000048", overhang = Just E__F, length = 865 }
-    , { name = "Insert G7", mPG0Number = "MG-G0-000049", overhang = Just E__F, length = 1058 }
-    , { name = "Insert H1", mPG0Number = "MG-G0-000050", overhang = Just E__G, length = 952 }
-    , { name = "Insert H2", mPG0Number = "MG-G0-000051", overhang = Just E__G, length = 1526 }
-    , { name = "Insert H3", mPG0Number = "MG-G0-000052", overhang = Just E__G, length = 1874 }
-    , { name = "Insert H4", mPG0Number = "MG-G0-000053", overhang = Just E__G, length = 2698 }
-    , { name = "Insert H5", mPG0Number = "MG-G0-000054", overhang = Just E__G, length = 528 }
-    , { name = "Insert H6", mPG0Number = "MG-G0-000055", overhang = Just E__G, length = 865 }
-    , { name = "Insert H7", mPG0Number = "MG-G0-000056", overhang = Just E__G, length = 1058 }
-    , { name = "Insert I1", mPG0Number = "MG-G0-000057", overhang = Just F__G, length = 952 }
-    , { name = "Insert I2", mPG0Number = "MG-G0-000058", overhang = Just F__G, length = 1526 }
-    , { name = "Insert I3", mPG0Number = "MG-G0-000059", overhang = Just F__G, length = 1874 }
-    , { name = "Insert I4", mPG0Number = "MG-G0-000060", overhang = Just F__G, length = 2698 }
-    , { name = "Insert I5", mPG0Number = "MG-G0-000061", overhang = Just F__G, length = 528 }
-    , { name = "Insert I6", mPG0Number = "MG-G0-000062", overhang = Just F__G, length = 865 }
-    , { name = "Insert I7", mPG0Number = "MG-G0-000063", overhang = Just F__G, length = 1058 }
-    ]
-
-
-testBackboneList : Int -> List Backbone
-testBackboneList _ =
-    [ { name = "Backbone L0-1", mPGBNumber = "MP-GB-000001", level = 0, length = 10520 }
-    , { name = "Backbone L0-2", mPGBNumber = "MP-GB-000002", level = 0, length = 11840 }
-    , { name = "Backbone L0-3", mPGBNumber = "MP-GB-000003", level = 0, length = 9520 }
-    , { name = "Backbone L0-4", mPGBNumber = "MP-GB-000004", level = 0, length = 13258 }
-    , { name = "Backbone L0-5", mPGBNumber = "MP-GB-000005", level = 0, length = 11470 }
-    , { name = "Backbone L0-6", mPGBNumber = "MP-GB-000006", level = 0, length = 13690 }
-    , { name = "Backbone L0-7", mPGBNumber = "MP-GB-000007", level = 0, length = 12580 }
-    , { name = "Backbone L1-1", mPGBNumber = "MP-GB-000011", level = 1, length = 10520 }
-    , { name = "Backbone L1-2", mPGBNumber = "MP-GB-000012", level = 1, length = 11840 }
-    , { name = "Backbone L1-3", mPGBNumber = "MP-GB-000013", level = 1, length = 9520 }
-    , { name = "Backbone L1-4", mPGBNumber = "MP-GB-000014", level = 1, length = 13258 }
-    , { name = "Backbone L1-5", mPGBNumber = "MP-GB-000015", level = 1, length = 11470 }
-    , { name = "Backbone L1-6", mPGBNumber = "MP-GB-000016", level = 1, length = 13690 }
-    , { name = "Backbone L1-7", mPGBNumber = "MP-GB-000017", level = 1, length = 12580 }
-    , { name = "Backbone L2-1", mPGBNumber = "MP-GB-000021", level = 2, length = 10520 }
-    , { name = "Backbone L2-2", mPGBNumber = "MP-GB-000022", level = 2, length = 11840 }
-    , { name = "Backbone L2-3", mPGBNumber = "MP-GB-000023", level = 2, length = 9520 }
-    , { name = "Backbone L2-4", mPGBNumber = "MP-GB-000024", level = 2, length = 13258 }
-    , { name = "Backbone L2-5", mPGBNumber = "MP-GB-000025", level = 2, length = 11470 }
-    , { name = "Backbone L2-6", mPGBNumber = "MP-GB-000026", level = 2, length = 13690 }
-    , { name = "Backbone L2-7", mPGBNumber = "MP-GB-000027", level = 2, length = 12580 }
-    ]
