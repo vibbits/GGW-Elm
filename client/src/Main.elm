@@ -32,7 +32,7 @@ import Task
 import TypedSvg exposing (g, svg, text_)
 import TypedSvg.Attributes exposing (dy, stroke, textAnchor, transform, viewBox)
 import TypedSvg.Core exposing (Svg)
-import TypedSvg.Types exposing (AnchorAlignment(..), Paint(..), Transform(..), em)
+import TypedSvg.Types exposing (AnchorAlignment(..), Paint(..), Transform(..), YesNo, em)
 import Url exposing (..)
 import Url.Parser exposing ((</>), Parser, parse, query, s)
 import Url.Parser.Query exposing (map2, string)
@@ -152,7 +152,7 @@ type alias Model =
     , groupLevel0ToAdd : String
     , selectionLevel0ToAdd : String
     , cloningTechniqueLevel0ToAdd : String
-    , isBsmB1FreeLevel0ToAdd : Bool
+    , isBsmB1FreeLevel0ToAdd : IsPresent
     , notesLevel0ToAdd : Maybe String
     , reAseDigestLevel0ToAdd : String
     , sequenceLevel0ToAdd : String
@@ -193,13 +193,13 @@ type alias Reference =
 type alias Level0 =
     { name : String
     , mPG0Number : String
-    , bsa1_overhang : Maybe Overhang
+    , bsa1_overhang : Overhang
     , bacterial_strain : String
     , responsible : String
     , group : String
     , selection : String
     , cloning_technique : String
-    , is_BsmB1_free : Bool
+    , is_BsmB1_free : IsPresent
     , notes : Maybe String
     , re_ase_digest : String
     , sequence : String
@@ -287,7 +287,7 @@ init _ url key =
       , groupLevel0ToAdd = ""
       , selectionLevel0ToAdd = ""
       , cloningTechniqueLevel0ToAdd = ""
-      , isBsmB1FreeLevel0ToAdd = False
+      , isBsmB1FreeLevel0ToAdd = Unknown
       , notesLevel0ToAdd = Nothing
       , reAseDigestLevel0ToAdd = ""
       , sequenceLevel0ToAdd = ""
@@ -341,7 +341,6 @@ type Overhang
     | E__F
     | E__G
     | F__G
-    | Invalid
 
 
 type ButtonPosition
@@ -576,31 +575,33 @@ addLevel0View model =
                         , Border.rounded 25
                         ]
                         { label = Element.text "Add"
-                        , onPress =
-                            Just
-                                (AddLevel0
-                                    { name = model.nameLevel0ToAdd
-                                    , mPG0Number = "MP-G0-" ++ model.mpg0NumberLevel0ToAdd
-                                    , bsa1_overhang = model.bsa1OverhangLevel0ToAdd
-                                    , bacterial_strain = model.bacterialStrainLevel0ToAdd
-                                    , responsible = model.responsibleLevel0ToAdd
-                                    , group = model.groupLevel0ToAdd
-                                    , selection = model.selectionLevel0ToAdd
-                                    , cloning_technique = model.cloningTechniqueLevel0ToAdd
-                                    , is_BsmB1_free = model.isBsmB1FreeLevel0ToAdd
-                                    , notes = model.notesLevel0ToAdd
-                                    , re_ase_digest = model.reAseDigestLevel0ToAdd
-                                    , sequence = model.sequenceLevel0ToAdd
-                                    , annotations = model.annotationsLevel0ToAdd
-                                    , features = model.featuresLevel0ToAdd
-                                    , references = model.referencesLevel0ToAdd
-                                    }
-                                )
+                        , onPress = Maybe.map (makeLevel0 model) model.bsa1OverhangLevel0ToAdd
                         }
                     ]
                 ]
         ]
     }
+
+
+makeLevel0 : Model -> Overhang -> Msg
+makeLevel0 model bsa1_overhang =
+    AddLevel0
+        { name = model.nameLevel0ToAdd
+        , mPG0Number = "MP-G0-" ++ model.mpg0NumberLevel0ToAdd
+        , bsa1_overhang = bsa1_overhang
+        , bacterial_strain = model.bacterialStrainLevel0ToAdd
+        , responsible = model.responsibleLevel0ToAdd
+        , group = model.groupLevel0ToAdd
+        , selection = model.selectionLevel0ToAdd
+        , cloning_technique = model.cloningTechniqueLevel0ToAdd
+        , is_BsmB1_free = model.isBsmB1FreeLevel0ToAdd
+        , notes = model.notesLevel0ToAdd
+        , re_ase_digest = model.reAseDigestLevel0ToAdd
+        , sequence = model.sequenceLevel0ToAdd
+        , annotations = model.annotationsLevel0ToAdd
+        , features = model.featuresLevel0ToAdd
+        , references = model.referencesLevel0ToAdd
+        }
 
 
 makeOverhangOptions : List Overhang -> List (Input.Option Overhang msg)
@@ -996,7 +997,7 @@ visualRepresentation model =
     let
         -- Note: The reversing is for making sure Level0 1 is at position 0. This way the destination vector is appended on the back of the list!
         insertOverhangs =
-            List.map showOverhang <| List.map (Maybe.withDefault Invalid) <| List.map .bsa1_overhang model.selectedInserts
+            List.map showOverhang <| List.map .bsa1_overhang model.selectedInserts
 
         insertNames =
             List.map .name model.selectedInserts
@@ -1282,7 +1283,7 @@ insertTable model =
                 ]
                 -- { data = List.filter(filterLevel0 model.level0FilterString) <| model.insertList
                 -- { data = List.filter(filterLevel0OnOverhang (showOverhang model.currOverhang) model.insertList
-                { data = model.insertList |> List.filter (filterLevel0OnOverhang (Just model.currOverhang)) |> List.filter (filterLevel0 model.level0FilterString)
+                { data = model.insertList |> List.filter (filterLevel0OnOverhang model.currOverhang) |> List.filter (filterLevel0 model.level0FilterString)
                 , columns =
                     [ { header = none
                       , width = fillPortion 3
@@ -1300,7 +1301,7 @@ insertTable model =
                       }
                     , { header = none
                       , width = fillPortion 1
-                      , view = .bsa1_overhang >> Maybe.withDefault Invalid >> showOverhang >> Element.text >> el [ centerY ]
+                      , view = .bsa1_overhang >> showOverhang >> Element.text >> el [ centerY ]
                       }
                     ]
                 }
@@ -1613,7 +1614,7 @@ update msg model =
         Level0Received (Ok level0s) ->
             ( { model | insertList = level0s }, Cmd.none )
 
-        Level0Received (Err _) ->
+        Level0Received (Err err) ->
             ( model, Cmd.none )
 
         RequestAllLevel0 ->
@@ -1644,7 +1645,7 @@ filterLevel0 needle val =
             String.contains ndle val.name || String.contains ndle val.mPG0Number
 
 
-filterLevel0OnOverhang : Maybe Overhang -> Level0 -> Bool
+filterLevel0OnOverhang : Overhang -> Level0 -> Bool
 filterLevel0OnOverhang needle val =
     needle == val.bsa1_overhang
 
@@ -1655,13 +1656,6 @@ filterLevel0OnOverhang needle val =
 
 authenticatedGet : String -> String -> (Result Http.Error a -> Msg) -> Decode.Decoder a -> Cmd Msg
 authenticatedGet token url msg decoder =
-    let
-        _ =
-            Debug.log "token: " token
-
-        _ =
-            Debug.log "url: " url
-    in
     Http.request
         { method = "GET"
         , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
@@ -1704,31 +1698,46 @@ referenceDecoder =
         (Decode.field "title" Decode.string)
 
 
+type IsPresent
+    = Yes
+    | No
+    | Unknown
+
+
 level0Decoder : Decode.Decoder Level0
 level0Decoder =
     let
-        str2Bool : String -> Decode.Decoder Bool
-        str2Bool s =
-            case String.toLower s of
+        str2IsPresent : String -> IsPresent
+        str2IsPresent s =
+            case String.toLower s |> String.trim of
                 "yes" ->
-                    Decode.succeed True
+                    Yes
 
                 "no" ->
-                    Decode.succeed False
+                    No
 
                 _ ->
-                    Decode.fail (s ++ " is not a valid bool")
+                    Unknown
+
+        decodeOverhang : String -> Decode.Decoder Overhang
+        decodeOverhang str =
+            case stringToOverhang (String.trim str) of
+                Just oh ->
+                    Decode.succeed oh
+
+                _ ->
+                    Decode.fail "Not a valid overhang"
     in
     Decode.succeed Level0
         |> JDP.required "name" Decode.string
         |> JDP.required "id" (Decode.int |> Decode.map String.fromInt)
-        |> JDP.optional "bsa1_overhang" (Decode.string |> Decode.map stringToOverhang) Nothing
+        |> JDP.required "bsa1_overhang" (Decode.string |> Decode.andThen decodeOverhang)
         |> JDP.required "bacterial_strain" Decode.string
         |> JDP.required "responsible" Decode.string
         |> JDP.required "group" Decode.string
         |> JDP.required "selection" Decode.string
         |> JDP.required "cloning_technique" Decode.string
-        |> JDP.optional "is_BsmB1_free" (Decode.string |> Decode.andThen str2Bool) False
+        |> JDP.optional "is_BsmB1_free" (Decode.string |> Decode.map str2IsPresent) Unknown
         |> JDP.optional "notes" (Decode.maybe Decode.string) Nothing
         |> JDP.required "REase_digest" Decode.string
         |> JDP.required "sequence" Decode.string
@@ -1833,38 +1842,35 @@ showOverhang bsa1_overhang =
         F__G ->
             "F__G"
 
-        Invalid ->
-            "Invalid"
-
 
 stringToOverhang : String -> Maybe Overhang
 stringToOverhang strOverhang =
     case strOverhang of
-        "A__B" ->
+        "AB" ->
             Just A__B
 
-        "B__C" ->
+        "BC" ->
             Just B__C
 
-        "C__D" ->
+        "CD" ->
             Just C__D
 
-        "C__G" ->
+        "CG" ->
             Just C__G
 
-        "D__E" ->
+        "DE" ->
             Just D__E
 
-        "D__G" ->
+        "DG" ->
             Just D__G
 
-        "E__F" ->
+        "EF" ->
             Just E__F
 
-        "E__G" ->
+        "EG" ->
             Just E__G
 
-        "F__G" ->
+        "FG" ->
             Just F__G
 
         _ ->
