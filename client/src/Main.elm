@@ -32,6 +32,7 @@ import TypedSvg exposing (g, svg, text_)
 import TypedSvg.Attributes exposing (dy, stroke, textAnchor, transform, viewBox)
 import TypedSvg.Core exposing (Svg)
 import TypedSvg.Types exposing (AnchorAlignment(..), Paint(..), Transform(..), em)
+import UINotification as Notify
 import Url exposing (..)
 import Url.Parser exposing ((</>), Parser, parse, query, s)
 import Url.Parser.Query exposing (map2, string)
@@ -121,7 +122,7 @@ type alias Model =
     , loginUrls : List Login
     , token : Maybe String
     , user : Maybe User
-    , error : Maybe String
+    , notifications : Notify.Notifications
     , key : Nav.Key
 
     -- Attributes for the vector catalog
@@ -258,7 +259,7 @@ init _ url key =
       , loginUrls = []
       , token = Nothing
       , user = Nothing
-      , error = Nothing
+      , notifications = Notify.init
       , key = key
       , backboneFilterString = Nothing
       , level0FilterString = Nothing
@@ -394,6 +395,8 @@ type Msg
       -- Msg for retrieving Vectors
     | RequestAllLevel0
     | Level0Received (Result Http.Error (List Level0))
+      -- Notifications
+    | CloseNotification Int
 
 
 
@@ -402,184 +405,181 @@ type Msg
 
 view : Model -> Document Msg
 view model =
-    case model.page of
-        ConstructLevel1 ->
-            constructLevel1View model
-
-        Catalogue ->
-            catalogueView model
-
-        AddLevel0Page ->
-            addLevel0View model
-
-        AddBackbonePage ->
-            addBackboneView model
-
-
-catalogueView : Model -> Document Msg
-catalogueView model =
-    { title = "Vector Catalog"
+    { title = "Golden Gateway"
     , body =
-        [ layout
-            [ inFront <| navLinks
-            , Element.height Element.fill
+        [ Element.layout
+            [ Element.height Element.fill
+            , inFront <| Notify.view CloseNotification model.notifications
+            ]
+            (row
+                [ Element.width Element.fill
+                , Element.height Element.fill
+                ]
+                [ navLinks
+                , case model.page of
+                    ConstructLevel1 ->
+                        constructLevel1View model
+
+                    Catalogue ->
+                        catalogueView model
+
+                    AddLevel0Page ->
+                        addLevel0View model
+
+                    AddBackbonePage ->
+                        addBackboneView model
+                ]
+            )
+        ]
+    }
+
+
+catalogueView : Model -> Element Msg
+catalogueView model =
+    column
+        [ Element.width Element.fill
+        , Element.height Element.fill
+        , spacing 25
+        , padding 50
+        , centerX
+        ]
+        [ el
+            [ Element.Region.heading 1
+            , Font.size 50
+            , Font.color color.darkCharcoal
             ]
           <|
-            row
-                [ Element.width Element.fill
-                , spacing 25
+            Element.text "Vector Catalog"
+        , row [ spacing 20 ]
+            [ Input.button
+                [ Border.solid
+                , Border.color color.blue
                 , padding 10
-                ]
-                [ navLinks
-                , column [ spacing 25, Element.width Element.fill, centerX, padding 50 ]
-                    [ el
-                        [ Element.Region.heading 1
-                        , Font.size 50
-                        , Font.color color.darkCharcoal
-                        ]
-                      <|
-                        Element.text "Vector Catalog"
-                    , row [ spacing 20 ]
-                        [ Input.button
-                            [ Border.solid
-                            , Border.color color.blue
-                            , padding 10
-                            , Border.width 3
-                            , Border.rounded 6
-                            , Background.color color.white
-                            , mouseDown
-                                [ Background.color color.blue
-                                , Font.color color.white
-                                ]
-                            , mouseOver
-                                [ Background.color color.lightBlue
-                                , Border.color color.lightGrey
-                                ]
-                            ]
-                            { onPress = Just ToggleAll
-                            , label = Element.text "Toggle all"
-                            }
-                        , Input.button
-                            [ Border.solid
-                            , Border.color color.blue
-                            , padding 10
-                            , Border.width 3
-                            , Border.rounded 6
-                            , Background.color color.white
-                            , mouseDown
-                                [ Background.color color.blue
-                                , Font.color color.white
-                                ]
-                            , mouseOver
-                                [ Background.color color.lightBlue
-                                , Border.color color.lightGrey
-                                ]
-                            ]
-                            { onPress = Just RequestAllLevel0
-                            , label = Element.text "Populate table from DB"
-                            }
-                        ]
-                    , Accordion.accordion
-                        (Accordion.head
-                            [ EE.onClick BackboneAccordionToggled
-                            , Background.color color.blue
-                            , padding 25
-                            , Border.solid
-                            , Border.rounded 6
-                            ]
-                            [ Element.text "Backbones\t▼"
-                            ]
-                        )
-                        (Accordion.body [ padding 25 ]
-                            [ Input.text []
-                                { onChange = FilterBackboneTable
-                                , text = Maybe.withDefault "" model.backboneFilterString
-                                , label = Input.labelLeft [] <| Element.text "Filter:"
-                                , placeholder = Nothing
-                                }
-                            , backboneTable model
-                            , Element.row
-                                [ centerX, spacing 50 ]
-                                [ customAddButton "+" (SwitchPage AddBackbonePage) ]
-                            ]
-                        )
-                        model.backboneAccordionStatus
-                    , Accordion.accordion
-                        (Accordion.head
-                            [ EE.onClick Level0AccordionToggled
-                            , Background.color color.blue
-                            , padding 25
-                            , Border.solid
-                            , Border.rounded 6
-                            ]
-                            [ Element.text "Level 0\t▼"
-                            ]
-                        )
-                        (Accordion.body [ padding 25 ]
-                            [ Input.text []
-                                { onChange = FilterLevel0Table
-                                , text = Maybe.withDefault "" model.level0FilterString
-                                , label = Input.labelLeft [] <| Element.text "Filter:"
-                                , placeholder = Nothing
-                                }
-                            , overhangRadioRow model
-                            , insertTable model
-                            , Element.row [ centerX, spacing 50 ] [ customAddButton "+" (SwitchPage AddLevel0Page) ]
-                            ]
-                        )
-                        model.level0AccordionStatus
+                , Border.width 3
+                , Border.rounded 6
+                , Background.color color.white
+                , mouseDown
+                    [ Background.color color.blue
+                    , Font.color color.white
+                    ]
+                , mouseOver
+                    [ Background.color color.lightBlue
+                    , Border.color color.lightGrey
                     ]
                 ]
+                { onPress = Just ToggleAll
+                , label = Element.text "Toggle all"
+                }
+            , Input.button
+                [ Border.solid
+                , Border.color color.blue
+                , padding 10
+                , Border.width 3
+                , Border.rounded 6
+                , Background.color color.white
+                , mouseDown
+                    [ Background.color color.blue
+                    , Font.color color.white
+                    ]
+                , mouseOver
+                    [ Background.color color.lightBlue
+                    , Border.color color.lightGrey
+                    ]
+                ]
+                { onPress = Just RequestAllLevel0
+                , label = Element.text "Populate table from DB"
+                }
+            ]
+        , Accordion.accordion
+            (Accordion.head
+                [ EE.onClick BackboneAccordionToggled
+                , Background.color color.blue
+                , padding 25
+                , Border.solid
+                , Border.rounded 6
+                ]
+                [ Element.text "Backbones\t▼"
+                ]
+            )
+            (Accordion.body [ padding 25 ]
+                [ Input.text []
+                    { onChange = FilterBackboneTable
+                    , text = Maybe.withDefault "" model.backboneFilterString
+                    , label = Input.labelLeft [] <| Element.text "Filter:"
+                    , placeholder = Nothing
+                    }
+                , backboneTable model
+                , Element.row
+                    [ centerX, spacing 50 ]
+                    [ customAddButton "+" (SwitchPage AddBackbonePage) ]
+                ]
+            )
+            model.backboneAccordionStatus
+        , Accordion.accordion
+            (Accordion.head
+                [ EE.onClick Level0AccordionToggled
+                , Background.color color.blue
+                , padding 25
+                , Border.solid
+                , Border.rounded 6
+                ]
+                [ Element.text "Level 0\t▼"
+                ]
+            )
+            (Accordion.body [ padding 25 ]
+                [ Input.text []
+                    { onChange = FilterLevel0Table
+                    , text = Maybe.withDefault "" model.level0FilterString
+                    , label = Input.labelLeft [] <| Element.text "Filter:"
+                    , placeholder = Nothing
+                    }
+                , overhangRadioRow model
+                , insertTable model
+                , Element.row [ centerX, spacing 50 ] [ customAddButton "+" (SwitchPage AddLevel0Page) ]
+                ]
+            )
+            model.level0AccordionStatus
         ]
-    }
 
 
-addLevel0View : Model -> Document Msg
+addLevel0View : Model -> Element Msg
 addLevel0View model =
-    { title = "Add new Level 0 vector"
-    , body =
-        [ Element.layout [] <|
-            row [ Element.height Element.fill ]
-                [ navLinks
-                , column [ padding 25, spacing 25 ]
-                    [ el [ Element.Region.heading 1, Font.size 50 ] <| Element.text "Add new Level 0 donor vector"
-                    , Input.text []
-                        { label = Input.labelLeft [] <| Element.text "Name:\t"
-                        , onChange = ChangeLevel0NameToAdd
-                        , placeholder = Nothing
-                        , text = model.nameLevel0ToAdd
-                        }
-                    , Input.text []
-                        { label = Input.labelLeft [] <| Element.text "MP-G0-number:\tMP-G0- "
-                        , onChange = ChangeLevel0MpgNumberToAdd
-                        , placeholder = Nothing
-                        , text = model.mpg0NumberLevel0ToAdd
-                        }
-                    , Input.radioRow [ spacing 5, padding 10 ]
-                        { label = Input.labelAbove [] <| Element.text "Overhang Type:\t"
-                        , onChange = ChangeLevel0OverhangToAdd
-                        , options =
-                            makeOverhangOptions completeOverhangList
-                        , selected = model.bsa1OverhangLevel0ToAdd
-                        }
-                    , Element.html <| Html.button [ HA.style "margin" "50px", onClick GBNewLevel0Requested ] [ Html.text "Load Genbank file" ]
-                    , Input.button
-                        [ centerX
-                        , Background.color color.blue
-                        , padding 10
-                        , Font.color color.white
-                        , Border.width 3
-                        , Border.solid
-                        , Border.color color.darkCharcoal
-                        , Border.rounded 25
-                        ]
-                        { label = Element.text "Add"
-                        , onPress = Maybe.map (makeLevel0 model) model.bsa1OverhangLevel0ToAdd
-                        }
-                    ]
-                ]
+    column [ Element.height Element.fill, padding 25, spacing 25 ]
+        [ el [ Element.Region.heading 1, Font.size 50 ] <| Element.text "Add new Level 0 donor vector"
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Name:\t"
+            , onChange = ChangeLevel0NameToAdd
+            , placeholder = Nothing
+            , text = model.nameLevel0ToAdd
+            }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "MP-G0-number:\tMP-G0- "
+            , onChange = ChangeLevel0MpgNumberToAdd
+            , placeholder = Nothing
+            , text = model.mpg0NumberLevel0ToAdd
+            }
+        , Input.radioRow [ spacing 5, padding 10 ]
+            { label = Input.labelAbove [] <| Element.text "Overhang Type:\t"
+            , onChange = ChangeLevel0OverhangToAdd
+            , options =
+                makeOverhangOptions completeOverhangList
+            , selected = model.bsa1OverhangLevel0ToAdd
+            }
+        , Element.html <| Html.button [ HA.style "margin" "50px", onClick GBNewLevel0Requested ] [ Html.text "Load Genbank file" ]
+        , Input.button
+            [ centerX
+            , Background.color color.blue
+            , padding 10
+            , Font.color color.white
+            , Border.width 3
+            , Border.solid
+            , Border.color color.darkCharcoal
+            , Border.rounded 25
+            ]
+            { label = Element.text "Add"
+            , onPress = Maybe.map (makeLevel0 model) model.bsa1OverhangLevel0ToAdd
+            }
         ]
-    }
 
 
 makeLevel0 : Model -> Overhang -> Msg
@@ -608,163 +608,134 @@ makeOverhangOptions overHangList =
     List.map2 Input.option overHangList (List.map Element.text (List.map showOverhang overHangList))
 
 
-addBackboneView : Model -> Document Msg
+addBackboneView : Model -> Element Msg
 addBackboneView model =
-    { title = "Add new Backbone"
-    , body =
-        [ Element.layout [] <|
-            row [ Element.height Element.fill ]
-                [ navLinks
-                , column [ centerX, Element.width Element.fill, spacing 25, padding 25 ]
-                    [ el [ Element.Region.heading 1, Font.size 50 ] <| Element.text "Add new Backbone"
-                    , Input.text []
-                        { onChange = ChangeBackboneNameToAdd
-                        , text = model.nameBackboneToAdd
-                        , label = Input.labelLeft [] <| Element.text "Name:"
-                        , placeholder = Nothing
-                        }
-                    , Input.text []
-                        { onChange = ChangeBackboneMpgNumberToAdd
-                        , text = model.mpgbNumberBackboneToAdd
-                        , label = Input.labelLeft [] <| Element.text "MP-GB-number:\tMP-GB-"
-                        , placeholder = Nothing
-                        }
-                    , row []
-                        [ el [] <| Element.text "Choose a level:"
-                        , Element.html <| Html.input [ HA.style "margin" "25px", HA.type_ "number", HA.min "0", HA.max "2", Html.Events.onInput ChangeBackboneLevelToAdd, HA.value (String.fromInt model.levelBackboneToAdd) ] []
-                        ]
-                    , row []
-                        [ el [] <| Element.text "Length (bp):"
-                        , Element.html <| Html.input [ HA.style "margin" "25px", HA.type_ "number", HA.min "1", Html.Events.onInput ChangeBackboneLengthToAdd, HA.value (String.fromInt model.lengthBackboneToAdd) ] []
-                        ]
-                    , Element.html <| Html.button [ HA.style "margin" "50px", onClick GbNewBackboneRequested ] [ Html.text "Load Genbank file" ]
-                    , Input.button
-                        [ centerX
-                        , Background.color color.blue
-                        , padding 10
-                        , Font.color color.white
-                        , Border.width 3
-                        , Border.solid
-                        , Border.color color.darkCharcoal
-                        , Border.rounded 25
-                        ]
-                        { label = Element.text "Add"
-                        , onPress = Just (AddBackbone { name = model.nameBackboneToAdd, mPGBNumber = "MP-GB-" ++ model.mpgbNumberBackboneToAdd, level = model.levelBackboneToAdd, length = model.lengthBackboneToAdd })
-                        }
-                    ]
-                ]
+    column [ Element.height Element.fill, centerX, Element.width Element.fill, spacing 25, padding 25 ]
+        [ el [ Element.Region.heading 1, Font.size 50 ] <| Element.text "Add new Backbone"
+        , Input.text []
+            { onChange = ChangeBackboneNameToAdd
+            , text = model.nameBackboneToAdd
+            , label = Input.labelLeft [] <| Element.text "Name:"
+            , placeholder = Nothing
+            }
+        , Input.text []
+            { onChange = ChangeBackboneMpgNumberToAdd
+            , text = model.mpgbNumberBackboneToAdd
+            , label = Input.labelLeft [] <| Element.text "MP-GB-number:\tMP-GB-"
+            , placeholder = Nothing
+            }
+        , row []
+            [ el [] <| Element.text "Choose a level:"
+            , Element.html <| Html.input [ HA.style "margin" "25px", HA.type_ "number", HA.min "0", HA.max "2", Html.Events.onInput ChangeBackboneLevelToAdd, HA.value (String.fromInt model.levelBackboneToAdd) ] []
+            ]
+        , row []
+            [ el [] <| Element.text "Length (bp):"
+            , Element.html <| Html.input [ HA.style "margin" "25px", HA.type_ "number", HA.min "1", Html.Events.onInput ChangeBackboneLengthToAdd, HA.value (String.fromInt model.lengthBackboneToAdd) ] []
+            ]
+        , Element.html <| Html.button [ HA.style "margin" "50px", onClick GbNewBackboneRequested ] [ Html.text "Load Genbank file" ]
+        , Input.button
+            [ centerX
+            , Background.color color.blue
+            , padding 10
+            , Font.color color.white
+            , Border.width 3
+            , Border.solid
+            , Border.color color.darkCharcoal
+            , Border.rounded 25
+            ]
+            { label = Element.text "Add"
+            , onPress = Just (AddBackbone { name = model.nameBackboneToAdd, mPGBNumber = "MP-GB-" ++ model.mpgbNumberBackboneToAdd, level = model.levelBackboneToAdd, length = model.lengthBackboneToAdd })
+            }
         ]
-    }
 
 
-constructLevel2View : Model -> Document Msg
+constructLevel2View : Model -> Element Msg
 constructLevel2View _ =
-    { title = "Construct new Level 2 - Coming soon!"
-    , body =
-        [ Element.layout [] <|
-            row [ Element.width Element.fill, Element.height Element.fill, centerX ] [ navLinks, Element.html <| Html.img [ HA.src "../img/under_construction.jpg" ] [] ]
-        ]
-    }
+    row [ Element.width Element.fill, Element.height Element.fill, centerX ] [ navLinks, Element.html <| Html.img [ HA.src "../img/under_construction.jpg" ] [] ]
 
 
-constructLevel1View : Model -> Document Msg
+constructLevel1View : Model -> Element Msg
 constructLevel1View model =
-    { title = "Constructing a Level 1"
-    , body =
-        [ layout
-            [ Font.size 11
-            , inFront <| navLinks
+    column [ Element.height Element.fill, spacing 25, Element.width Element.fill, centerX, padding 50 ]
+        [ mainView model
+        , el
+            [ Element.Region.heading 1
+            , Font.size 50
+            , Font.color color.darkCharcoal
             ]
           <|
-            row
-                [ Element.width Element.fill
-                , Element.height Element.fill
-                , spacing 10
-                ]
-                [ navLinks
-                , column [ spacing 25, Element.width Element.fill, centerX, padding 50 ]
-                    [ mainView model
-                    , el
-                        [ Element.Region.heading 1
-                        , Font.size 50
-                        , Font.color color.darkCharcoal
-                        ]
-                      <|
-                        Element.text "Level 1 construct design"
-                    , el
-                        [ Element.Region.heading 2
-                        , Font.size 25
-                        , Font.color color.darkCharcoal
-                        ]
-                      <|
-                        Element.text "Construct information"
-                    , Input.text []
-                        { onChange = ChangeConstructName
-                        , label = Input.labelLeft [] <| Element.text "Construct name: "
-                        , text = model.constructName
-                        , placeholder = Nothing
-                        }
-                    , Input.text []
-                        { onChange = ChangeConstructNumber
-                        , label = Input.labelLeft [] <| Element.text "Construct number: "
-                        , text = model.constructNumber
-                        , placeholder = Nothing
-                        }
-                    , row [ spacing 50 ]
-                        [ el [] <| Element.text "Length (bp):"
-                        , el [ Background.color color.lightGrey, padding 10 ] <| Element.text (String.fromInt model.constructLength)
-                        ]
-                    , Input.multiline [ Element.height <| px 150 ]
-                        { text = model.applicationNote
-                        , onChange = ChangeApplicationNote
-                        , label = Input.labelLeft [] <| Element.text "Application Note: "
-                        , spellcheck = True
-                        , placeholder = Nothing
-                        }
-                    , Input.text []
-                        { onChange = ChangeConstructDesignerName
-                        , label = Input.labelLeft [] <| Element.text "Designer Name: "
-                        , text = model.designerName
-                        , placeholder = Nothing
-                        }
-                    , Input.multiline [ Element.height <| px 150 ]
-                        { text = model.description
-                        , onChange = ChangeDescription
-                        , label = Input.labelLeft [] <| Element.text "Description: "
-                        , spellcheck = True
-                        , placeholder = Nothing
-                        }
-                    , el
-                        [ Element.Region.heading 2
-                        , Font.size 25
-                        , Font.color color.darkCharcoal
-                        ]
-                      <|
-                        Element.text "Destination vector selection"
-                    , backboneTable model
-                    , el
-                        [ Element.Region.heading 2
-                        , Font.size 25
-                        , Font.color color.darkCharcoal
-                        ]
-                      <|
-                        Element.text "Donor vector selection"
-                    , applicationRadioButton model
-                    , overhangRadioRow model
-                    , insertTable model
-                    , downloadButtonBar
-                    , el
-                        [ Element.Region.heading 2
-                        , Font.size 25
-                        , Font.color color.darkCharcoal
-                        ]
-                      <|
-                        Element.text "Construct visualisation"
-                    , Element.html <| visualRepresentation model
-                    ]
-                ]
+            Element.text "Level 1 construct design"
+        , el
+            [ Element.Region.heading 2
+            , Font.size 25
+            , Font.color color.darkCharcoal
+            ]
+          <|
+            Element.text "Construct information"
+        , Input.text []
+            { onChange = ChangeConstructName
+            , label = Input.labelLeft [] <| Element.text "Construct name: "
+            , text = model.constructName
+            , placeholder = Nothing
+            }
+        , Input.text []
+            { onChange = ChangeConstructNumber
+            , label = Input.labelLeft [] <| Element.text "Construct number: "
+            , text = model.constructNumber
+            , placeholder = Nothing
+            }
+        , row [ spacing 50 ]
+            [ el [] <| Element.text "Length (bp):"
+            , el [ Background.color color.lightGrey, padding 10 ] <| Element.text (String.fromInt model.constructLength)
+            ]
+        , Input.multiline [ Element.height <| px 150 ]
+            { text = model.applicationNote
+            , onChange = ChangeApplicationNote
+            , label = Input.labelLeft [] <| Element.text "Application Note: "
+            , spellcheck = True
+            , placeholder = Nothing
+            }
+        , Input.text []
+            { onChange = ChangeConstructDesignerName
+            , label = Input.labelLeft [] <| Element.text "Designer Name: "
+            , text = model.designerName
+            , placeholder = Nothing
+            }
+        , Input.multiline [ Element.height <| px 150 ]
+            { text = model.description
+            , onChange = ChangeDescription
+            , label = Input.labelLeft [] <| Element.text "Description: "
+            , spellcheck = True
+            , placeholder = Nothing
+            }
+        , el
+            [ Element.Region.heading 2
+            , Font.size 25
+            , Font.color color.darkCharcoal
+            ]
+          <|
+            Element.text "Destination vector selection"
+        , backboneTable model
+        , el
+            [ Element.Region.heading 2
+            , Font.size 25
+            , Font.color color.darkCharcoal
+            ]
+          <|
+            Element.text "Donor vector selection"
+        , applicationRadioButton model
+        , overhangRadioRow model
+        , insertTable model
+        , downloadButtonBar
+        , el
+            [ Element.Region.heading 2
+            , Font.size 25
+            , Font.color color.darkCharcoal
+            ]
+          <|
+            Element.text "Construct visualisation"
+        , Element.html <| visualRepresentation model
         ]
-    }
 
 
 mainView : Model -> Element Msg
@@ -1575,7 +1546,11 @@ update msg model =
                     ( { model | loginUrls = urls }, Cmd.none )
 
                 Err err ->
-                    ( { model | error = Just <| showHttpError err }, Cmd.none )
+                    ( { model
+                        | notifications = Notify.makeError "Fetching logins" (showHttpError err) model.notifications
+                      }
+                    , Cmd.none
+                    )
 
         LinkClicked urlRequest ->
             case urlRequest of
@@ -1596,7 +1571,11 @@ update msg model =
                     ( { model | user = Just response.user, token = Just response.token }, navToRoot )
 
                 Err err ->
-                    ( { model | error = Just <| showHttpError err }, navToRoot )
+                    ( { model
+                        | notifications = Notify.makeError "Logging in" (showHttpError err) model.notifications
+                      }
+                    , navToRoot
+                    )
 
         SwitchPage page ->
             ( { model | page = page }, Cmd.none )
@@ -1685,11 +1664,16 @@ update msg model =
 
                 Nothing ->
                     ( { model
-                        | error =
-                            Just "Permission denied! Token is empty!"
+                        | notifications =
+                            Notify.makeWarning "Not logged in" "" model.notifications
                       }
                     , Cmd.none
                     )
+
+        CloseNotification which ->
+            ( { model | notifications = Notify.close which model.notifications }
+            , Cmd.none
+            )
 
 
 
