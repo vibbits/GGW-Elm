@@ -117,6 +117,7 @@ def login(iss):
 
 
 def vector_level(g: str) -> VectorLevel:
+    "Converts part of the MP-GX-name to a VectorLevel"
     if g == "GB":
         return VectorLevel.BACKBONE
     elif g == "G0":
@@ -128,6 +129,7 @@ def vector_level(g: str) -> VectorLevel:
 
 
 def extract_mpg(mpg: str) -> Tuple[VectorLevel, int]:
+    "Splits the MP-GX-number and returns the VectorLevel and the numberpart"
     split = mpg.split("-")
     return (vector_level(split[1]), int(split[2]))
 
@@ -137,6 +139,10 @@ def extract_mpg(mpg: str) -> Tuple[VectorLevel, int]:
 @click.argument("gbk_path")
 @click.argument("user")
 def import0(csv_path, gbk_path, user):
+    """
+    Extracts the vector information from a csv file and seperate genbank files
+    and adds them to an sqlite database.
+    """
     with SessionLocal() as database:
         # Lookup user
         if (
