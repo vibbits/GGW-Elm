@@ -5,7 +5,7 @@ updating the database schema, adding an admin user,
 adding an identity provider, etc.
 """
 
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from pprint import pprint
 import sys
@@ -116,7 +116,7 @@ def login(iss):
             click.echo(oidc.login_url(config["authorization_endpoint"], provider))
 
 
-def vector_level(g: str) -> VectorLevel:
+def vector_level(g: str) -> Optional[VectorLevel]:
     "Converts part of the MP-GX-name to a VectorLevel"
     if g == "GB":
         return VectorLevel.BACKBONE
@@ -124,9 +124,11 @@ def vector_level(g: str) -> VectorLevel:
         return VectorLevel.LEVEL0
     elif g == "G1":
         return VectorLevel.LEVEL1
+    else:
+        return None
 
 
-def extract_mpg(mpg: str) -> Tuple[VectorLevel, int]:
+def extract_mpg(mpg: str) -> Tuple[Optional[VectorLevel], int]:
     "Splits the MP-GX-number and returns the VectorLevel and the numberpart"
     split = mpg.split("-")
     return (vector_level(split[1]), int(split[2]))
