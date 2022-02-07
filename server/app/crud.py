@@ -77,6 +77,7 @@ def add_vector(
     database: Session, vector: schemas.Vector, user: schemas.User
 ) -> Optional[model.Vector]:
     new_vector = model.Vector(
+        mpg_number=vector.mpg_number,
         name=vector.name,
         bacterial_strain=vector.bacterial_strain,
         responsible=vector.responsible,
@@ -90,7 +91,10 @@ def add_vector(
         sequence=vector.sequence,
         level=vector.level,
         BsmB1_site=vector.BsmB1_site,
+        bsmb1_overhang=vector.bsmb1_overhang,
         gateway_site=vector.gateway_site,
+        vector_type=vector.vector_type,
+        date=vector.date,
     )
     try:
         database.add(new_vector)
@@ -137,7 +141,7 @@ def add_vector(
             ]
         )
 
-        if vector.level > 0:
+        if vector.level == "LEVEL1":
             database.add_all(
                 [
                     model.VectorHierarchy(child=child, parent=new_vector.id)

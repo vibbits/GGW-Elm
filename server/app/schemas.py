@@ -1,5 +1,6 @@
 "Data schemas for HTTP interface"
 
+import enum
 from typing import List, Optional
 
 from pydantic import BaseModel
@@ -57,6 +58,12 @@ class LoginUrl(BaseModel):
 # Adding data
 
 
+class VectorLevel(enum.Enum):
+    BACKBONE = (enum.auto(),)
+    LEVEL0 = (enum.auto(),)
+    LEVEL1 = enum.auto()
+
+
 class Reference(BaseModel):
     authors: str
     title: str
@@ -94,6 +101,7 @@ class Annotation(BaseModel):
 
 class Vector(BaseModel):
     id: int = 0
+    mpg_number: int
     name: str
     bacterial_strain: str
     responsible: str
@@ -108,10 +116,14 @@ class Vector(BaseModel):
     annotations: List[Annotation]
     features: List[Feature]
     references: List[Reference]
-    children: List["Vector"]
-    level: int
+    users: List[User]
+    level: VectorLevel
     BsmB1_site: Optional[str]
-    gateway_site: Optional[str]
+    children: List["Vector"]
+    bsmb1_overhang: str
+    gateway_site: str
+    vector_type: str
+    date: str
 
     class Config:
         orm_mode = True

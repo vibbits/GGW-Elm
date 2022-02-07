@@ -1,12 +1,28 @@
 " Database data model "
 
-from datetime import datetime
 from typing import Optional, List
+from datetime import datetime
+import enum
 
-from sqlalchemy import Column, DateTime, Integer, String, UniqueConstraint, ForeignKey
+from sqlalchemy import (
+    Column,
+    DateTime,
+    Integer,
+    String,
+    UniqueConstraint,
+    ForeignKey,
+    Enum,
+    null,
+)
 from sqlalchemy.orm import relationship, Mapped
 
 from app.database import Base
+
+
+class VectorLevel(enum.Enum):
+    BACKBONE = (enum.auto(),)
+    LEVEL0 = (enum.auto(),)
+    LEVEL1 = enum.auto()
 
 
 class UserVectorMapping(Base):
@@ -70,14 +86,15 @@ class Vector(Base):
     id: int = Column(Integer, primary_key=True, index=True)
 
     # General information
+    mpg_number: int = Column(Integer, nullable=False)
     name: str = Column(String, nullable=False, unique=True)  # Plasmid name
     bacterial_strain: str = Column(String, nullable=False)
     responsible: str = Column(String, nullable=False)
     group: str = Column(String, nullable=False)
-    bsa1_overhang: str = Column(String, nullable=False)
-    selection: str = Column(String, nullable=False)
-    cloning_technique: str = Column(String, nullable=False)  # DNA or PCR synthesis?
-    is_BsmB1_free: str = Column(String, nullable=False)  # TODO: Might be removed...
+    bsa1_overhang: str = Column(String, nullable=True)
+    selection: str = Column(String, nullable=True)
+    cloning_technique: str = Column(String, nullable=True)  # DNA or PCR synthesis?
+    is_BsmB1_free: str = Column(String, nullable=True)  # TODO: Might be removed...
     notes: str = Column(String, nullable=True)
     REase_digest: str = Column(String, nullable=True)  # TODO: Might be removed...
 
@@ -94,15 +111,13 @@ class Vector(Base):
     references: Mapped[List["Reference"]] = relationship(
         "Reference", uselist=True, collection_class=list
     )
-
     users: Mapped[List["User"]] = relationship(
         "User", secondary="user_vector_mapping", back_populates="vectors"
     )
 
     # Extra fields for level 1
-    level: int = Column(Integer)
-    BsmB1_site: str = Column(String)
-    gateway_site: str = Column(String)
+    level: VectorLevel = Column(Enum(VectorLevel), nullable=False)
+    BsmB1_site: str = Column(String, nullable=True)
     children: Mapped[List["Vector"]] = relationship(
         "Vector",
         secondary="vector_hierarchy",
@@ -111,17 +126,18 @@ class Vector(Base):
         backref="parents",
     )
 
+    # Extra columns for Backbones
+    bsmb1_overhang: str = Column(String, nullable=True)
+    gateway_site: str = Column(String, nullable=True)
+    vector_type: str = Column(String, nullable=True)
+    date: datetime = Column(DateTime, nullable=True, default=datetime.now())
+
+    # Unique MP-GX-numbering constraint
+    __table_args__ = (UniqueConstraint("level", "mpg_number", name="lvl_mpg"),)
+
     def __str__(self):
         first_ann = str(self.annotations[0]) if len(self.annotations) > 0 else "null"
         return f"Vector({self.name=}, {len(self.annotations)=} [{first_ann}])"
-
-
-# TODO: This table needs to be specified
-class Backbone(Base):
-    "Backbones"
-    __tablename__ = "backbones"
-
-    id: int = Column(Integer, primary_key=True)
 
 
 class Annotation(Base):
@@ -145,7 +161,7 @@ class Feature(Base):
     type: str = Column(String)
     start_pos: int = Column(Integer, nullable=False)
     end_pos: int = Column(Integer, nullable=False)
-    strand: int = Column(Integer, nullable=False)
+    strand: int = Column(Integer, nullable=True)
     vector = Column(Integer, ForeignKey("vectors.id"), nullable=False)
     qualifiers: Mapped[List["Qualifier"]] = relationship(
         "Qualifier", uselist=True, collection_class=list
