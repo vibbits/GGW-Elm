@@ -2,8 +2,9 @@ module UINotification exposing
     ( Notifications
     , close
     , init
-    , makeError
-    , makeInfo
+    ,  makeError
+       -- , makeInfo
+
     , makeWarning
     , view
     )
@@ -96,13 +97,14 @@ makeWarning title msg =
         }
 
 
-makeInfo : String -> String -> Notifications -> Notifications
-makeInfo title msg =
-    push
-        { title = title
-        , level = Info
-        , message = msg
-        }
+
+-- makeInfo : String -> String -> Notifications -> Notifications
+-- makeInfo title msg =
+--     push
+--         { title = title
+--         , level = Info
+--         , message = msg
+--         }
 
 
 close : Int -> Notifications -> Notifications
