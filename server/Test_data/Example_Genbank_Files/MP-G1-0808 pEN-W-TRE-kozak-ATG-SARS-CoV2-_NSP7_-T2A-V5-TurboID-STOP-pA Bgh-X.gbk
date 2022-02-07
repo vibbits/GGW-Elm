@@ -1,0 +1,250 @@
+LOCUS       MP-G1-0808_pEN-W-TRE-kozak-ATG-SARS-CoV2-"NSP7"-T2A-V5-TurboID-STOP-pA_Bgh-X      4233 bp ds-DNA     circular SYN 15-NOV-2017
+DEFINITION  synthetic circular DNA.
+ACCESSION   .
+VERSION     .
+KEYWORDS    .
+SOURCE      synthetic DNA construct (unknown)
+  ORGANISM  synthetic DNA construct
+            synthetic DNA construct
+REFERENCE   1  (bases 1 to 2165)
+  AUTHORS   Twistbioscience
+  TITLE     Direct Submission
+  JOURNAL   Exported Nov 15, 2017 from SnapGene 4.1.0
+            http://www.snapgene.com
+FEATURES             Location/Qualifiers
+     Vector          join(2160..4233,1..141)
+                     /origin="MP-GB-20_pEN-W-A-ccdB-G-X (3,654bp
+                     circular)Target vector: from BsaI cut at 1580^1581 to
+                     BsaI cut at 141^142, 2,215bpOrientation: originalPlus
+                     strand 5':   no changePlus strand 3':   no changeMinus
+                     strand 5':  no changeMinus strand 3':  no change"
+     primer_bind     50..66
+                     /label="M13 fwd"
+                     /note="common sequencing primer, one of multiple similar
+                     variants"
+     misc_feature    97..118
+                     /label="Uni_9 F"
+     primer          <127..>141
+                     /label="MP-O-"
+     misc_feature    138..141
+                     /feature_type="BsmBI overhang"
+                     /label="TGCC (W)"
+     misc_feature    142..569
+                     /feature_type="Insertion"
+                     /origin="MP-G0-0358_pGGA-TRE(noBsmBI)-B (3,110bp
+                     circular)Fragment: from BsaI cut at 224^225 to BsaI cut
+                     at 652^653, 428bpOrientation: originalPlus strand 5':
+                     no changePlus strand 3':   no changeMinus strand 5':  no
+                     changeMinus strand 3':  no change"
+                     /label="Insert"
+     promoter        146..569
+                     /official_designation="TRE"
+                     /description="Component entered by user"
+                     /full_name="TRE"
+     Sequencing      475..494
+                     /label="MP-O-1123"
+     oligo           492..530
+                     /label="MP-O-1935"
+     oligo           complement(496..534)
+                     /label="MP-O-1936"
+     mutation        497
+                     /label="Mutation GtoC"
+     oligo           531..569
+                     /label="MP-O-1937"
+     oligo           complement(535..573)
+                     /label="MP-O-1938"
+     misc_feature    570..573
+                     /feature_type="BsaI overhang"
+                     /label="B (AACA)"
+     misc_feature    570..588
+                     /feature_type="Insertion"
+                     /origin="MP-G0-0059_pGGB-Kozak-ATG-C (2,701bp
+                     circular)Fragment: from BsaI cut at 598^599 to BsaI cut
+                     at 617^618, 19bpOrientation: originalPlus strand 5':   no
+                     changePlus strand 3':   no changeMinus strand 5':  no
+                     changeMinus strand 3':  no change"
+                     /label="Insert"
+     misc_feature    580..585
+                     /label="Kozak"
+     CDS             586..588
+                     /label="ATG"
+     misc_feature    589..843
+                     /feature_type="Insertion"
+                     /origin="MP-G0-394_pGGC-SARS-CoV-2-''NSP7''-D (2,937bp
+                     circular)Fragment: from BsaI cut at 56^57 to BsaI cut at
+                     311^312, 255bpOrientation: originalPlus strand 5':   no
+                     changePlus strand 3':   no changeMinus strand 5':  no
+                     changeMinus strand 3':  no change"
+                     /label="Insert"
+     Fragment        <589..>843
+                     /origin="MP-G-0003 pGGC000 (3,749bp
+                     circular)Fragment:from BsaI cut at 3314^3315 to BsaI cut
+                     at 2247^2248,2,682bpOrientation: originalPlus strand 5':
+                     nochangePlus strand 3':   no changeMinus strand 5':
+                     nochangeMinus strand 3':  no change"
+     CDS             595..843
+                     /cds_type="ORF"
+                     /label="SARS-CoV-2-''NSP7''"
+     misc_feature    844..847
+                     /feature_type="BsaI overhang"
+                     /label="D (TCAG)"
+     misc_feature    844..912
+                     /feature_type="Insertion"
+                     /origin="MP-G0-0004_pGGD-T2A-E (2,751bp
+                     circular)Fragment: from BsaI cut at 2144^2145 to BsaI cut
+                     at 2213^2214, 69bpOrientation: originalPlus strand 5':
+                     no changePlus strand 3':   no changeMinus strand 5':  no
+                     changeMinus strand 3':  no change"
+                     /label="Insert"
+     CDS             850..912
+                     /label="T2A"
+     primer          <913..985
+                     /label="MP-O-1339"
+     misc_feature    913..1928
+                     /feature_type="Insertion"
+                     /origin="MP-G0-230__pGGE-V5-TurboID_-STOP-F (3,698bp
+                     circular)Fragment: from BsaI cut at 9^10 to BsaI cut at
+                     1025^1026, 1,016bpOrientation: originalPlus strand 5':
+                     no changePlus strand 3':   no changeMinus strand 5':  no
+                     changeMinus strand 3':  no change"
+                     /label="Insert"
+     Fragment        913..1928
+                     /origin="NEW_TurboID WT amplicon (1,002bplinear)Fragment:
+                     from BsaI cut at 16^17 to BsaI cut at982^983,
+                     966bpOrientation: originalPlus strand 5':   nochangePlus
+                     strand 3':   no changeMinus strand 5':  nochangeMinus
+                     strand 3':  no change"
+     CDS             919..966
+                     /cds_type="ORF"
+                     /label="V5-AS linker"
+     CDS             919..1928
+                     /label="V5-TurboID WT"
+     primer          complement(1903..>1928)
+                     /label="New Rv primer MP-O-1478"
+     misc_feature    1929..1932
+                     /feature_type="BsaI overhang"
+                     /label="F (ACTA)"
+     misc_feature    1929..2159
+                     /feature_type="Insertion"
+                     /origin="MP-G0-0026_pGGF-bGH_pA-G (2,913bp
+                     circular)Fragment: from BsaI cut at 478^479 to BsaI cut
+                     at 709^710, 231bpOrientation: originalPlus strand 5':
+                     no changePlus strand 3':   no changeMinus strand 5':  no
+                     changeMinus strand 3':  no change"
+                     /label="Insert"
+     misc_feature    1936..2159
+                     /label="bGH polyA signal"
+     misc_feature    2160..2163
+                     /feature_type="BsaI overhang"
+                     /vntifkey="21"
+                     /label="GTAT (G)"
+     primer          complement(<2164..>2174)
+                     /label="MP-O-"
+     misc_feature    2164..2167
+                     /feature_type="BsmBI overhang"
+                     /label="(GCAA) X"
+     misc_feature    2187..2207
+                     /label="Uni_9 R"
+     primer_bind     complement(2243..2259)
+                     /label="M13 rev"
+                     /note="common sequencing primer, one of multiple similar
+                     variants"
+     rep_origin      complement(2431..3019)
+                     /direction=LEFT
+                     /label="ori"
+                     /note="high-copy-number ColE1/pMB1/pBR322/pUC origin of
+                     replication"
+     CDS             complement(3155..3970)
+                     /note="Length: 816"
+                     /note="Found at strand: negative"
+                     /note="Start codon: ATG"
+                     /label="KanR"
+     primer          <3519..3538
+                     /label="MP-O-"
+     mutation        complement(3524)
+                     /label="g>c BsmBI removal"
+     primer_bind     4091..4107
+                     /label="SK primer"
+                     /note="common sequencing primer, one of multiple similar
+                     variants"
+     terminator      4108..4154
+                     /label="rrnB T1 terminator"
+                     /note="transcription terminator T1 from the E. coli rrnB
+                     gene"
+     primer          complement(4163..>4178)
+                     /label="MP-O-"
+     mutation        4175..4176
+                     /label="CG>CG switch BsmBI removal"
+ORIGIN
+        1 AATAACTGTG ATCCACCACA AGCGCCAGGG TTTTCCCAGT CACGACGTTG TAAAACGACG
+       61 GCCAGTCATG CATAATCCGC ACGCATCTGG AATAAGGAAG TGCCATTCCG CCTGACCTGA
+      121 AGACGTGTGA CGTCTCNTGC CACCTGGTAC CGAGCTCGAC TTTCACTTTT CTCTATCACT
+      181 GATAGGGAGT GGTAAACTCG ACTTTCACTT TTCTCTATCA CTGATAGGGA GTGGTAAACT
+      241 CGACTTTCAC TTTTCTCTAT CACTGATAGG GAGTGGTAAA CTCGACTTTC ACTTTTCTCT
+      301 ATCACTGATA GGGAGTGGTA AACTCGACTT TCACTTTTCT CTATCACTGA TAGGGAGTGG
+      361 TAAACTCGAC TTTCACTTTT CTCTATCACT GATAGGGAGT GGTAAACTCG ACTTTCACTT
+      421 TTCTCTATCA CTGATAGGGA GTGGTAAACT CGACCTATAT AAGCAGAGCT CGTTTAGTGA
+      481 ACCGTCAGAT CGCCTGCAGA CGCCATCCAC GCTGTTTTGA CCTCCATAGA AGACACCGGG
+      541 ACCGATCCAG CCTCCGCGGC CCCGAATTGA ACATCCGCCG CCACCATGGG CTCCTCTAAA
+      601 ATGTCAGATG TAAAGTGCAC ATCAGTAGTC TTACTCTCAG TTTTGCAACA ACTCAGAGTA
+      661 GAATCATCAT CTAAATTGTG GGCTCAATGT GTCCAGTTAC ACAATGACAT TCTCTTAGCT
+      721 AAAGATACTA CTGAAGCCTT TGAAAAAATG GTTTCACTAC TTTCTGTTTT GCTTTCCATG
+      781 CAGGGTGCTG TAGACATAAA CAAGCTTTGT GAAGAAATGC TGGACAACAG GGCAACCTTA
+      841 CAATCAGGCG GCTCCGGAGA GGGCAGGGGA AGTCTTCTAA CATGCGGGGA CGTGGAGGAA
+      901 AATCCCGGCC CCCTGCTGGG CAAGCCCATC CCCAACCCCC TGCTGGGCCT GGACAGCACC
+      961 GCTAGCAAAG ACAATACTGT GCCTCTGAAG CTGATCGCTC TCCTGGCTAA TGGCGAGTTC
+     1021 CATAGTGGCG AACAGCTGGG AGAAACCCTG GGCATGTCCA GGGCCGCTAT CAACAAGCAC
+     1081 ATTCAGACTC TGCGCGACTG GGGCGTGGAC GTGTTCACCG TGCCCGGAAA GGGCTACTCT
+     1141 CTGCCCGAGC CTATCCCGCT GCTGAACGCT AAACAGATTC TGGGACAGCT GGACGGCGGG
+     1201 AGCGTGGCAG TCCTGCCTGT GGTCGACTCC ACCAATCAGT ACCTGCTGGA TCGAATCGGC
+     1261 GAGCTGAAGA GTGGGGATGC TTGCATTGCA GAATATCAGC AGGCAGGGAG AGGAAGCAGA
+     1321 GGGAGGAAAT GGTTCTCTCC TTTTGGAGCT AACCTGTACC TGAGTATGTT TTGGCGCCTG
+     1381 AAGCGGGGAC CAGCAGCAAT CGGCCTGGGC CCGGTCATCG GAATTGTCAT GGCAGAAGCG
+     1441 CTGCGAAAGC TGGGAGCAGA CAAGGTGCGA GTCAAATGGC CCAATGACCT GTATCTGCAG
+     1501 GATAGAAAGC TGGCAGGCAT CCTGGTGGAG CTGGCCGGAA TAACAGGCGA TGCTGCACAG
+     1561 ATCGTCATTG GCGCCGGGAT TAACGTGGCT ATGAGGCGCG TGGAGGAAAG CGTGGTCAAT
+     1621 CAGGGCTGGA TCACACTGCA GGAAGCAGGG ATTAACCTGG ACAGGAATAC TCTGGCCGCT
+     1681 ACGCTGATCC GAGAGCTGCG GGCAGCCCTG GAACTGTTCG AGCAGGAAGG CCTGGCTCCA
+     1741 TATCTGCCAC GGTGGGAGAA GCTGGATAAC TTCATCAATA GACCCGTGAA GCTGATCATT
+     1801 GGGGACAAAG AGATTTTCGG GATTAGCCGG GGGATTGATA AACAGGGAGC CCTGCTGCTG
+     1861 GAACAGGACG GAGTTATCAA ACCCTGGATG GGCGGAGAAA TCAGTCTGCG GTCTGCCGAA
+     1921 AAGTAATGAC TAAGCCTGTG CCTTCTAGTT GCCAGCCATC TGTTGTTTGC CCCTCCCCCG
+     1981 TGCCTTCCTT GACCCTGGAA GGTGCCACTC CCACTGTCCT TTCCTAATAA AATGAGGAAA
+     2041 TTGCATCGCA TTGTCTGAGT AGGTGTCATT CTATTCTGGG GGGTGGGGTG GGGCAGGACA
+     2101 GCAAGGGGGA GGATTGGGAA GACAATAGCA GGCATGCTGG GGATGCGGTG GGCTCTATGG
+     2161 TATGCAANGA GACGCGTATA GTCTTCAGGC TAGGTGGAGG CTCAGTGATG ATAAGTCTGC
+     2221 GATGGTGGAT GCATGTGTCA TGGTCATAGC TGTTTCCTGT GTGAAATTGT TATCCGCTCA
+     2281 GAGGGCACAA TCCTATTCCG CGCTATCCGA CAATCTCCAA GACATTAGGT GGAGTTCAGT
+     2341 TCGGCGTATG GCATATGTCG CTGGAAAGAA CATGTGAGCA AAAGGCCAGC AAAAGGCCAG
+     2401 GAACCGTAAA AAGGCCGCGT TGCTGGCGTT TTTCCATAGG CTCCGCCCCC CTGACGAGCA
+     2461 TCACAAAAAT CGACGCTCAA GTCAGAGGTG GCGAAACCCG ACAGGACTAT AAAGATACCA
+     2521 GGCGTTTCCC CCTGGAAGCT CCCTCGTGCG CTCTCCTGTT CCGACCCTGC CGCTTACCGG
+     2581 ATACCTGTCC GCCTTTCTCC CTTCGGGAAG CGTGGCGCTT TCTCATAGCT CACGCTGTAG
+     2641 GTATCTCAGT TCGGTGTAGG TCGTTCGCTC CAAGCTGGGC TGTGTGCACG AACCCCCCGT
+     2701 TCAGCCCGAC CGCTGCGCCT TATCCGGTAA CTATCGTCTT GAGTCCAACC CGGTAAGACA
+     2761 CGACTTATCG CCACTGGCAG CAGCCACTGG TAACAGGATT AGCAGAGCGA GGTATGTAGG
+     2821 CGGTGCTACA GAGTTCTTGA AGTGGTGGCC TAACTACGGC TACACTAGAA GAACAGTATT
+     2881 TGGTATCTGC GCTCTGCTGA AGCCAGTTAC CTTCGGAAAA AGAGTTGGTA GCTCTTGATC
+     2941 CGGCAAACAA ACCACCGCTG GTAGCGGTGG TTTTTTTGTT TGCAAGCAGC AGATTACGCG
+     3001 CAGAAAAAAA GGATCTCAAG AAGATCCTTT GATCTTTTCT ACGGGGTCTG ACGCTCTATT
+     3061 CAACAAAGCC GCCGTCCCGT CAAGTCAGCG TAAATGGGTA GGGGGCTTCA AATCGTCCGC
+     3121 TCTGCCAGTG TTACAACCAA TTAACAAATT CTGATTAGAA AAACTCATCG AGCATCAAAT
+     3181 GAAACTGCAA TTTATTCATA TCAGGATTAT CAATACCATA TTTTTGAAAA AGCCGTTTCT
+     3241 GTAATGAAGG AGAAAACTCA CCGAGGCAGT TCCATAGGAT GGCAAGATCC TGGTATCGGT
+     3301 CTGCGATTCC GACTCGTCCA ACATCAATAC AACCTATTAA TTTCCCCTCG TCAAAAATAA
+     3361 GGTTATCAAG TGAGAAATCA CCATGAGTGA CGACTGAATC CGGTGAGAAT GGCAAAAGCT
+     3421 TATGCATTTC TTTCCAGACT TGTTCAACAG GCCAGCCATT ACGCTCGTCA TCAAAATCAC
+     3481 TCGCATCAAC CAAACCGTTA TTCATTCGTG ATTGCGCCTG AGCCAGACGA AATACGCGAT
+     3541 CGCTGTTAAA AGGACAATTA CAAACAGGAA TCGAATGCAA CCGGCGCAGG AACACTGCCA
+     3601 GCGCATCAAC AATATTTTCA CCTGAATCAG GATATTCTTC TAATACCTGG AATGCTGTTT
+     3661 TCCCGGGGAT CGCAGTGGTG AGTAACCATG CATCATCAGG AGTACGGATA AAATGCTTGA
+     3721 TGGTCGGAAG AGGCATAAAT TCCGTCAGCC AGTTTAGTCT GACCATCTCA TCTGTAACAT
+     3781 CATTGGCAAC GCTACCTTTG CCATGTTTCA GAAACAACTC TGGCGCATCG GGCTTCCCAT
+     3841 ACAATCGATA GATTGTCGCA CCTGATTGCC CGACATTATC GCGAGCCCAT TTATACCCAT
+     3901 ATAAATCAGC ATCCATGTTG GAATTTAATC GCGGCCTCGA GCAAGACGTT TCCCGTTGAA
+     3961 TATGGCTCAT AACACCCCTT GTATTACTGT TTATGTAAGC AGACAGTTTT ATTGTTCATG
+     4021 ATGATATATT TTTATCTTGT GCAATGTAAC ATCAGAGATT TTGAGACACA ACGTGGCTTT
+     4081 CCCCCGCCGC TCTAGAACTA GTGGATCCAA ATAAAACGAA AGGCTCAGTC GAAAGACTGG
+     4141 GCCTTTCGTT TTATCTGTTG TTTGTCGCAT TATAGCAGAC GTCCAGGTTG GGATACCTGA
+     4201 AACAAAACCC ATCGTACGGC CAAGGAAGTC TCC
+//

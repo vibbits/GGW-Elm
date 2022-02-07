@@ -1,0 +1,245 @@
+LOCUS       MP-G1-0801_pEN-W-EF1a-Kozak-ATG-SARS-CoV2-"NSP7"-linker_tingLab-eGFP-STOP-pA_Bgh-X      4686 bp ds-DNA     circular SYN 15-NOV-2017
+DEFINITION  synthetic circular DNA.
+ACCESSION   .
+VERSION     .
+KEYWORDS    .
+SOURCE      synthetic DNA construct (unknown)
+  ORGANISM  synthetic DNA construct
+            synthetic DNA construct
+REFERENCE   1  (bases 1 to 2165)
+  AUTHORS   Twistbioscience
+  TITLE     Direct Submission
+  JOURNAL   Exported Nov 15, 2017 from SnapGene 4.1.0
+            http://www.snapgene.com
+FEATURES             Location/Qualifiers
+     Vector          join(2613..4686,1..141)
+                     /origin="MP-GB-20_pEN-W-A-ccdB-G-X (3,654bp
+                     circular)Target vector: from BsaI cut at 1580^1581 to
+                     BsaI cut at 141^142, 2,215bpOrientation: originalPlus
+                     strand 5':   no changePlus strand 3':   no changeMinus
+                     strand 5':  no changeMinus strand 3':  no change"
+     primer_bind     50..66
+                     /label="M13 fwd"
+                     /note="common sequencing primer, one of multiple similar
+                     variants"
+     misc_feature    97..118
+                     /label="Uni_9 F"
+     primer          <127..>141
+                     /label="MP-O-"
+     misc_feature    138..141
+                     /feature_type="BsmBI overhang"
+                     /label="TGCC (W)"
+     misc_feature    142..145
+                     /feature_type="BsaI overhang"
+                     /label="A (ACCT)"
+     misc_feature    142..1324
+                     /feature_type="Insertion"
+                     /origin="MP-G0-0001_pGGA-EF1a-B (3,865bp
+                     circular)Fragment: from BsaI cut at 879^880 to BsaI cut
+                     at 2062^2063, 1,183bpOrientation: originalPlus strand 5':
+                     no changePlus strand 3':   no changeMinus strand 5':  no
+                     changeMinus strand 3':  no change"
+                     /label="Insert"
+     promoter        146..1324
+                     /note="EF-1-alpha promoter"
+                     /note="strong constitutive promoter for human elongation
+                     factor EF-1-alpha"
+     misc_feature    1325..1328
+                     /feature_type="BsaI overhang"
+                     /label="B (AACA)"
+     misc_feature    1325..1343
+                     /feature_type="Insertion"
+                     /origin="MP-G0-0059_pGGB-Kozak-ATG-C (2,701bp
+                     circular)Fragment: from BsaI cut at 598^599 to BsaI cut
+                     at 617^618, 19bpOrientation: originalPlus strand 5':   no
+                     changePlus strand 3':   no changeMinus strand 5':  no
+                     changeMinus strand 3':  no change"
+                     /label="Insert"
+     misc_feature    1335..1340
+                     /label="Kozak"
+     CDS             1341..1343
+                     /label="ATG"
+     misc_feature    1344..1598
+                     /feature_type="Insertion"
+                     /origin="MP-G0-394_pGGC-SARS-CoV-2-''NSP7''-D (2,937bp
+                     circular)Fragment: from BsaI cut at 56^57 to BsaI cut at
+                     311^312, 255bpOrientation: originalPlus strand 5':   no
+                     changePlus strand 3':   no changeMinus strand 5':  no
+                     changeMinus strand 3':  no change"
+                     /label="Insert"
+     Fragment        <1344..>1598
+                     /origin="MP-G-0003 pGGC000 (3,749bp
+                     circular)Fragment:from BsaI cut at 3314^3315 to BsaI cut
+                     at 2247^2248,2,682bpOrientation: originalPlus strand 5':
+                     nochangePlus strand 3':   no changeMinus strand 5':
+                     nochangeMinus strand 3':  no change"
+     CDS             1350..1598
+                     /cds_type="ORF"
+                     /label="SARS-CoV-2-''NSP7''"
+     misc_feature    1599..1655
+                     /feature_type="Insertion"
+                     /origin="MP-G0-0118 pGGD-Linker Tinglab-E (2,739bp
+                     circular)Fragment: from BsaI cut at 97^98 to BsaI cut at
+                     154^155, 57bpOrientation: originalPlus strand 5':   no
+                     changePlus strand 3':   no changeMinus strand 5':  no
+                     changeMinus strand 3':  no change"
+                     /label="Insert"
+     CDS             1605..1655
+                     /label="Linker Tinglab"
+     primer          <1656..1661
+                     /label="MP-O-1714"
+     misc_feature    1656..2381
+                     /feature_type="Insertion"
+                     /origin="MP-G0-0232_pGGEn-EGFP-STOP-F_ (3,408bp
+                     circular)Fragment: from BsaI cut at 517^518 to BsaI cut
+                     at 1243^1244, 726bpOrientation: originalPlus strand 5':
+                     no changePlus strand 3':   no changeMinus strand 5':  no
+                     changeMinus strand 3':  no change"
+                     /label="Insert"
+     Fragment        1656..2381
+                     /origin="20191011_EF EGFP
+                     Primers(813bplinear)Fragment:from BsaI cut at 16^17 to
+                     BsaI cutat793^794,777bpOrientation: originalPlus strand
+                     5':nochangePlusstrand 3':   no changeMinus strand
+                     5':nochangeMinusstrand 3':  no change"
+     overhang        <1656..1661
+                     /label="E overhang"
+     CDS             1662..2381
+                     /label="EGFP"
+     primer          complement(2362..>2381)
+                     /label="MP-O-1715"
+     misc_feature    2382..2385
+                     /feature_type="BsaI overhang"
+                     /label="F (ACTA)"
+     misc_feature    2382..2612
+                     /feature_type="Insertion"
+                     /origin="MP-G0-0026_pGGF-bGH_pA-G (2,913bp
+                     circular)Fragment: from BsaI cut at 478^479 to BsaI cut
+                     at 709^710, 231bpOrientation: originalPlus strand 5':
+                     no changePlus strand 3':   no changeMinus strand 5':  no
+                     changeMinus strand 3':  no change"
+                     /label="Insert"
+     misc_feature    2389..2612
+                     /label="bGH polyA signal"
+     misc_feature    2613..2616
+                     /feature_type="BsaI overhang"
+                     /vntifkey="21"
+                     /label="GTAT (G)"
+     primer          complement(<2617..>2627)
+                     /label="MP-O-"
+     misc_feature    2617..2620
+                     /feature_type="BsmBI overhang"
+                     /label="(GCAA) X"
+     misc_feature    2640..2660
+                     /label="Uni_9 R"
+     primer_bind     complement(2696..2712)
+                     /label="M13 rev"
+                     /note="common sequencing primer, one of multiple similar
+                     variants"
+     rep_origin      complement(2884..3472)
+                     /direction=LEFT
+                     /label="ori"
+                     /note="high-copy-number ColE1/pMB1/pBR322/pUC origin of
+                     replication"
+     CDS             complement(3608..4423)
+                     /note="Length: 816"
+                     /note="Found at strand: negative"
+                     /note="Start codon: ATG"
+                     /label="KanR"
+     primer          <3972..3991
+                     /label="MP-O-"
+     mutation        complement(3977)
+                     /label="g>c BsmBI removal"
+     primer_bind     4544..4560
+                     /label="SK primer"
+                     /note="common sequencing primer, one of multiple similar
+                     variants"
+     terminator      4561..4607
+                     /label="rrnB T1 terminator"
+                     /note="transcription terminator T1 from the E. coli rrnB
+                     gene"
+     primer          complement(4616..>4631)
+                     /label="MP-O-"
+     mutation        4628..4629
+                     /label="CG>CG switch BsmBI removal"
+ORIGIN
+        1 AATAACTGTG ATCCACCACA AGCGCCAGGG TTTTCCCAGT CACGACGTTG TAAAACGACG
+       61 GCCAGTCATG CATAATCCGC ACGCATCTGG AATAAGGAAG TGCCATTCCG CCTGACCTGA
+      121 AGACGTGTGA CGTCTCNTGC CACCTGGCTC CGGTGCCCGT CAGTGGGCAG AGCGCACATC
+      181 GCCCACAGTC CCCGAGAAGT TGGGGGGAGG GGTCGGCAAT TGAACCGGTG CCTAGAGAAG
+      241 GTGGCGCGGG GTAAACTGGG AAAGTGATGT CGTGTACTGG CTCCGCCTTT TTCCCGAGGG
+      301 TGGGGGAGAA CCGTATATAA GTGCAGTAGT CGCCGTGAAC GTTCTTTTTC GCAACGGGTT
+      361 TGCCGCCAGA ACACAGGTAA GTGCCGTGTG TGGTTCCCGC GGGCCTGGCC TCTTTACGGG
+      421 TTATGGCCCT TGCGTGCCTT GAATTACTTC CACCTGGCTG CAGTACGTGA TTCTTGATCC
+      481 CGAGCTTCGG GTTGGAAGTG GGTGGGAGAG TTCGAGGCCT TGCGCTTAAG GAGCCCCTTC
+      541 GCCTCGTGCT TGAGTTGAGG CCTGGCCTGG GCGCTGGGGC CGCCGCGTGC GAATCTGGTG
+      601 GCACCTTCGC GCCTGTCTCG CTGCTTTCGA TAAGTCTCTA GCCATTTAAA ATTTTTGATG
+      661 ACCTGCTGCG ACGCTTTTTT TCTGGCAAGA TAGTCTTGTA AATGCGGGCC AAGATCTGCA
+      721 CACTGGTATT TCGGTTTTTG GGGCCGCGGG CGGCGACGGG GCCCGTGCGT CCCAGCGCAC
+      781 ATGTTCGGCG AGGCGGGGCC TGCGAGCGCG GCCACCGAGA ATCGGACGGG GGTAGTCTCA
+      841 AGCTGGCCGG CCTGCTCTGG TGCCTGGCCT CGCGCCGCCG TGTATCGCCC CGCCCTGGGC
+      901 GGCAAGGCTG GCCCGGTCGG CACCAGTTGC GTGAGCGGAA AGATGGCCGC TTCCCGGCCC
+      961 TGCTGCAGGG AGCTCAAAAT GGAGGACGCG GCGCTCGGGA GAGCGGGCGG GTGAGTCACC
+     1021 CACACAAAGG AAAAGGGCCT TTCCGTCCTC AGCCGTCGCT TCATGTGACT CCACGGAGTA
+     1081 CCGGGCGCCG TCCAGGCACC TCGATTAGTT CTCGAGCTTT TGGAGTACGT CGTCTTTAGG
+     1141 TTGGGGGGAG GGGTTTTATG CGATGGAGTT TCCCCACACT GAGTGGGTGG AGACTGAAGT
+     1201 TAGGCCAGCT TGGCACTTGA TGTAATTCTC CTTGGAATTT GCCCTTTTTG AGTTTGGATC
+     1261 TTGGTTCATT CTCAAGCCTC AGACAGTGGT TCAAAGTTTT TTTCTTCCAT TTCAGGTGTC
+     1321 GTGAAACATC CGCCGCCACC ATGGGCTCCT CTAAAATGTC AGATGTAAAG TGCACATCAG
+     1381 TAGTCTTACT CTCAGTTTTG CAACAACTCA GAGTAGAATC ATCATCTAAA TTGTGGGCTC
+     1441 AATGTGTCCA GTTACACAAT GACATTCTCT TAGCTAAAGA TACTACTGAA GCCTTTGAAA
+     1501 AAATGGTTTC ACTACTTTCT GTTTTGCTTT CCATGCAGGG TGCTGTAGAC ATAAACAAGC
+     1561 TTTGTGAAGA AATGCTGGAC AACAGGGCAA CCTTACAATC AGGCGGCTCG GGCTCGACCT
+     1621 CGGGCTCGGG CTCGACCTCG GGCTCGGGCA CCGGTCTGCA GGGAGTGAGC AAGGGCGAGG
+     1681 AGCTGTTCAC CGGGGTGGTG CCCATCCTGG TCGAGCTGGA CGGCGACGTA AACGGCCACA
+     1741 AGTTCAGCGT GTCCGGCGAG GGCGAGGGCG ATGCCACCTA CGGCAAGCTG ACCCTGAAGT
+     1801 TCATCTGCAC CACCGGCAAG CTGCCCGTGC CCTGGCCCAC CCTCGTGACC ACCCTGACCT
+     1861 ACGGCGTGCA GTGCTTCAGC CGCTACCCCG ACCACATGAA GCAGCACGAC TTCTTCAAGT
+     1921 CCGCCATGCC CGAAGGCTAC GTCCAGGAGC GCACCATCTT CTTCAAGGAC GACGGCAACT
+     1981 ACAAGACCCG CGCCGAGGTG AAGTTCGAGG GCGACACCCT GGTGAACCGC ATCGAGCTGA
+     2041 AGGGCATCGA CTTCAAGGAG GACGGCAACA TCCTGGGGCA CAAGCTGGAG TACAACTACA
+     2101 ACAGCCACAA CGTCTATATC ATGGCCGACA AGCAGAAGAA CGGCATCAAG GTGAACTTCA
+     2161 AGATCCGCCA CAACATCGAG GACGGCAGCG TGCAGCTCGC CGACCACTAC CAGCAGAACA
+     2221 CCCCCATCGG CGACGGCCCC GTGCTGCTGC CCGACAACCA CTACCTGAGC ACCCAGTCCG
+     2281 CCCTGAGCAA AGACCCCAAC GAGAAGCGCG ATCACATGGT CCTGCTGGAG TTCGTGACCG
+     2341 CCGCCGGGAT CACTCTCGGC ATGGACGAGC TGTACAAGTA AACTAAGCCT GTGCCTTCTA
+     2401 GTTGCCAGCC ATCTGTTGTT TGCCCCTCCC CCGTGCCTTC CTTGACCCTG GAAGGTGCCA
+     2461 CTCCCACTGT CCTTTCCTAA TAAAATGAGG AAATTGCATC GCATTGTCTG AGTAGGTGTC
+     2521 ATTCTATTCT GGGGGGTGGG GTGGGGCAGG ACAGCAAGGG GGAGGATTGG GAAGACAATA
+     2581 GCAGGCATGC TGGGGATGCG GTGGGCTCTA TGGTATGCAA NGAGACGCGT ATAGTCTTCA
+     2641 GGCTAGGTGG AGGCTCAGTG ATGATAAGTC TGCGATGGTG GATGCATGTG TCATGGTCAT
+     2701 AGCTGTTTCC TGTGTGAAAT TGTTATCCGC TCAGAGGGCA CAATCCTATT CCGCGCTATC
+     2761 CGACAATCTC CAAGACATTA GGTGGAGTTC AGTTCGGCGT ATGGCATATG TCGCTGGAAA
+     2821 GAACATGTGA GCAAAAGGCC AGCAAAAGGC CAGGAACCGT AAAAAGGCCG CGTTGCTGGC
+     2881 GTTTTTCCAT AGGCTCCGCC CCCCTGACGA GCATCACAAA AATCGACGCT CAAGTCAGAG
+     2941 GTGGCGAAAC CCGACAGGAC TATAAAGATA CCAGGCGTTT CCCCCTGGAA GCTCCCTCGT
+     3001 GCGCTCTCCT GTTCCGACCC TGCCGCTTAC CGGATACCTG TCCGCCTTTC TCCCTTCGGG
+     3061 AAGCGTGGCG CTTTCTCATA GCTCACGCTG TAGGTATCTC AGTTCGGTGT AGGTCGTTCG
+     3121 CTCCAAGCTG GGCTGTGTGC ACGAACCCCC CGTTCAGCCC GACCGCTGCG CCTTATCCGG
+     3181 TAACTATCGT CTTGAGTCCA ACCCGGTAAG ACACGACTTA TCGCCACTGG CAGCAGCCAC
+     3241 TGGTAACAGG ATTAGCAGAG CGAGGTATGT AGGCGGTGCT ACAGAGTTCT TGAAGTGGTG
+     3301 GCCTAACTAC GGCTACACTA GAAGAACAGT ATTTGGTATC TGCGCTCTGC TGAAGCCAGT
+     3361 TACCTTCGGA AAAAGAGTTG GTAGCTCTTG ATCCGGCAAA CAAACCACCG CTGGTAGCGG
+     3421 TGGTTTTTTT GTTTGCAAGC AGCAGATTAC GCGCAGAAAA AAAGGATCTC AAGAAGATCC
+     3481 TTTGATCTTT TCTACGGGGT CTGACGCTCT ATTCAACAAA GCCGCCGTCC CGTCAAGTCA
+     3541 GCGTAAATGG GTAGGGGGCT TCAAATCGTC CGCTCTGCCA GTGTTACAAC CAATTAACAA
+     3601 ATTCTGATTA GAAAAACTCA TCGAGCATCA AATGAAACTG CAATTTATTC ATATCAGGAT
+     3661 TATCAATACC ATATTTTTGA AAAAGCCGTT TCTGTAATGA AGGAGAAAAC TCACCGAGGC
+     3721 AGTTCCATAG GATGGCAAGA TCCTGGTATC GGTCTGCGAT TCCGACTCGT CCAACATCAA
+     3781 TACAACCTAT TAATTTCCCC TCGTCAAAAA TAAGGTTATC AAGTGAGAAA TCACCATGAG
+     3841 TGACGACTGA ATCCGGTGAG AATGGCAAAA GCTTATGCAT TTCTTTCCAG ACTTGTTCAA
+     3901 CAGGCCAGCC ATTACGCTCG TCATCAAAAT CACTCGCATC AACCAAACCG TTATTCATTC
+     3961 GTGATTGCGC CTGAGCCAGA CGAAATACGC GATCGCTGTT AAAAGGACAA TTACAAACAG
+     4021 GAATCGAATG CAACCGGCGC AGGAACACTG CCAGCGCATC AACAATATTT TCACCTGAAT
+     4081 CAGGATATTC TTCTAATACC TGGAATGCTG TTTTCCCGGG GATCGCAGTG GTGAGTAACC
+     4141 ATGCATCATC AGGAGTACGG ATAAAATGCT TGATGGTCGG AAGAGGCATA AATTCCGTCA
+     4201 GCCAGTTTAG TCTGACCATC TCATCTGTAA CATCATTGGC AACGCTACCT TTGCCATGTT
+     4261 TCAGAAACAA CTCTGGCGCA TCGGGCTTCC CATACAATCG ATAGATTGTC GCACCTGATT
+     4321 GCCCGACATT ATCGCGAGCC CATTTATACC CATATAAATC AGCATCCATG TTGGAATTTA
+     4381 ATCGCGGCCT CGAGCAAGAC GTTTCCCGTT GAATATGGCT CATAACACCC CTTGTATTAC
+     4441 TGTTTATGTA AGCAGACAGT TTTATTGTTC ATGATGATAT ATTTTTATCT TGTGCAATGT
+     4501 AACATCAGAG ATTTTGAGAC ACAACGTGGC TTTCCCCCGC CGCTCTAGAA CTAGTGGATC
+     4561 CAAATAAAAC GAAAGGCTCA GTCGAAAGAC TGGGCCTTTC GTTTTATCTG TTGTTTGTCG
+     4621 CATTATAGCA GACGTCCAGG TTGGGATACC TGAAACAAAA CCCATCGTAC GGCCAAGGAA
+     4681 GTCTCC
+//
