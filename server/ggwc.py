@@ -5,8 +5,10 @@ updating the database schema, adding an admin user,
 adding an identity provider, etc.
 """
 
+from pprint import pprint
 import sys
 from pathlib import Path
+from datetime import datetime
 import click
 import httpx
 import csv
@@ -144,17 +146,22 @@ def import0(csv_path, gbk_path, user):
     for i, gbk_file in files_to_read:
         # Create vector and fill in data from csv file
         vec = Vector()
+        vec.mpg_number = int(csv_content[i]["\ufeffNumber"])
         vec.name = csv_content[i]["Plasmid name"]
         vec.bacterial_strain = csv_content[i]["Bacterial strain"]
         vec.responsible = csv_content[i]["Responsible"]
         vec.group = csv_content[i]["Group"]
+        vec.level = csv_content[i]["Vector Level"]
         vec.bsa1_overhang = csv_content[i]["BsaI overhang"]
         vec.selection = csv_content[i]["Selection"]
         vec.cloning_technique = csv_content[i]["DNA synthesis or PCR?"]
+        vec.bsmb1_overhang = csv_content[i]["BsmBI overhang"]
         vec.is_BsmB1_free = csv_content[i]["BsmBI free? (Yes/No)"]
         vec.notes = csv_content[i]["Notes"]
         vec.REase_digest = csv_content[i]["REase digest"]
-        vec.level = 0
+        vec.date = datetime.strptime(csv_content[i]["Date (extra)"], "%d/%m/%Y")
+        vec.gateway_site = csv_content[i]["Gateway site"]
+        vec.vector_type = csv_content[i]["Vector type (MP-G2-)"]
         vec.children = []
 
         # Reading the sequence from the genbank file
