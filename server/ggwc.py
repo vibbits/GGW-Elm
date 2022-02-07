@@ -123,6 +123,8 @@ def vector_level(g: str) -> VectorLevel:
         return VectorLevel.LEVEL0
     elif g == "G1":
         return VectorLevel.LEVEL1
+    else:
+        return VectorLevel.UNDEFINED
 
 
 def extract_mpg(mpg: str) -> Tuple[VectorLevel, int]:

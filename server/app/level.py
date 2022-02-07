@@ -9,3 +9,4 @@ class VectorLevel(enum.Enum):
     BACKBONE = enum.auto()
     LEVEL0 = enum.auto()
     LEVEL1 = enum.auto()
+    UNDEFINED = enum.auto()
