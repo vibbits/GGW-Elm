@@ -114,7 +114,7 @@ class Vector(BaseModel):
     features: List[Feature]
     references: List[Reference]
     users: List[User]
-    level: VectorLevel
+    level: Optional[VectorLevel]
     BsmB1_site: Optional[str]
     children: List["Vector"]
     bsmb1_overhang: str
