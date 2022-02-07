@@ -142,7 +142,7 @@ def add_vector(
             ]
         )
 
-        if vector.level == 2:
+        if vector.level not in [VectorLevel.BACKBONE, VectorLevel.LEVEL0]:
             database.add_all(
                 [
                     model.VectorHierarchy(child=child, parent=new_vector.id)
