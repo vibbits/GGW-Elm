@@ -12,7 +12,6 @@ when inside the directory containing this file.
 -}
 
 import NoMissingTypeAnnotation
-import NoMissingTypeExpose
 import NoPrematureLetComputation
 import NoUnused.CustomTypeConstructorArgs
 import NoUnused.CustomTypeConstructors
@@ -28,7 +27,6 @@ import Review.Rule exposing (Rule)
 config : List Rule
 config =
     [ NoMissingTypeAnnotation.rule
-    , NoMissingTypeExpose.rule
     , NoPrematureLetComputation.rule
     , NoUnused.CustomTypeConstructors.rule []
     , NoUnused.CustomTypeConstructorArgs.rule

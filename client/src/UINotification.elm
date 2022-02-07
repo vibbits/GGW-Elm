@@ -1,6 +1,5 @@
 module UINotification exposing
-    ( Notification
-    , Notifications
+    ( Notifications
     , close
     , init
     , makeError
