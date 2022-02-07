@@ -2,9 +2,7 @@ module UINotification exposing
     ( Notifications
     , close
     , init
-    ,  makeError
-       -- , makeInfo
-
+    , makeError
     , makeWarning
     , view
     )
@@ -55,8 +53,7 @@ import Tuple exposing (pair, second)
 
 -}
 type NotificationLevel
-    = Info
-    | Warning
+    = Warning
     | Error
 
 
@@ -133,9 +130,6 @@ viewNotification msgCtor index notification =
         color : Color
         color =
             case notification.level of
-                Info ->
-                    blue
-
                 Warning ->
                     yellow
 
@@ -205,9 +199,10 @@ grey =
     rgb255 211 215 207
 
 
-blue : Color
-blue =
-    rgb255 52 101 164
+
+-- blue : Color
+-- blue =
+--     rgb255 52 101 164
 
 
 yellow : Color
