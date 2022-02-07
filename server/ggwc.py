@@ -5,8 +5,12 @@ updating the database schema, adding an admin user,
 adding an identity provider, etc.
 """
 
+from typing import List, Tuple, Optional
+
+from pprint import pprint
 import sys
 from pathlib import Path
+from datetime import datetime
 import click
 import httpx
 import csv
@@ -14,10 +18,10 @@ import json
 from Bio import SeqIO
 from sqlalchemy.exc import SQLAlchemyError
 
-from typing import List
 from app.model import Vector, Annotation, Reference, Qualifier, Feature
 
 from app.database import SessionLocal
+from app.level import VectorLevel
 from app import model, crud, oidc, schemas
 
 
@@ -112,11 +116,33 @@ def login(iss):
             click.echo(oidc.login_url(config["authorization_endpoint"], provider))
 
 
+def vector_level(g: str) -> Optional[VectorLevel]:
+    "Converts part of the MP-GX-name to a VectorLevel"
+    if g == "GB":
+        return VectorLevel.BACKBONE
+    elif g == "G0":
+        return VectorLevel.LEVEL0
+    elif g == "G1":
+        return VectorLevel.LEVEL1
+    else:
+        return None
+
+
+def extract_mpg(mpg: str) -> Tuple[Optional[VectorLevel], int]:
+    "Splits the MP-GX-number and returns the VectorLevel and the numberpart"
+    split = mpg.split("-")
+    return (vector_level(split[1]), int(split[2]))
+
+
 @cli.command()
 @click.argument("csv_path")
 @click.argument("gbk_path")
 @click.argument("user")
 def import0(csv_path, gbk_path, user):
+    """
+    Extracts the vector information from a csv file and seperate genbank files
+    and adds them to an sqlite database.
+    """
     with SessionLocal() as database:
         # Lookup user
         if (
@@ -144,17 +170,27 @@ def import0(csv_path, gbk_path, user):
     for i, gbk_file in files_to_read:
         # Create vector and fill in data from csv file
         vec = Vector()
+        mpg = extract_mpg(csv_content[i]["\ufeffMP-G- number"])
+        vec.mpg_number = mpg[1]
         vec.name = csv_content[i]["Plasmid name"]
         vec.bacterial_strain = csv_content[i]["Bacterial strain"]
         vec.responsible = csv_content[i]["Responsible"]
         vec.group = csv_content[i]["Group"]
+        vec.level = mpg[0]
         vec.bsa1_overhang = csv_content[i]["BsaI overhang"]
         vec.selection = csv_content[i]["Selection"]
         vec.cloning_technique = csv_content[i]["DNA synthesis or PCR?"]
+        vec.bsmb1_overhang = csv_content[i]["BsmBI overhang"]
         vec.is_BsmB1_free = csv_content[i]["BsmBI free? (Yes/No)"]
         vec.notes = csv_content[i]["Notes"]
         vec.REase_digest = csv_content[i]["REase digest"]
-        vec.level = 0
+        try:
+            vec.date = datetime.strptime(csv_content[i]["Date (extra)"], "%d/%m/%Y")
+        except ValueError as err:
+            print(f"While extracing {gbk_file}, error parsing date: {err}")
+            vec.date = None
+        vec.gateway_site = csv_content[i]["Gateway site"]
+        vec.vector_type = csv_content[i]["Vector type (MP-G2-)"]
         vec.children = []
 
         # Reading the sequence from the genbank file

@@ -1379,7 +1379,10 @@ backboneTable model =
                       , width = fillPortion 5
                       , view =
                             \backbone ->
-                                Input.button [ Font.color color.blue, Font.bold, Font.underline ] { onPress = Just (ChangeBackbone backbone), label = Element.text backbone.name }
+                                Input.button [ Font.color color.blue, Font.bold, Font.underline ]
+                                    { onPress = Just (ChangeBackbone backbone)
+                                    , label = Element.text backbone.name
+                                    }
                       }
                     , { header = none
                       , width = fillPortion 1

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import model, schemas
+from app.level import VectorLevel
 
 # Users
 
@@ -77,6 +78,7 @@ def add_vector(
     database: Session, vector: schemas.Vector, user: schemas.User
 ) -> Optional[model.Vector]:
     new_vector = model.Vector(
+        mpg_number=vector.mpg_number,
         name=vector.name,
         bacterial_strain=vector.bacterial_strain,
         responsible=vector.responsible,
@@ -90,7 +92,10 @@ def add_vector(
         sequence=vector.sequence,
         level=vector.level,
         BsmB1_site=vector.BsmB1_site,
+        bsmb1_overhang=vector.bsmb1_overhang,
         gateway_site=vector.gateway_site,
+        vector_type=vector.vector_type,
+        date=vector.date,
     )
     try:
         database.add(new_vector)
@@ -137,7 +142,7 @@ def add_vector(
             ]
         )
 
-        if vector.level > 0:
+        if vector.level not in [VectorLevel.BACKBONE, VectorLevel.LEVEL0]:
             database.add_all(
                 [
                     model.VectorHierarchy(child=child, parent=new_vector.id)
@@ -156,9 +161,24 @@ def add_vector(
 
 
 def get_level0_for_user(database: Session, user: schemas.User) -> List[model.Vector]:
-    "Query all vectors from the database that a given user has access to."
+    "Query all Level 0 from the database that a given user has access to."
     return (
         database.query(model.Vector)
-        .filter(model.Vector.users.any(id=user.id), model.Vector.level == 0)
+        .filter(
+            model.Vector.users.any(id=user.id),
+            model.Vector.level == VectorLevel.LEVEL0,
+        )
+        .all()
+    )
+
+
+def get_backbones_for_user(database: Session, user: schemas.User) -> List[model.Vector]:
+    "Query all backbones from the database that a user has access to."
+    return (
+        database.query(model.Vector)
+        .filter(
+            model.Vector.users.any(id=user.id),
+            model.Vector.level == VectorLevel.BACKBONE,
+        )
         .all()
     )
