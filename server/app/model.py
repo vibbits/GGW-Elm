@@ -2,7 +2,6 @@
 
 from typing import Optional, List
 from datetime import datetime
-import enum
 
 from sqlalchemy import (
     Column,
@@ -17,12 +16,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship, Mapped
 
 from app.database import Base
-
-
-class VectorLevel(enum.Enum):
-    BACKBONE = (enum.auto(),)
-    LEVEL0 = (enum.auto(),)
-    LEVEL1 = enum.auto()
+from app.level import VectorLevel
 
 
 class UserVectorMapping(Base):
@@ -130,7 +124,7 @@ class Vector(Base):
     bsmb1_overhang: str = Column(String, nullable=True)
     gateway_site: str = Column(String, nullable=True)
     vector_type: str = Column(String, nullable=True)
-    date: datetime = Column(DateTime, nullable=True, default=datetime.now())
+    date: datetime = Column(DateTime, nullable=True)
 
     # Unique MP-GX-numbering constraint
     __table_args__ = (UniqueConstraint("level", "mpg_number", name="lvl_mpg"),)

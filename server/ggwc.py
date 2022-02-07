@@ -5,6 +5,8 @@ updating the database schema, adding an admin user,
 adding an identity provider, etc.
 """
 
+from typing import List, Tuple
+
 from pprint import pprint
 import sys
 from pathlib import Path
@@ -16,10 +18,10 @@ import json
 from Bio import SeqIO
 from sqlalchemy.exc import SQLAlchemyError
 
-from typing import List
 from app.model import Vector, Annotation, Reference, Qualifier, Feature
 
 from app.database import SessionLocal
+from app.level import VectorLevel
 from app import model, crud, oidc, schemas
 
 
@@ -114,6 +116,20 @@ def login(iss):
             click.echo(oidc.login_url(config["authorization_endpoint"], provider))
 
 
+def vector_level(g: str) -> VectorLevel:
+    if g == "GB":
+        return VectorLevel.BACKBONE
+    elif g == "G0":
+        return VectorLevel.LEVEL0
+    elif g == "G1":
+        return VectorLevel.LEVEL1
+
+
+def extract_mpg(mpg: str) -> Tuple[VectorLevel, int]:
+    split = mpg.split("-")
+    return (vector_level(split[1]), int(split[2]))
+
+
 @cli.command()
 @click.argument("csv_path")
 @click.argument("gbk_path")
@@ -146,12 +162,13 @@ def import0(csv_path, gbk_path, user):
     for i, gbk_file in files_to_read:
         # Create vector and fill in data from csv file
         vec = Vector()
-        vec.mpg_number = int(csv_content[i]["\ufeffNumber"])
+        mpg = extract_mpg(csv_content[i]["\ufeffMP-G- number"])
+        vec.mpg_number = mpg[1]
         vec.name = csv_content[i]["Plasmid name"]
         vec.bacterial_strain = csv_content[i]["Bacterial strain"]
         vec.responsible = csv_content[i]["Responsible"]
         vec.group = csv_content[i]["Group"]
-        vec.level = csv_content[i]["Vector Level"]
+        vec.level = mpg[0]
         vec.bsa1_overhang = csv_content[i]["BsaI overhang"]
         vec.selection = csv_content[i]["Selection"]
         vec.cloning_technique = csv_content[i]["DNA synthesis or PCR?"]
@@ -159,7 +176,11 @@ def import0(csv_path, gbk_path, user):
         vec.is_BsmB1_free = csv_content[i]["BsmBI free? (Yes/No)"]
         vec.notes = csv_content[i]["Notes"]
         vec.REase_digest = csv_content[i]["REase digest"]
-        vec.date = datetime.strptime(csv_content[i]["Date (extra)"], "%d/%m/%Y")
+        try:
+            vec.date = datetime.strptime(csv_content[i]["Date (extra)"], "%d/%m/%Y")
+        except ValueError as err:
+            print(f"While extracing {gbk_file}, error parsing date: {err}")
+            vec.date = None
         vec.gateway_site = csv_content[i]["Gateway site"]
         vec.vector_type = csv_content[i]["Vector type (MP-G2-)"]
         vec.children = []

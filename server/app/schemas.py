@@ -1,9 +1,12 @@
 "Data schemas for HTTP interface"
 
+from datetime import datetime
 import enum
 from typing import List, Optional
 
 from pydantic import BaseModel
+
+from app.level import VectorLevel
 
 # Users
 
@@ -56,12 +59,6 @@ class LoginUrl(BaseModel):
 
 
 # Adding data
-
-
-class VectorLevel(enum.Enum):
-    BACKBONE = (enum.auto(),)
-    LEVEL0 = (enum.auto(),)
-    LEVEL1 = enum.auto()
 
 
 class Reference(BaseModel):
@@ -123,7 +120,7 @@ class Vector(BaseModel):
     bsmb1_overhang: str
     gateway_site: str
     vector_type: str
-    date: str
+    date: Optional[datetime]
 
     class Config:
         orm_mode = True
