@@ -852,6 +852,67 @@ level1Table model =
                     ]
                 }
         ]
+level1Table : Model -> Element Msg
+level1Table model =
+    let
+        headerAttrs =
+            [ Font.bold
+            , Font.color color.blue
+            , Border.widthEach { bottom = 2, top = 0, left = 0, right = 0 }
+            , Border.color color.blue
+            ]
+    in
+    column
+        [ Element.width Element.fill
+        ]
+        [ row
+            [ spacing 20
+            , Element.width Element.fill
+            , padding 30
+            , clipY
+            ]
+            [ el ((Element.width <| fillPortion 3) :: headerAttrs) <| Element.text "MP-G1-Number"
+            , el ((Element.width <| fillPortion 5) :: headerAttrs) <| Element.text "Level1 Name"
+            , el ((Element.width <| fillPortion 1) :: headerAttrs) <| Element.text "Length"
+            ]
+        , el
+            [ Element.width Element.fill
+            , Border.width 1
+            , Border.rounded 50
+            ]
+          <|
+            table
+                [ Element.width Element.fill
+                , Element.height <| px 250
+                , scrollbarY
+                , spacing 10
+                , padding 25
+                ]
+                { data =
+                    model.insertList
+                        |> List.filter (filterLevel0OnOverhang model.currOverhang)
+                        |> List.filter (filterLevel0 model.level0FilterString)
+                , columns =
+                    [ { header = none
+                      , width = fillPortion 3
+                      , view = .mPG0Number >> Element.text >> el [ centerY ]
+                      }
+                    , { header = none
+                      , width = fillPortion 5
+                      , view =
+                            \level0 ->
+                                Input.button [ Font.color color.blue, Font.bold, Font.underline ]
+                                    { onPress = Just (AppendInsert level0)
+                                    , label = Element.text level0.name
+                                    }
+                      }
+                    , { header = none
+                      , width = fillPortion 1
+                      , view = .sequence >> String.length >> String.fromInt >> Element.text >> el [ centerY ]
+                      }
+                    ]
+                }
+        ]
 
 
 backboneTable : Model -> Element Msg
