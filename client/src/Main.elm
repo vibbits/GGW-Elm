@@ -340,7 +340,7 @@ type Msg
     | AppendInsert Level0
     | ChangeBackbone Backbone
     | ResetInsertList
-    | ResetBackbone
+    | ResetAll
       -- Login Msg
     | GotLoginUrls (Result Http.Error (List Login))
     | UrlChanged
@@ -896,7 +896,7 @@ visualRepresentation model =
             List.reverse ((Maybe.withDefault "" <| Maybe.map .name model.selectedBackbone) :: List.reverse (List.map .name sortedInsertRecordList))
 
         chartLengths =
-            List.reverse (List.map toFloat <| String.length (Maybe.withDefault "" <| Maybe.map .sequence model.backboneToAdd) :: List.reverse (List.map .length sortedInsertRecordList))
+            List.reverse (List.map toFloat <| String.length (Maybe.withDefault "" <| Maybe.map .sequence model.selectedBackbone) :: List.reverse (List.map .length sortedInsertRecordList))
 
         data =
             List.map2 Tuple.pair chartLabels chartLengths
@@ -930,7 +930,7 @@ visualRepresentation model =
                 ]
                 [ Html.text "Reset Level0 List" ]
             , Html.button
-                [ onClick ResetBackbone
+                [ onClick ResetAll
                 , HA.style "margin-left" "75px"
                 , HA.style "padding" "10px"
                 , HA.style "background-color" "white"
@@ -1421,15 +1421,34 @@ update msg model =
                 )
 
         ChangeBackbone newBackbone ->
-            ( { model | selectedBackbone = Just newBackbone }, Cmd.none )
+            ( { model
+                | selectedBackbone = Just newBackbone
+                , constructLength =
+                    List.sum
+                        (String.length newBackbone.sequence
+                            :: List.map (.sequence >> String.length) model.selectedInserts
+                        )
+              }
+            , Cmd.none
+            )
 
         ResetInsertList ->
-            ( { model | selectedInserts = [] }, Cmd.none )
+            ( { model
+                | selectedInserts = []
+                , constructLength =
+                    String.length
+                        (Maybe.withDefault "" <|
+                            Maybe.map .sequence model.selectedBackbone
+                        )
+              }
+            , Cmd.none
+            )
 
-        ResetBackbone ->
+        ResetAll ->
             ( { model
                 | selectedInserts = []
                 , selectedBackbone = Nothing
+                , constructLength = 0
               }
             , Cmd.none
             )
