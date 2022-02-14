@@ -71,7 +71,7 @@ type alias Model =
     , currApp : Application
     , currOverhang : Bsa1Overhang
     , backboneLevel : Int
-    , level1_construct : Maybe Level1
+    , level1_construct : Level1
     , auth : Auth
     , notifications : Notify.Notifications
     , key : Nav.Key
@@ -97,7 +97,7 @@ type alias Model =
 
 type alias Level1 =
     { name : String
-    , mPG1Number : String
+    , mPGNumber : Int
     , bsmb1Overhang : Maybe Bsmb1Overhang
     , bacterial_strain : String
     , responsible : String
@@ -107,11 +107,6 @@ type alias Level1 =
     , notes : Maybe String
     , re_ase_digest : String
     , sequence : String
-    , annotations : List Annotation
-    , features : List Feature
-    , references : List Reference
-    , inserts : List Level0
-    , backbone : Maybe Backbone
     }
 
 
@@ -121,11 +116,11 @@ empty_Level1_Construct =
     , mPG1Number = "MP-G1-000000001"
     , bsmb1Overhang = Nothing
     , bacterial_strain = ""
-    , responsible = ""
+    , responsible = "Smart Guy"
     , group = ""
     , selection = ""
     , cloning_technique = ""
-    , notes = Nothing
+    , notes = Just "This is a test construct"
     , re_ase_digest = ""
     , sequence = ""
     , annotations = []
@@ -203,6 +198,7 @@ type Msg
     | ToggleAll
     | FilterBackboneTable String -- TODO: Unify
     | FilterLevel0Table String
+    | FilterLevel1Table String
       -- Msg for adding Backbones
     | AddBackbone Backbone
     | ChangeBackboneToAdd ChangeMol
@@ -278,6 +274,7 @@ catalogueView model =
             [ button_ (Just ToggleAll) "Toggle all"
             , button_ (Just RequestAllLevel0) "Populate Level 0 table from DB"
             , button_ (Just RequestAllBackbones) "Populate Backbone table from DB"
+            , button_ (Just RequestAllLevel1) "Populate Level 1 table from DB"
             ]
         , Accordion.accordion
             (Accordion.head
@@ -340,7 +337,7 @@ catalogueView model =
             )
             (Accordion.body [ padding 25 ]
                 [ Input.text []
-                    { onChange = FilterLevel0Table
+                    { onChange = FilterLevel1Table
                     , text = Maybe.withDefault "" model.level1FilterString
                     , label = Input.labelLeft [] <| Element.text "Filter:"
                     , placeholder = Nothing
@@ -438,21 +435,21 @@ constructLevel1View model =
         , Input.text []
             { onChange = ChangeConstructName
             , label = Input.labelLeft [] <| Element.text "Construct name: "
-            , text = Maybe.withDefault "" <| Maybe.map .name model.level1_construct
+            , text = .name <| model.level1_construct
             , placeholder = Nothing
             }
         , Input.text []
             { onChange = ChangeConstructNumber
             , label = Input.labelLeft [] <| Element.text "Construct number: "
-            , text = Maybe.withDefault "" <| Maybe.map .mPG1Number model.level1_construct
+            , text = .mPG1Number <| model.level1_construct
             , placeholder = Nothing
             }
         , row [ spacing 50 ]
             [ el [] <| Element.text "Length (bp):"
-            , el [ padding 10 ] <| Element.text <| String.fromInt <| calculateLevel1Length <| Maybe.withDefault empty_Level1_Construct model.level1_construct
+            , el [ padding 10 ] <| Element.text <| String.fromInt <| calculateLevel1Length <| model.level1_construct
             ]
         , Input.multiline [ Element.height <| px 150 ]
-            { text = Maybe.withDefault "" <| Maybe.map (.notes >> Maybe.withDefault "") model.level1_construct
+            { text = (.notes >> Maybe.withDefault "") <| model.level1_construct
             , onChange = ChangeApplicationNote
             , label = Input.labelLeft [] <| Element.text "Notes: "
             , spellcheck = True
@@ -461,7 +458,7 @@ constructLevel1View model =
         , Input.text []
             { onChange = ChangeConstructDesignerName
             , label = Input.labelLeft [] <| Element.text "Designer Name: "
-            , text = Maybe.withDefault "" <| Maybe.map .responsible model.level1_construct
+            , text = .responsible <| model.level1_construct
             , placeholder = Nothing
             }
         , el
@@ -589,24 +586,14 @@ tupleToRecord ( t_name, t_overhang, t_length ) =
     { name = t_name, bsa1_overhang = t_overhang, length = t_length }
 
 
-getInsertsFromLevel1 : Maybe Level1 -> List Level0
+getInsertsFromLevel1 : Level1 -> List Level0
 getInsertsFromLevel1 l1 =
-    case l1 of
-        Just x ->
-            x.inserts
-
-        Nothing ->
-            []
+    l1.inserts
 
 
-getBackboneFromLevel1 : Maybe Level1 -> Backbone
+getBackboneFromLevel1 : Level1 -> Backbone
 getBackboneFromLevel1 l1 =
-    case l1 of
-        Just x ->
-            Maybe.withDefault emptyBackbone x.backbone
-
-        Nothing ->
-            emptyBackbone
+    Maybe.withDefault emptyBackbone l1.backbone
 
 
 visualRepresentation : Model -> Html Msg
@@ -847,22 +834,16 @@ level1Table model =
                 , padding 25
                 ]
                 { data =
-                    model.insertList
-                        |> List.filter (filterLevel0OnOverhang model.currOverhang)
-                        |> List.filter (filterLevel0 model.level0FilterString)
+                    model.level1List
+                        |> List.filter (filterLevel1 model.level1FilterString)
                 , columns =
                     [ { header = none
                       , width = fillPortion 3
-                      , view = .mPG0Number >> Element.text >> el [ centerY ]
+                      , view = .mPG1Number >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 5
-                      , view =
-                            \level0 ->
-                                Input.button [ Font.color color.blue, Font.bold, Font.underline ]
-                                    { onPress = Just (AppendInsert level0)
-                                    , label = Element.text level0.name
-                                    }
+                      , view = .name >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 1
@@ -992,8 +973,7 @@ update msg model =
         ChangeConstructName newName ->
             ( { model
                 | level1_construct =
-                    Maybe.map
-                        (\l1 -> { l1 | name = newName })
+                    (\l1 -> { l1 | name = newName })
                         model.level1_construct
               }
             , Cmd.none
@@ -1002,8 +982,7 @@ update msg model =
         ChangeConstructNumber newNumber ->
             ( { model
                 | level1_construct =
-                    Maybe.map
-                        (\l1 -> { l1 | mPG1Number = newNumber })
+                    (\l1 -> { l1 | mPG1Number = newNumber })
                         model.level1_construct
               }
             , Cmd.none
@@ -1012,8 +991,7 @@ update msg model =
         ChangeApplicationNote newAN ->
             ( { model
                 | level1_construct =
-                    Maybe.map
-                        (\l1 -> { l1 | notes = Just newAN })
+                    (\l1 -> { l1 | notes = Just newAN })
                         model.level1_construct
               }
             , Cmd.none
@@ -1022,8 +1000,7 @@ update msg model =
         ChangeConstructDesignerName newDesignerName ->
             ( { model
                 | level1_construct =
-                    Maybe.map
-                        (\l1 -> { l1 | responsible = newDesignerName })
+                    (\l1 -> { l1 | responsible = newDesignerName })
                         model.level1_construct
               }
             , Cmd.none
@@ -1033,8 +1010,7 @@ update msg model =
             if not (List.member newInsert.bsa1_overhang (List.map .bsa1_overhang <| getInsertsFromLevel1 model.level1_construct)) then
                 ( { model
                     | level1_construct =
-                        Maybe.map
-                            (\l1 -> { l1 | inserts = List.append l1.inserts [ newInsert ] })
+                        (\l1 -> { l1 | inserts = List.append l1.inserts [ newInsert ] })
                             model.level1_construct
                   }
                 , Cmd.none
@@ -1043,18 +1019,17 @@ update msg model =
             else
                 ( { model
                     | level1_construct =
-                        Maybe.map
-                            (\l1 ->
-                                { l1
-                                    | inserts =
-                                        newInsert
-                                            :: List.filter
-                                                (\l0 ->
-                                                    not (l0.bsa1_overhang == newInsert.bsa1_overhang)
-                                                )
-                                                l1.inserts
-                                }
-                            )
+                        (\l1 ->
+                            { l1
+                                | inserts =
+                                    newInsert
+                                        :: List.filter
+                                            (\l0 ->
+                                                not (l0.bsa1_overhang == newInsert.bsa1_overhang)
+                                            )
+                                            l1.inserts
+                            }
+                        )
                             model.level1_construct
                   }
                 , Cmd.none
@@ -1063,10 +1038,9 @@ update msg model =
         ChangeBackbone newBackbone ->
             ( { model
                 | level1_construct =
-                    Maybe.map
-                        (\l1 ->
-                            { l1 | backbone = Just newBackbone }
-                        )
+                    (\l1 ->
+                        { l1 | backbone = Just newBackbone }
+                    )
                         model.level1_construct
               }
             , Cmd.none
@@ -1075,10 +1049,9 @@ update msg model =
         ResetInsertList ->
             ( { model
                 | level1_construct =
-                    Maybe.map
-                        (\l1 ->
-                            { l1 | inserts = [] }
-                        )
+                    (\l1 ->
+                        { l1 | inserts = [] }
+                    )
                         model.level1_construct
               }
             , Cmd.none
@@ -1087,13 +1060,12 @@ update msg model =
         ResetAll ->
             ( { model
                 | level1_construct =
-                    Maybe.map
-                        (\l1 ->
-                            { l1
-                                | inserts = []
-                                , backbone = Nothing
-                            }
-                        )
+                    (\l1 ->
+                        { l1
+                            | inserts = []
+                            , backbone = Nothing
+                        }
+                    )
                         model.level1_construct
               }
             , Cmd.none
@@ -1149,6 +1121,9 @@ update msg model =
 
         FilterLevel0Table filter ->
             ( { model | level0FilterString = Just filter }, Cmd.none )
+
+        FilterLevel1Table filter ->
+            ( { model | level1FilterString = Just filter }, Cmd.none )
 
         BackboneAccordionToggled ->
             ( { model | backboneAccordionStatus = not model.backboneAccordionStatus }, Cmd.none )
@@ -1281,8 +1256,8 @@ update msg model =
                     ( model
                     , authenticatedGet token
                         "http://localhost:8000/vectors/level1"
-                        Level0Received
-                        (Decode.list level0Decoder)
+                        Level1Received
+                        (Decode.list level1Decoder)
                     )
 
                 Nothing ->

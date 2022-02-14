@@ -191,7 +191,7 @@ def import0(csv_path, gbk_path, user):
             vec.date = None
         vec.gateway_site = csv_content[i]["Gateway site"]
         vec.vector_type = csv_content[i]["Vector type (MP-G2-)"]
-        vec.children = []
+        vec.children = []  # TODOD: implement make the script also store the children.
 
         # Reading the sequence from the genbank file
         gbk_file_path = Path(gbk_path) / Path(gbk_file)
