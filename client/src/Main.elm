@@ -742,94 +742,10 @@ mainView model =
         case model.user of
             Just user ->
                 [ Element.text ("Welcome " ++ Maybe.withDefault "No user name" user.name)
-                , addVectorView model
                 ]
 
             Nothing ->
                 viewLoginForm model.loginUrls
-
-
-addVectorView : Model -> Element Msg
-addVectorView model =
-    column [ spacing 25, Element.width Element.fill, centerX, padding 50 ]
-        [ el
-            [ Element.Region.heading 2
-            , Font.size 50
-            , Font.color color.darkCharcoal
-            ]
-          <|
-            Element.text "Level 1 construct design"
-        , el
-            [ Element.Region.heading 1
-            , Font.size 25
-            , Font.color color.darkCharcoal
-            ]
-          <|
-            Element.text "Construct information"
-        , Input.text []
-            { onChange = ChangeConstructName
-            , label = Input.labelLeft [] <| Element.text "Construct name: "
-            , text = model.constructName
-            , placeholder = Nothing
-            }
-        , Input.text []
-            { onChange = ChangeConstructNumber
-            , label = Input.labelLeft [] <| Element.text "Construct number: "
-            , text = model.constructNumber
-            , placeholder = Nothing
-            }
-        , row [ spacing 50 ]
-            [ el [] <| Element.text "Length (bp):"
-            , el [ Background.color color.lightGrey, padding 10 ] <| Element.text (String.fromInt model.constructLength)
-            ]
-        , Input.multiline [ Element.height <| px 150 ]
-            { text = model.applicationNote
-            , onChange = ChangeApplicationNote
-            , label = Input.labelLeft [] <| Element.text "Application Note: "
-            , spellcheck = True
-            , placeholder = Nothing
-            }
-        , Input.text []
-            { onChange = ChangeConstructDesignerName
-            , label = Input.labelLeft [] <| Element.text "Designer Name: "
-            , text = model.designerName
-            , placeholder = Nothing
-            }
-        , Input.multiline [ Element.height <| px 150 ]
-            { text = model.description
-            , onChange = ChangeDescription
-            , label = Input.labelLeft [] <| Element.text "Description: "
-            , spellcheck = True
-            , placeholder = Nothing
-            }
-        , el
-            [ Element.Region.heading 2
-            , Font.size 25
-            , Font.color color.darkCharcoal
-            ]
-          <|
-            Element.text "Destination vector selection"
-        , backboneTable model
-        , el
-            [ Element.Region.heading 2
-            , Font.size 25
-            , Font.color color.darkCharcoal
-            ]
-          <|
-            Element.text "Donor vector selection"
-        , applicationRadioButton model
-        , overhangRadioRow model
-        , insertTable model
-        , downloadButtonBar
-        , el
-            [ Element.Region.heading 2
-            , Font.size 25
-            , Font.color color.darkCharcoal
-            ]
-          <|
-            Element.text "Construct visualisation"
-        , Element.html <| visualRepresentation model
-        ]
 
 
 viewLoginForm : List Login -> List (Element Msg)
