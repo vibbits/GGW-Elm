@@ -1826,18 +1826,6 @@ level0Decoder =
 backboneDecoder : Decode.Decoder Backbone
 backboneDecoder =
     let
-        str2IsPresent : String -> IsPresent
-        str2IsPresent s =
-            case String.toLower s |> String.trim of
-                "yes" ->
-                    Yes
-
-                "no" ->
-                    No
-
-                _ ->
-                    Unknown
-
         decodeOverhang : String -> Decode.Decoder Bsa1Overhang
         decodeOverhang str =
             case stringToBsa1Overhang (String.trim str) of
