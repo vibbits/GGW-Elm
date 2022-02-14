@@ -99,7 +99,8 @@ type alias User =
 
 
 type DisplayPage
-    = Catalogue
+    = LoginPage
+    | Catalogue
     | ConstructLevel1
     | AddLevel0Page
     | AddBackbonePage
@@ -227,7 +228,7 @@ init _ url key =
                 _ ->
                     getLoginUrls
     in
-    ( { page = Catalogue
+    ( { page = LoginPage
       , currApp = Standard
       , currOverhang = A__B
       , numberInserts = 6
@@ -395,6 +396,9 @@ view model =
                 ]
                 [ navLinks
                 , case model.page of
+                    LoginPage ->
+                        loginView model
+
                     ConstructLevel1 ->
                         constructLevel1View model
 
@@ -600,32 +604,6 @@ addBackboneView model =
             , label = Input.labelLeft [] <| Element.text "MP-GB-number:\tMP-GB-"
             , placeholder = Nothing
             }
-
-        -- , row []
-        --     [ el [] <| Element.text "Choose a level:"
-        --     , Element.html <|
-        --         Html.input
-        --             [ HA.style "margin" "25px"
-        --             , HA.type_ "number"
-        --             , HA.min "0"
-        --             , HA.max "2"
-        --             , Html.Events.onInput ChangeBackboneLevelToAdd
-        --             , HA.value (String.fromInt model.levelBackboneToAdd)
-        --             ]
-        --             []
-        --     ]
-        -- , row []
-        --     [ el [] <| Element.text "Length (bp):"
-        --     , Element.html <|
-        --         Html.input
-        --             [ HA.style "margin" "25px"
-        --             , HA.type_ "number"
-        --             , HA.min "1"
-        --             , Html.Events.onInput ChangeBackboneLengthToAdd
-        --             , HA.value (String.fromInt model.lengthBackboneToAdd)
-        --             ]
-        --             []
-        -- ]
         , Element.html <| Html.button [ HA.style "margin" "50px", onClick GbNewBackboneRequested ] [ Html.text "Load Genbank file" ]
         , Input.button
             [ centerX
@@ -651,8 +629,7 @@ constructLevel2View _ =
 constructLevel1View : Model -> Element Msg
 constructLevel1View model =
     column [ Element.height Element.fill, spacing 25, Element.width Element.fill, centerX, padding 50 ]
-        [ mainView model
-        , el
+        [ el
             [ Element.Region.heading 1
             , Font.size 50
             , Font.color color.darkCharcoal
@@ -732,8 +709,8 @@ constructLevel1View model =
         ]
 
 
-mainView : Model -> Element Msg
-mainView model =
+loginView : Model -> Element Msg
+loginView model =
     column
         [ Element.width Element.fill
         , Element.height Element.fill
@@ -1488,7 +1465,7 @@ update msg model =
             in
             case res of
                 Ok response ->
-                    ( { model | user = Just response.user, token = Just response.token }, navToRoot )
+                    ( { model | user = Just response.user, token = Just response.token }, Cmd.batch [ navToRoot, Task.succeed Catalogue |> Task.perform SwitchPage ] )
 
                 Err err ->
                     ( { model
