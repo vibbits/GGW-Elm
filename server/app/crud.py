@@ -1,5 +1,6 @@
 " Provides low-level Create, Read, Update, and Delete functions for API resources. "
 
+from statistics import mode
 from typing import List, Optional
 from datetime import datetime
 
@@ -179,6 +180,20 @@ def get_backbones_for_user(database: Session, user: schemas.User) -> List[model.
         .filter(
             model.Vector.users.any(id=user.id),
             model.Vector.level == VectorLevel.BACKBONE,
+        )
+        .all()
+    )
+
+
+def get_level1_constructs_for_user(
+    database: Session, user: schemas.User
+) -> List[model.Vector]:
+    "Query all Level1 constructs from the database that a user has access to."
+    return (
+        database.query(model.Vector)
+        .filter(
+            model.Vector.users.any(id=user.id),
+            model.Vector.level == VectorLevel.LEVEL1,
         )
         .all()
     )
