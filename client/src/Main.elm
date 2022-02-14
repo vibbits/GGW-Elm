@@ -895,16 +895,11 @@ level1Table model =
                 , columns =
                     [ { header = none
                       , width = fillPortion 3
-                      , view = .mPG0Number >> Element.text >> el [ centerY ]
+                      , view = .mPG1Number >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 5
-                      , view =
-                            \level0 ->
-                                Input.button [ Font.color color.blue, Font.bold, Font.underline ]
-                                    { onPress = Just (AppendInsert level0)
-                                    , label = Element.text level0.name
-                                    }
+                      , view = .name >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 1
