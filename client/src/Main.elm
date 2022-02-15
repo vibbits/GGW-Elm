@@ -20,7 +20,7 @@ import Html exposing (Html, a)
 import Html.Attributes as HA
 import Html.Events exposing (onClick)
 import Http exposing (Error(..), expectJson, jsonBody)
-import Interface exposing (button_, title, viewMaybe)
+import Interface exposing (button_, link_, title, viewMaybe)
 import Json.Decode as Decode
 import Json.Encode as Encode
 import List
@@ -85,11 +85,9 @@ type alias Model =
 
     -- Attributes for adding backbones
     , backboneToAdd : Maybe Backbone
-    , backboneGenbankContent : Maybe String
 
     -- Attributes for adding Level0
     , level0ToAdd : Maybe Level0
-    , level0GenbankContent : Maybe String
     }
 
 
@@ -137,11 +135,9 @@ init _ url key =
 
       -- Backbone To Add attributes
       , backboneToAdd = Nothing
-      , backboneGenbankContent = Nothing
 
       -- Level0 To Add Attributes
       , level0ToAdd = Nothing
-      , level0GenbankContent = Nothing
       }
     , cmd
     )
@@ -212,15 +208,9 @@ type Msg
       -- Msg for adding Backbones
     | AddBackbone Backbone
     | ChangeBackboneToAdd ChangeMol
-    | GbNewBackboneRequested
-    | GbNewBackboneSelected File
-    | GbNewBackboneLoaded String
       -- Msg for adding Level 0
     | AddLevel0 Level0
     | ChangeLevel0ToAdd ChangeMol
-    | GBNewLevel0Requested
-    | GBNewLevel0Selected File -- TODO: Unify file upload
-    | GbNewLevel0Loaded String
       -- Msg for retrieving Vectors
     | RequestAllLevel0
     | Level0Received (Result Http.Error (List Level0))
@@ -231,6 +221,7 @@ type Msg
 
 
 
+-- File Uploads
 -- view
 
 
@@ -360,7 +351,10 @@ addLevel0View model =
                 makeOverhangOptions allOverhangs
             , selected = Maybe.map .bsa1Overhang model.level0ToAdd
             }
-        , Element.html <| Html.button [ HA.style "margin" "50px", onClick GBNewLevel0Requested ] [ Html.text "Load Genbank file" ]
+        , Element.html <|
+            Html.button
+                [ HA.style "margin" "50px" ]
+                [ Html.text "Load Genbank file" ]
         , Input.button
             [ centerX
             , Background.color color.blue
@@ -398,7 +392,10 @@ addBackboneView model =
             , label = Input.labelLeft [] <| Element.text "MP-GB-number:\tMP-GB-"
             , placeholder = Nothing
             }
-        , Element.html <| Html.button [ HA.style "margin" "50px", onClick GbNewBackboneRequested ] [ Html.text "Load Genbank file" ]
+        , Element.html <|
+            Html.button
+                [ HA.style "margin" "50px" ]
+                [ Html.text "Load Genbank file" ]
         , Input.button
             [ centerX
             , Background.color color.blue
@@ -656,35 +653,18 @@ visualRepresentation model =
         insertRecordList =
             List.map tupleToRecord insertTuple
 
-        sortByWith : (a -> comparable) -> (comparable -> comparable -> Order) -> List a -> List a
-        sortByWith accessor sortFunc list =
-            List.sortWith (orderBy accessor sortFunc) list
-
-        orderBy : (a -> comparable) -> (comparable -> comparable -> Order) -> a -> a -> Order
-        orderBy accessor orderFunc a b =
-            orderFunc (accessor a) (accessor b)
-
-        -- Comparison Funcs
-        ascending : comparable -> comparable -> Order
-        ascending a b =
-            case compare a b of
-                LT ->
-                    LT
-
-                EQ ->
-                    EQ
-
-                GT ->
-                    GT
-
         sortedInsertRecordList =
-            sortByWith .bsa1_overhang ascending insertRecordList
+            List.sortBy .bsa1_overhang insertRecordList
 
         chartLabels =
             (Maybe.withDefault "" <| Maybe.map .name model.selectedBackbone) :: List.map .name sortedInsertRecordList
 
         chartLengths =
-            List.reverse (List.map toFloat <| String.length (Maybe.withDefault "" <| Maybe.map .sequence model.selectedBackbone) :: List.reverse (List.map .length sortedInsertRecordList))
+            List.reverse
+                (List.map toFloat <|
+                    String.length (Maybe.withDefault "" <| Maybe.map .sequence model.selectedBackbone)
+                        :: List.reverse (List.map .length sortedInsertRecordList)
+                )
 
         data =
             List.map2 Tuple.pair chartLabels chartLengths
@@ -742,30 +722,9 @@ navLinks =
         , padding 10
         , spacing 10
         ]
-        [ Input.button
-            [ Font.size 15
-            , Font.color color.white
-            , Element.width Element.fill
-            , Font.underline
-            , Font.bold
-            ]
-            { onPress = Just (SwitchPage Catalogue), label = Element.text "Home" }
-        , Input.button
-            [ Font.size 15
-            , Font.color color.white
-            , Element.width Element.fill
-            , Font.underline
-            , Font.bold
-            ]
-            { onPress = Just (SwitchPage Catalogue), label = Element.text "Vector Catalog" }
-        , Input.button
-            [ Font.size 15
-            , Font.color color.white
-            , Element.width Element.fill
-            , Font.underline
-            , Font.bold
-            ]
-            { onPress = Just (SwitchPage ConstructLevel1), label = Element.text "New Level 1 construct" }
+        [ link_ (SwitchPage Catalogue) "Home"
+        , link_ (SwitchPage Catalogue) "Vector Catalogue"
+        , link_ (SwitchPage ConstructLevel1) "New Level1 construct"
         ]
 
 
@@ -1282,15 +1241,6 @@ update msg model =
             , Cmd.none
             )
 
-        GbNewBackboneRequested ->
-            ( model, Select.file [ "text" ] GbNewBackboneSelected )
-
-        GbNewBackboneSelected file ->
-            ( model, Task.perform GbNewBackboneLoaded (File.toString file) )
-
-        GbNewBackboneLoaded content ->
-            ( { model | backboneGenbankContent = Just content }, Cmd.none )
-
         AddLevel0 newIns ->
             ( { model | insertList = newIns :: model.insertList }, Cmd.none )
 
@@ -1303,15 +1253,6 @@ update msg model =
               }
             , Cmd.none
             )
-
-        GBNewLevel0Requested ->
-            ( model, Select.file [ "text" ] GBNewLevel0Selected )
-
-        GBNewLevel0Selected file ->
-            ( model, Task.perform GbNewLevel0Loaded (File.toString file) )
-
-        GbNewLevel0Loaded content ->
-            ( { model | level0GenbankContent = Just content }, Cmd.none )
 
         Level0Received (Ok level0s) ->
             ( { model | insertList = level0s }, Cmd.none )

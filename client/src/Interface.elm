@@ -1,4 +1,4 @@
-module Interface exposing (button_, title, viewMaybe)
+module Interface exposing (button_, link_, title, viewMaybe)
 
 import Element
     exposing
@@ -6,10 +6,12 @@ import Element
         , Element
         , centerY
         , el
+        , fill
         , mouseDown
         , mouseOver
         , padding
         , text
+        , width
         )
 import Element.Background as Background
 import Element.Border as Border
@@ -68,6 +70,20 @@ button_ msg label =
             [ Background.color lightBlue
             , Border.color lightGrey
             ]
+        ]
+        { onPress = Just msg
+        , label = text label
+        }
+
+
+link_ : msg -> String -> Element msg
+link_ msg label =
+    button
+        [ Font.size 15
+        , Font.color white
+        , Font.underline
+        , Font.bold
+        , width fill
         ]
         { onPress = Just msg
         , label = text label
