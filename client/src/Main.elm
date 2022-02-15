@@ -211,18 +211,15 @@ type Msg
     | FilterLevel0Table String
       -- Msg for adding Backbones
     | AddBackbone Backbone
-    | ChangeBackboneNameToAdd String
-    | ChangeBackboneMpgNumberToAdd String
+    | ChangeBackboneToAdd ChangeMol
     | GbNewBackboneRequested
     | GbNewBackboneSelected File
     | GbNewBackboneLoaded String
       -- Msg for adding Level 0
     | AddLevel0 Level0
-    | ChangeLevel0NameToAdd String
-    | ChangeLevel0MpgNumberToAdd String
-    | ChangeLevel0OverhangToAdd Bsa1Overhang
+    | ChangeLevel0ToAdd ChangeMol
     | GBNewLevel0Requested
-    | GBNewLevel0Selected File
+    | GBNewLevel0Selected File -- TODO: Unify file upload
     | GbNewLevel0Loaded String
       -- Msg for retrieving Vectors
     | RequestAllLevel0
@@ -346,22 +343,22 @@ addLevel0View model =
         [ el [ Element.Region.heading 1, Font.size 50 ] <| Element.text "Add new Level 0 donor vector"
         , Input.text []
             { label = Input.labelLeft [] <| Element.text "Name:\t"
-            , onChange = ChangeLevel0NameToAdd
+            , onChange = ChangeName >> ChangeLevel0ToAdd
             , placeholder = Nothing
             , text = Maybe.withDefault "" <| Maybe.map .name model.level0ToAdd
             }
         , Input.text []
             { label = Input.labelLeft [] <| Element.text "MP-G0-number:\tMP-G0- "
-            , onChange = ChangeLevel0MpgNumberToAdd
+            , onChange = ChangeMPG >> ChangeLevel0ToAdd
             , placeholder = Nothing
             , text = Maybe.withDefault "" <| Maybe.map (.mPG0Number >> String.fromInt) model.level0ToAdd
             }
         , Input.radioRow [ spacing 5, padding 10 ]
             { label = Input.labelAbove [] <| Element.text "Overhang Type:\t"
-            , onChange = ChangeLevel0OverhangToAdd
+            , onChange = ChangeBsa1 >> ChangeLevel0ToAdd
             , options =
                 makeOverhangOptions allOverhangs
-            , selected = Maybe.map .bsa1_overhang model.level0ToAdd
+            , selected = Maybe.map .bsa1Overhang model.level0ToAdd
             }
         , Element.html <| Html.button [ HA.style "margin" "50px", onClick GBNewLevel0Requested ] [ Html.text "Load Genbank file" ]
         , Input.button
@@ -390,13 +387,13 @@ addBackboneView model =
     column [ Element.height Element.fill, centerX, Element.width Element.fill, spacing 25, padding 25 ]
         [ el [ Element.Region.heading 1, Font.size 50 ] <| Element.text "Add new Backbone"
         , Input.text []
-            { onChange = ChangeBackboneNameToAdd
+            { onChange = ChangeName >> ChangeBackboneToAdd
             , text = Maybe.withDefault "" <| Maybe.map .name model.backboneToAdd
             , label = Input.labelLeft [] <| Element.text "Name:"
             , placeholder = Nothing
             }
         , Input.text []
-            { onChange = ChangeBackboneMpgNumberToAdd
+            { onChange = ChangeMPG >> ChangeBackboneToAdd
             , text = Maybe.withDefault "" <| Maybe.map (.mPGBNumber >> String.fromInt) model.backboneToAdd
             , label = Input.labelLeft [] <| Element.text "MP-GB-number:\tMP-GB-"
             , placeholder = Nothing
@@ -645,7 +642,7 @@ visualRepresentation model =
     let
         -- Note: The reversing is for making sure Level0 1 is at position 0. This way the destination vector is appended on the back of the list!
         insertOverhangs =
-            List.map showBsa1Overhang <| List.map .bsa1_overhang model.selectedInserts
+            List.map showBsa1Overhang <| List.map .bsa1Overhang model.selectedInserts
 
         insertNames =
             List.map .name model.selectedInserts
@@ -935,7 +932,7 @@ insertTable model =
                       }
                     , { header = none
                       , width = fillPortion 1
-                      , view = .bsa1_overhang >> Just >> viewMaybe showBsa1Overhang
+                      , view = .bsa1Overhang >> Just >> viewMaybe showBsa1Overhang
                       }
                     ]
                 }
@@ -1004,7 +1001,7 @@ backboneTable model =
                       }
                     , { header = none
                       , width = fillPortion 3
-                      , view = .bsmb1_overhang >> viewMaybe showBsmb1Overhang
+                      , view = .bsmb1Overhang >> viewMaybe showBsmb1Overhang
                       }
                     ]
                 }
@@ -1131,7 +1128,7 @@ update msg model =
             ( { model | description = newDescription }, Cmd.none )
 
         AppendInsert newInsert ->
-            if not (List.member newInsert.bsa1_overhang (List.map .bsa1_overhang model.selectedInserts)) then
+            if not (List.member newInsert.bsa1Overhang (List.map .bsa1Overhang model.selectedInserts)) then
                 ( { model
                     | selectedInserts = List.append model.selectedInserts [ newInsert ]
                     , constructLength =
@@ -1153,7 +1150,7 @@ update msg model =
                         newInsert
                             :: List.filter
                                 (\level0 ->
-                                    not (level0.bsa1_overhang == newInsert.bsa1_overhang)
+                                    not (level0.bsa1Overhang == newInsert.bsa1Overhang)
                                 )
                                 model.selectedInserts
                     , constructLength =
@@ -1166,7 +1163,7 @@ update msg model =
                                     (newInsert
                                         :: List.filter
                                             (\level0 ->
-                                                not (level0.bsa1_overhang == newInsert.bsa1_overhang)
+                                                not (level0.bsa1Overhang == newInsert.bsa1Overhang)
                                             )
                                             model.selectedInserts
                                     )
@@ -1275,11 +1272,15 @@ update msg model =
         AddBackbone newBB ->
             ( { model | backboneList = newBB :: model.backboneList }, Cmd.none )
 
-        ChangeBackboneNameToAdd name ->
-            ( { model | backboneToAdd = Maybe.map (\bb -> { bb | name = name }) model.backboneToAdd }, Cmd.none )
-
-        ChangeBackboneMpgNumberToAdd mpgbNumber ->
-            ( { model | backboneToAdd = Maybe.map (\bb -> { bb | mPGBNumber = Maybe.withDefault 0 <| String.toInt mpgbNumber }) model.backboneToAdd }, Cmd.none )
+        ChangeBackboneToAdd change ->
+            ( { model
+                | backboneToAdd =
+                    Maybe.withDefault initBackbone model.backboneToAdd
+                        |> interpretBackboneChange change
+                        |> Just
+              }
+            , Cmd.none
+            )
 
         GbNewBackboneRequested ->
             ( model, Select.file [ "text" ] GbNewBackboneSelected )
@@ -1293,14 +1294,15 @@ update msg model =
         AddLevel0 newIns ->
             ( { model | insertList = newIns :: model.insertList }, Cmd.none )
 
-        ChangeLevel0NameToAdd name ->
-            ( { model | level0ToAdd = Maybe.map (\l0 -> { l0 | name = name }) model.level0ToAdd }, Cmd.none )
-
-        ChangeLevel0MpgNumberToAdd mpg0Number ->
-            ( { model | level0ToAdd = Maybe.map (\l0 -> { l0 | mPG0Number = Maybe.withDefault 0 <| String.toInt <| mpg0Number }) model.level0ToAdd }, Cmd.none )
-
-        ChangeLevel0OverhangToAdd bsa1_overhang ->
-            ( { model | level0ToAdd = Maybe.map (\l0 -> { l0 | bsa1_overhang = bsa1_overhang }) model.level0ToAdd }, Cmd.none )
+        ChangeLevel0ToAdd change ->
+            ( { model
+                | level0ToAdd =
+                    Maybe.withDefault initLevel0 model.level0ToAdd
+                        |> interpretLevel0Change change
+                        |> Just
+              }
+            , Cmd.none
+            )
 
         GBNewLevel0Requested ->
             ( model, Select.file [ "text" ] GBNewLevel0Selected )
@@ -1391,7 +1393,7 @@ filterLevel0 needle val =
 
 filterLevel0OnOverhang : Bsa1Overhang -> Level0 -> Bool
 filterLevel0OnOverhang needle val =
-    needle == val.bsa1_overhang
+    needle == val.bsa1Overhang
 
 
 

@@ -2,10 +2,14 @@ module Molecules exposing
     ( Backbone
     , Bsa1Overhang(..)
     , Bsmb1Overhang(..)
+    , ChangeMol(..)
     , Level0
     , allOverhangs
     , backboneDecoder
+    , initBackbone
     , initLevel0
+    , interpretBackboneChange
+    , interpretLevel0Change
     , level0Decoder
     , overhangs
     , showBsa1Overhang
@@ -48,7 +52,7 @@ type alias Backbone =
     { name : String
     , mPGBNumber : String
     , bsa1Overhang : Maybe Bsa1Overhang
-    , bsmb1_overhang : Maybe Bsmb1Overhang
+    , bsmb1Overhang : Maybe Bsmb1Overhang
     , sequence : String
     }
 
@@ -58,18 +62,69 @@ type alias Backbone =
 type alias Level0 =
     { name : String
     , mPG0Number : String
-    , bsa1_overhang : Bsa1Overhang
+    , bsa1Overhang : Bsa1Overhang
     , sequence : String
     }
+
+
+{-| Helper type to change Backbone or Level0 fields
+-}
+type ChangeMol
+    = ChangeName String
+    | ChangeMPG String
+    | ChangeBsa1 Bsa1Overhang
+    | ChangeBsmb1 Bsmb1Overhang
 
 
 initLevel0 : Level0
 initLevel0 =
     { name = ""
     , mPG0Number = ""
-    , bsa1_overhang = A__B
+    , bsa1Overhang = A__B
     , sequence = ""
     }
+
+
+initBackbone : Backbone
+initBackbone =
+    { name = ""
+    , mPGBNumber = ""
+    , bsa1Overhang = Nothing
+    , bsmb1Overhang = Nothing
+    , sequence = ""
+    }
+
+
+interpretBackboneChange : ChangeMol -> Backbone -> Backbone
+interpretBackboneChange msg bb =
+    case msg of
+        ChangeName name ->
+            { bb | name = name }
+
+        ChangeMPG mpg ->
+            { bb | mPGBNumber = mpg }
+
+        ChangeBsa1 bsa1 ->
+            { bb | bsa1Overhang = Just bsa1 }
+
+        ChangeBsmb1 bsmb1 ->
+            { bb | bsmb1Overhang = Just bsmb1 }
+
+
+interpretLevel0Change : ChangeMol -> Level0 -> Level0
+interpretLevel0Change msg l0 =
+    case msg of
+        ChangeName name ->
+            { l0 | name = name }
+
+        ChangeMPG mpg ->
+            { l0 | mPG0Number = mpg }
+
+        ChangeBsa1 bsa1 ->
+            { l0 | bsa1Overhang = bsa1 }
+
+        ChangeBsmb1 _ ->
+            l0
 
 
 overhangs : Dict Int (List Bsa1Overhang)
