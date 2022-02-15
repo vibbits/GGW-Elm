@@ -6,7 +6,7 @@ import Browser exposing (Document)
 import Browser.Dom exposing (Error(..))
 import Browser.Navigation as Nav
 import Color
-import Dict exposing (Dict, get)
+import Dict
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border exposing (rounded)
@@ -20,11 +20,12 @@ import Html exposing (Html, a)
 import Html.Attributes as HA
 import Html.Events exposing (onClick)
 import Http exposing (Error(..), expectJson, jsonBody)
+import Interface exposing (button_, title, viewMaybe)
 import Json.Decode as Decode
-import Json.Decode.Pipeline as JDP
 import Json.Encode as Encode
 import List
 import List.Extra
+import Molecules exposing (..)
 import Path
 import Shape exposing (defaultPieConfig)
 import String
@@ -37,31 +38,6 @@ import UINotification as Notify
 import Url exposing (..)
 import Url.Parser exposing ((</>), Parser, parse, query, s)
 import Url.Parser.Query exposing (map2, string)
-
-
-overhangList : Dict Int (List Bsa1Overhang)
-overhangList =
-    Dict.fromList
-        [ ( 3, [ A__B, B__C, C__G ] )
-        , ( 4, [ A__B, B__C, C__D, D__G ] )
-        , ( 5, [ A__B, B__C, C__D, D__E, E__G ] )
-        , ( 6, [ A__B, B__C, C__D, D__E, E__F, F__G ] )
-        ]
-
-
-completeOverhangList : List Bsa1Overhang
-completeOverhangList =
-    [ A__B
-    , A__G
-    , B__C
-    , C__D
-    , C__G
-    , D__E
-    , D__G
-    , E__F
-    , E__G
-    , F__G
-    ]
 
 
 type alias User =
@@ -83,14 +59,11 @@ type alias Model =
     { page : DisplayPage
     , currApp : Application
     , currOverhang : Bsa1Overhang
-    , numberInserts : Int
     , backboneLevel : Int
-    , overhangShape : List Bsa1Overhang
     , constructName : String
     , constructNumber : String
     , constructLength : Int
     , applicationNote : String
-    , designerName : String
     , description : String
     , selectedInserts : List Level0
     , selectedBackbone : Maybe Backbone
@@ -120,72 +93,6 @@ type alias Model =
     }
 
 
-type alias Annotation =
-    { key : String
-    , value : String
-    }
-
-
-type alias Qualifier =
-    { key : String
-    , value : String
-    }
-
-
-type alias Feature =
-    { feature_type : String
-    , qualifiers : List Qualifier
-    , start_pos : Int
-    , end_pos : Int
-    , strand : Int
-    }
-
-
-type alias Reference =
-    { authors : String
-    , title : String
-    }
-
-
-type alias Level0 =
-    { name : String
-    , mPG0Number : Int
-    , bsa1_overhang : Bsa1Overhang
-    , bacterial_strain : String
-    , responsible : String
-    , group : String
-    , selection : String
-    , cloning_technique : String
-    , is_BsmB1_free : IsPresent
-    , notes : Maybe String
-    , re_ase_digest : String
-    , sequence : String
-    , annotations : List Annotation
-    , features : List Feature
-    , references : List Reference
-    }
-
-
-type alias Backbone =
-    { name : String
-    , mPGBNumber : Int
-    , bsa1Overhang : Maybe Bsa1Overhang
-    , bacterial_strain : String
-    , responsible : String
-    , group : String
-    , selection : String
-    , cloning_technique : String
-    , vector_type : String
-    , notes : Maybe String
-    , re_ase_digest : String
-    , bsmb1_overhang : Maybe Bsmb1Overhang
-    , sequence : String
-    , annotations : List Annotation
-    , features : List Feature
-    , references : List Reference
-    }
-
-
 
 -- Model
 
@@ -204,17 +111,14 @@ init _ url key =
     ( { page = LoginPage
       , currApp = Standard
       , currOverhang = A__B
-      , numberInserts = 6
       , backboneLevel = 1
-      , overhangShape = Maybe.withDefault [] <| get 6 overhangList
 
       -- Level1 fields
       , constructName = "Demo Construct"
       , constructNumber = "MP-G1-000000001"
       , constructLength = 0
-      , applicationNote = "Some Application: words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words"
-      , designerName = "Guy, Smart"
-      , description = "Some Description: words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words"
+      , applicationNote = ""
+      , description = ""
       , selectedInserts = []
       , selectedBackbone = Nothing
       , loginUrls = []
@@ -274,27 +178,6 @@ type Application
     | Three
 
 
-type Bsmb1Overhang
-    = W__X
-    | W__Z
-    | X__Y
-    | X__Z
-    | Y__Z
-
-
-type Bsa1Overhang
-    = A__B
-    | A__G
-    | B__C
-    | C__D
-    | C__G
-    | D__E
-    | D__G
-    | E__F
-    | E__G
-    | F__G
-
-
 type ButtonPosition
     = First
     | Mid
@@ -308,7 +191,6 @@ type Msg
     | ChangeConstructName String
     | ChangeConstructNumber String
     | ChangeApplicationNote String
-    | ChangeConstructDesignerName String
     | ChangeDescription String
     | AppendInsert Level0
     | ChangeBackbone Backbone
@@ -399,71 +281,11 @@ catalogueView model =
         , padding 50
         , centerX
         ]
-        [ el
-            [ Element.Region.heading 1
-            , Font.size 50
-            , Font.color color.darkCharcoal
-            ]
-          <|
-            Element.text "Vector Catalog"
+        [ title "Vector Catalog"
         , row [ spacing 20 ]
-            [ Input.button
-                [ Border.solid
-                , Border.color color.blue
-                , padding 10
-                , Border.width 3
-                , Border.rounded 6
-                , Background.color color.white
-                , mouseDown
-                    [ Background.color color.blue
-                    , Font.color color.white
-                    ]
-                , mouseOver
-                    [ Background.color color.lightBlue
-                    , Border.color color.lightGrey
-                    ]
-                ]
-                { onPress = Just ToggleAll
-                , label = Element.text "Toggle all"
-                }
-            , Input.button
-                [ Border.solid
-                , Border.color color.blue
-                , padding 10
-                , Border.width 3
-                , Border.rounded 6
-                , Background.color color.white
-                , mouseDown
-                    [ Background.color color.blue
-                    , Font.color color.white
-                    ]
-                , mouseOver
-                    [ Background.color color.lightBlue
-                    , Border.color color.lightGrey
-                    ]
-                ]
-                { onPress = Just RequestAllLevel0
-                , label = Element.text "Populate Level 0 table from DB"
-                }
-            , Input.button
-                [ Border.solid
-                , Border.color color.blue
-                , padding 10
-                , Border.width 3
-                , Border.rounded 6
-                , Background.color color.white
-                , mouseDown
-                    [ Background.color color.blue
-                    , Font.color color.white
-                    ]
-                , mouseOver
-                    [ Background.color color.lightBlue
-                    , Border.color color.lightGrey
-                    ]
-                ]
-                { onPress = Just RequestAllBackbones
-                , label = Element.text "Populate Backbone table from DB"
-                }
+            [ button_ ToggleAll "Toggle all"
+            , button_ RequestAllLevel0 "Populate Level 0 table from DB"
+            , button_ RequestAllBackbones "Populate Backbone table from DB"
             ]
         , Accordion.accordion
             (Accordion.head
@@ -473,7 +295,7 @@ catalogueView model =
                 , Border.solid
                 , Border.rounded 6
                 ]
-                [ Element.text "Backbones\t▼"
+                [ Element.text "Backbones"
                 ]
             )
             (Accordion.body [ padding 25 ]
@@ -497,8 +319,9 @@ catalogueView model =
                 , padding 25
                 , Border.solid
                 , Border.rounded 6
+                , alignLeft
                 ]
-                [ Element.text "Level 0\t▼"
+                [ Element.text "Level 0"
                 ]
             )
             (Accordion.body [ padding 25 ]
@@ -537,7 +360,7 @@ addLevel0View model =
             { label = Input.labelAbove [] <| Element.text "Overhang Type:\t"
             , onChange = ChangeLevel0OverhangToAdd
             , options =
-                makeOverhangOptions completeOverhangList
+                makeOverhangOptions allOverhangs
             , selected = Maybe.map .bsa1_overhang model.level0ToAdd
             }
         , Element.html <| Html.button [ HA.style "margin" "50px", onClick GBNewLevel0Requested ] [ Html.text "Load Genbank file" ]
@@ -638,12 +461,6 @@ constructLevel1View model =
             , onChange = ChangeApplicationNote
             , label = Input.labelLeft [] <| Element.text "Application Note: "
             , spellcheck = True
-            , placeholder = Nothing
-            }
-        , Input.text []
-            { onChange = ChangeConstructDesignerName
-            , label = Input.labelLeft [] <| Element.text "Designer Name: "
-            , text = model.designerName
             , placeholder = Nothing
             }
         , Input.multiline [ Element.height <| px 150 ]
@@ -1005,27 +822,14 @@ downloadButtonBar =
 overhangRadioRow : Model -> Element Msg
 overhangRadioRow model =
     let
-        midLength =
-            List.length model.overhangShape - 1
-
-        first =
-            List.map (makeButton First) <| List.take 1 model.overhangShape
-
-        mid =
-            List.map (makeButton Mid) <| List.drop 1 <| List.take midLength model.overhangShape
-
-        last =
-            List.map (makeButton Last) <| List.drop midLength model.overhangShape
-
-        makeButton : ButtonPosition -> Bsa1Overhang -> Input.Option Bsa1Overhang Msg
-        makeButton position bsa1_overhang =
-            Input.optionWith bsa1_overhang <| button position <| showBsa1Overhang bsa1_overhang
+        makeButton : Bsa1Overhang -> Input.Option Bsa1Overhang Msg
+        makeButton bsa1_overhang =
+            showBsa1Overhang bsa1_overhang
+                |> button
+                |> Input.optionWith bsa1_overhang
     in
     Input.radioRow
-        [ Border.rounded 6
-        , Border.shadow
-            { offset = ( 0, 0 ), size = 3, blur = 10, color = color.lightGrey }
-        ]
+        []
         { onChange = ChangeOverhang
         , selected = Just model.currOverhang
         , label =
@@ -1033,39 +837,14 @@ overhangRadioRow model =
                 [ paddingEach { bottom = 20, top = 0, left = 0, right = 0 } ]
             <|
                 Element.text "Choose Overhang type"
-        , options = first ++ mid ++ last
+        , options = List.map makeButton <| overhangShape model.currApp
         }
 
 
-button : ButtonPosition -> String -> Input.OptionState -> Element msg
-button position label state =
-    let
-        borders =
-            case position of
-                First ->
-                    { left = 2, right = 2, top = 2, bottom = 2 }
-
-                Mid ->
-                    { left = 0, right = 2, top = 2, bottom = 2 }
-
-                Last ->
-                    { left = 0, right = 2, top = 2, bottom = 2 }
-
-        corners =
-            case position of
-                First ->
-                    { topLeft = 6, bottomLeft = 6, topRight = 0, bottomRight = 0 }
-
-                Mid ->
-                    { topLeft = 0, bottomLeft = 0, topRight = 0, bottomRight = 0 }
-
-                Last ->
-                    { topLeft = 0, bottomLeft = 0, topRight = 6, bottomRight = 6 }
-    in
+button : String -> Input.OptionState -> Element msg
+button label state =
     el
         [ paddingEach { left = 20, right = 20, top = 10, bottom = 10 }
-        , Border.roundEach corners
-        , Border.widthEach borders
         , Border.color color.blue
         , Background.color <|
             if state == Input.Selected then
@@ -1074,9 +853,7 @@ button position label state =
             else
                 color.white
         ]
-    <|
-        el [ centerX, centerY ] <|
-            Element.text label
+        (el [ centerX, centerY ] (Element.text label))
 
 
 applicationRadioButton : Model -> Element Msg
@@ -1158,7 +935,7 @@ insertTable model =
                       }
                     , { header = none
                       , width = fillPortion 1
-                      , view = .bsa1_overhang >> Just >> viewOverhang showBsa1Overhang
+                      , view = .bsa1_overhang >> Just >> viewMaybe showBsa1Overhang
                       }
                     ]
                 }
@@ -1223,23 +1000,15 @@ backboneTable model =
                       }
                     , { header = none
                       , width = fillPortion 3
-                      , view = .bsa1Overhang >> viewOverhang showBsa1Overhang
+                      , view = .bsa1Overhang >> viewMaybe showBsa1Overhang
                       }
                     , { header = none
                       , width = fillPortion 3
-                      , view = .bsmb1_overhang >> viewOverhang showBsmb1Overhang
+                      , view = .bsmb1_overhang >> viewMaybe showBsmb1Overhang
                       }
                     ]
                 }
         ]
-
-
-viewOverhang : (a -> String) -> Maybe a -> Element Msg
-viewOverhang show ohang =
-    Maybe.map show ohang
-        |> Maybe.withDefault "Not defined"
-        |> Element.text
-        |> el [ centerY ]
 
 
 
@@ -1317,30 +1086,37 @@ showHttpError err =
             "BadBody: " ++ v
 
 
+overhangShape : Application -> List Bsa1Overhang
+overhangShape app =
+    let
+        default : List Bsa1Overhang
+        default =
+            [ A__B, B__C, C__D, D__E, E__F, F__G ]
+    in
+    (case app of
+        Standard ->
+            Dict.get 6 overhangs
+
+        Five ->
+            Dict.get 5 overhangs
+
+        Four ->
+            Dict.get 4 overhangs
+
+        Three ->
+            Dict.get 3 overhangs
+    )
+        |> Maybe.withDefault default
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    let
-        updateOverhangShape : Application -> List Bsa1Overhang
-        updateOverhangShape app =
-            case app of
-                Standard ->
-                    Maybe.withDefault [] <| get 6 overhangList
-
-                Five ->
-                    Maybe.withDefault [] <| get 5 overhangList
-
-                Four ->
-                    Maybe.withDefault [] <| get 4 overhangList
-
-                Three ->
-                    Maybe.withDefault [] <| get 3 overhangList
-    in
     case msg of
         ChangeOverhang newOverhang ->
             ( { model | currOverhang = newOverhang }, Cmd.none )
 
         ChooseApplication newApp ->
-            ( { model | currApp = newApp, overhangShape = updateOverhangShape newApp }, Cmd.none )
+            ( { model | currApp = newApp }, Cmd.none )
 
         ChangeConstructName newName ->
             ( { model | constructName = newName }, Cmd.none )
@@ -1350,9 +1126,6 @@ update msg model =
 
         ChangeApplicationNote newAN ->
             ( { model | applicationNote = newAN }, Cmd.none )
-
-        ChangeConstructDesignerName newDesignerName ->
-            ( { model | designerName = newDesignerName }, Cmd.none )
 
         ChangeDescription newDescription ->
             ( { model | description = newDescription }, Cmd.none )
@@ -1638,106 +1411,6 @@ authenticatedGet token url msg decoder =
         }
 
 
-annotationDecoder : Decode.Decoder Annotation
-annotationDecoder =
-    Decode.map2 Annotation
-        (Decode.field "key" Decode.string)
-        (Decode.field "value" Decode.string)
-
-
-featureDecoder : Decode.Decoder Feature
-featureDecoder =
-    Decode.succeed Feature
-        |> JDP.required "type" Decode.string
-        |> JDP.required "qualifiers" (Decode.list qualifierDecoder)
-        |> JDP.required "start_pos" Decode.int
-        |> JDP.required "end_pos" Decode.int
-        |> JDP.required "strand" Decode.int
-
-
-qualifierDecoder : Decode.Decoder Qualifier
-qualifierDecoder =
-    Decode.map2 Qualifier
-        (Decode.field "key" Decode.string)
-        (Decode.field "value" Decode.string)
-
-
-referenceDecoder : Decode.Decoder Reference
-referenceDecoder =
-    Decode.map2 Reference
-        (Decode.field "authors" Decode.string)
-        (Decode.field "title" Decode.string)
-
-
-type IsPresent
-    = Yes
-    | No
-    | Unknown
-
-
-level0Decoder : Decode.Decoder Level0
-level0Decoder =
-    let
-        str2IsPresent : String -> IsPresent
-        str2IsPresent s =
-            case String.toLower s |> String.trim of
-                "yes" ->
-                    Yes
-
-                "no" ->
-                    No
-
-                _ ->
-                    Unknown
-
-        decodeOverhang : String -> Decode.Decoder Bsa1Overhang
-        decodeOverhang str =
-            case stringToBsa1Overhang (String.trim str) of
-                Just oh ->
-                    Decode.succeed oh
-
-                _ ->
-                    Decode.fail "Not a valid overhang"
-    in
-    Decode.succeed Level0
-        |> JDP.required "name" Decode.string
-        |> JDP.required "mpg_number" Decode.int
-        |> JDP.required "bsa1_overhang" (Decode.string |> Decode.andThen decodeOverhang)
-        |> JDP.required "bacterial_strain" Decode.string
-        |> JDP.required "responsible" Decode.string
-        |> JDP.required "group" Decode.string
-        |> JDP.required "selection" Decode.string
-        |> JDP.required "cloning_technique" Decode.string
-        |> JDP.optional "is_BsmB1_free" (Decode.string |> Decode.map str2IsPresent) Unknown
-        |> JDP.optional "notes" (Decode.maybe Decode.string) Nothing
-        |> JDP.required "REase_digest" Decode.string
-        |> JDP.required "sequence" Decode.string
-        |> JDP.required "annotations" (Decode.list annotationDecoder)
-        |> JDP.required "features" (Decode.list featureDecoder)
-        |> JDP.required "references" (Decode.list referenceDecoder)
-
-
-backboneDecoder : Decode.Decoder Backbone
-backboneDecoder =
-    Decode.succeed Backbone
-        |> JDP.required "name" Decode.string
-        |> JDP.required "mpg_number" Decode.int
-        |> JDP.optional "bsa1_overhang" (Decode.string |> Decode.map (String.trim >> stringToBsa1Overhang)) Nothing
-        |> JDP.required "bacterial_strain" Decode.string
-        |> JDP.required "responsible" Decode.string
-        |> JDP.required "group" Decode.string
-        |> JDP.required "selection" Decode.string
-        |> JDP.required "cloning_technique" Decode.string
-        |> JDP.required "vector_type" Decode.string
-        |> JDP.optional "notes" (Decode.maybe Decode.string) Nothing
-        |> JDP.required "REase_digest" Decode.string
-        |> JDP.optional "bsmb1_overhang" (Decode.string |> Decode.map (String.trim >> stringToBsmb1Overhang)) Nothing
-        |> JDP.required "sequence" Decode.string
-        |> JDP.required "annotations" (Decode.list annotationDecoder)
-        |> JDP.required "features" (Decode.list featureDecoder)
-        |> JDP.required "references" (Decode.list referenceDecoder)
-
-
 
 -- Login & Authentication functions
 
@@ -1802,115 +1475,3 @@ color =
     , lightGrey = Element.rgb255 0xE0 0xE0 0xE0
     , white = Element.rgb255 0xFF 0xFF 0xFF
     }
-
-
-showBsa1Overhang : Bsa1Overhang -> String
-showBsa1Overhang bsa1_overhang =
-    case bsa1_overhang of
-        A__B ->
-            "A__B"
-
-        A__G ->
-            "A__G"
-
-        B__C ->
-            "B__C"
-
-        C__D ->
-            "C__D"
-
-        C__G ->
-            "C__G"
-
-        D__E ->
-            "D__E"
-
-        D__G ->
-            "D__G"
-
-        E__F ->
-            "E__F"
-
-        E__G ->
-            "E__G"
-
-        F__G ->
-            "F__G"
-
-
-stringToBsa1Overhang : String -> Maybe Bsa1Overhang
-stringToBsa1Overhang strOverhang =
-    case strOverhang of
-        "AB" ->
-            Just A__B
-
-        "AG" ->
-            Just A__G
-
-        "BC" ->
-            Just B__C
-
-        "CD" ->
-            Just C__D
-
-        "CG" ->
-            Just C__G
-
-        "DE" ->
-            Just D__E
-
-        "DG" ->
-            Just D__G
-
-        "EF" ->
-            Just E__F
-
-        "EG" ->
-            Just E__G
-
-        "FG" ->
-            Just F__G
-
-        _ ->
-            Nothing
-
-
-showBsmb1Overhang : Bsmb1Overhang -> String
-showBsmb1Overhang bsmb1 =
-    case bsmb1 of
-        W__X ->
-            "W__X"
-
-        W__Z ->
-            "W__Z"
-
-        X__Y ->
-            "X__Y"
-
-        X__Z ->
-            "X__Z"
-
-        Y__Z ->
-            "Y__Z"
-
-
-stringToBsmb1Overhang : String -> Maybe Bsmb1Overhang
-stringToBsmb1Overhang str_bsmb1 =
-    case str_bsmb1 of
-        "WX" ->
-            Just W__X
-
-        "WZ" ->
-            Just W__Z
-
-        "XY" ->
-            Just X__Y
-
-        "XZ" ->
-            Just X__Z
-
-        "YZ" ->
-            Just Y__Z
-
-        _ ->
-            Nothing
