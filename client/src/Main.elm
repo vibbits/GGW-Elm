@@ -491,6 +491,7 @@ loginButton lgn =
 
 
 -- Visual Representation
+-- TODO: This should go in a seperate module
 
 
 w : Float
@@ -583,8 +584,6 @@ visualRepresentation model =
 
         pieData =
             data |> List.map Tuple.second |> Shape.pie { defaultPieConfig | outerRadius = radius, innerRadius = 0.9 * radius, sortingFn = \_ _ -> EQ }
-
-        -- sortingFn sets the sorting function -> default = sorting by value (inserts length in this case)
     in
     Html.div [ HA.style "width" "100%" ]
         [ svg
