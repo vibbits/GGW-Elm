@@ -16,7 +16,6 @@ import Browser.Navigation as Nav
 import Color
 import Dict
 import Element exposing (..)
-import Element.Background as Background
 import Element.Border as Border
 import Element.Events as EE
 import Element.Font as Font
