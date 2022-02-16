@@ -29,9 +29,10 @@ import Http exposing (Error(..), expectJson, jsonBody)
 import Interface
     exposing
         ( addButton
+        , buttonLink_
         , button_
         , download_
-        , link_
+        , linkButton_
         , navBar
         , option_
         , title
@@ -205,7 +206,7 @@ view model =
                 [ Element.width Element.fill
                 , Element.height Element.fill
                 ]
-                [ navLinks
+                [ navLinks model.auth
                 , el
                     [ Element.width Element.fill
                     , Element.height Element.fill
@@ -467,26 +468,8 @@ viewLoginForm loginUrls =
                     , Font.size 18
                     ]
                     (Element.text "Login with:")
-                    :: List.map loginButton loginUrls
+                    :: List.map (\lgn -> linkButton_ lgn.url lgn.name) loginUrls
             ]
-
-
-loginButton : Login -> Element Msg
-loginButton lgn =
-    el
-        [ centerX
-        , centerY
-        , padding 10
-        , Border.rounded 10
-        , Border.solid
-        , Border.color (rgb 0 0 0)
-        , Border.width 1
-        , mouseOver [ Background.color (rgb 0.9 0.9 0.9) ]
-        ]
-    <|
-        Element.link
-            [ spacing 10, Font.size 18, Font.color (rgb 0 0 1) ]
-            { url = lgn.url, label = Element.text lgn.name }
 
 
 
@@ -625,13 +608,20 @@ visualRepresentation model =
 -- elements
 
 
-navLinks : Element Msg
-navLinks =
-    navBar
-        [ link_ (Just (SwitchPage Catalogue)) "Home"
-        , link_ (Just (SwitchPage Catalogue)) "Vector Catalogue"
-        , link_ (Just (SwitchPage ConstructLevel1)) "New Level1 construct"
-        ]
+navLinks : Auth -> Element Msg
+navLinks auth =
+    case auth of
+        Authenticated user ->
+            navBar
+                [ buttonLink_ (Just (SwitchPage Catalogue)) "Home"
+                , buttonLink_ (Just (SwitchPage Catalogue)) "Vector Catalogue"
+                , buttonLink_ (Just (SwitchPage ConstructLevel1)) "New Level1 construct"
+                , buttonLink_ Nothing <| Maybe.withDefault "Unknown name" user.name
+                ]
+
+        _ ->
+            navBar
+                [ Element.text "Golden Gateway" ]
 
 
 downloadButtonBar : Element msg
@@ -730,7 +720,7 @@ insertTable model =
                     , { header = none
                       , width = fillPortion 5
                       , view =
-                            \level0 -> link_ (Just (AppendInsert level0)) level0.name
+                            \level0 -> buttonLink_ (Just (AppendInsert level0)) level0.name
                       }
                     , { header = none
                       , width = fillPortion 1
@@ -787,7 +777,7 @@ backboneTable model =
                     , { header = none
                       , width = fillPortion 5
                       , view =
-                            \backbone -> link_ (Just (ChangeBackbone backbone)) backbone.name
+                            \backbone -> buttonLink_ (Just (ChangeBackbone backbone)) backbone.name
                       }
                     , { header = none
                       , width = fillPortion 1

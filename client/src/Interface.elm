@@ -1,8 +1,9 @@
 module Interface exposing
     ( addButton
+    , buttonLink_
     , button_
     , download_
-    , link_
+    , linkButton_
     , navBar
     , option_
     , title
@@ -123,8 +124,8 @@ download_ url filename label =
 
 {-| A link with a simple message
 -}
-link_ : Maybe msg -> String -> Element msg
-link_ msg label =
+buttonLink_ : Maybe msg -> String -> Element msg
+buttonLink_ msg label =
     button
         [ Font.size 15
         , Font.color foregroundPrimary
@@ -137,6 +138,32 @@ link_ msg label =
         { onPress = msg
         , label = text label
         }
+
+
+linkButton_ : String -> String -> Element msg
+linkButton_ url label =
+    el
+        [ centerX
+        , centerY
+        , padding 10
+        , Border.rounded 10
+        , Border.solid
+        , Border.width 1
+        , Border.color foregroundPrimary
+        , Font.color foregroundPrimary
+        , mouseOver
+            [ Border.color foregroundSecondary
+            , Font.color foregroundSecondary
+            ]
+        ]
+    <|
+        Element.link
+            [ spacing 10
+            , Font.size 18
+            ]
+            { url = url
+            , label = Element.text label
+            }
 
 
 {-| A radio option
