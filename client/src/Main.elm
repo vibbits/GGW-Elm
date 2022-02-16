@@ -17,7 +17,7 @@ import Color
 import Dict
 import Element exposing (..)
 import Element.Background as Background
-import Element.Border as Border exposing (rounded)
+import Element.Border as Border
 import Element.Events as EE
 import Element.Font as Font
 import Element.Input as Input

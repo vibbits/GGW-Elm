@@ -21,7 +21,6 @@ import Element
         , fill
         , height
         , htmlAttribute
-        , mouseDown
         , mouseOver
         , padding
         , paddingEach
