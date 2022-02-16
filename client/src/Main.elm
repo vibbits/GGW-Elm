@@ -26,7 +26,17 @@ import Html exposing (Html)
 import Html.Attributes as HA
 import Html.Events exposing (onClick)
 import Http exposing (Error(..), expectJson, jsonBody)
-import Interface exposing (button_, link_, title, viewMaybe)
+import Interface
+    exposing
+        ( addButton
+        , button_
+        , download_
+        , link_
+        , navBar
+        , option_
+        , title
+        , viewMaybe
+        )
 import Json.Decode as Decode
 import Json.Encode as Encode
 import List
@@ -190,28 +200,33 @@ view model =
         [ Element.layout
             [ Element.height Element.fill
             , inFront <| Notify.view CloseNotification model.notifications
-            , inFront navLinks
             ]
             (row
                 [ Element.width Element.fill
                 , Element.height Element.fill
                 ]
                 [ navLinks
-                , case model.page of
-                    LoginPage ->
-                        loginView model
+                , el
+                    [ Element.width Element.fill
+                    , Element.height Element.fill
+                    , Element.scrollbarY
+                    ]
+                    (case model.page of
+                        LoginPage ->
+                            loginView model
 
-                    ConstructLevel1 ->
-                        constructLevel1View model
+                        ConstructLevel1 ->
+                            constructLevel1View model
 
-                    Catalogue ->
-                        catalogueView model
+                        Catalogue ->
+                            catalogueView model
 
-                    AddLevel0Page ->
-                        addLevel0View model
+                        AddLevel0Page ->
+                            addLevel0View model
 
-                    AddBackbonePage ->
-                        addBackboneView model
+                        AddBackbonePage ->
+                            addBackboneView model
+                    )
                 ]
             )
         ]
@@ -229,14 +244,13 @@ catalogueView model =
         ]
         [ title "Vector Catalog"
         , row [ spacing 20 ]
-            [ button_ ToggleAll "Toggle all"
-            , button_ RequestAllLevel0 "Populate Level 0 table from DB"
-            , button_ RequestAllBackbones "Populate Backbone table from DB"
+            [ button_ (Just ToggleAll) "Toggle all"
+            , button_ (Just RequestAllLevel0) "Populate Level 0 table from DB"
+            , button_ (Just RequestAllBackbones) "Populate Backbone table from DB"
             ]
         , Accordion.accordion
             (Accordion.head
                 [ EE.onClick BackboneAccordionToggled
-                , Background.color color.blue
                 , padding 25
                 , Border.solid
                 , Border.rounded 6
@@ -254,14 +268,13 @@ catalogueView model =
                 , backboneTable model
                 , Element.row
                     [ centerX, spacing 50 ]
-                    [ customAddButton "+" (SwitchPage AddBackbonePage) ]
+                    [ addButton (SwitchPage AddBackbonePage) ]
                 ]
             )
             model.backboneAccordionStatus
         , Accordion.accordion
             (Accordion.head
                 [ EE.onClick Level0AccordionToggled
-                , Background.color color.blue
                 , padding 25
                 , Border.solid
                 , Border.rounded 6
@@ -279,7 +292,7 @@ catalogueView model =
                     }
                 , overhangRadioRow model
                 , insertTable model
-                , Element.row [ centerX, spacing 50 ] [ customAddButton "+" (SwitchPage AddLevel0Page) ]
+                , Element.row [ centerX, spacing 50 ] [ addButton (SwitchPage AddLevel0Page) ]
                 ]
             )
             model.level0AccordionStatus
@@ -313,19 +326,7 @@ addLevel0View model =
             Html.button
                 [ HA.style "margin" "50px" ]
                 [ Html.text "Load Genbank file" ]
-        , Input.button
-            [ centerX
-            , Background.color color.blue
-            , padding 10
-            , Font.color color.white
-            , Border.width 3
-            , Border.solid
-            , Border.color color.darkCharcoal
-            , Border.rounded 25
-            ]
-            { label = Element.text "Add"
-            , onPress = Maybe.map AddLevel0 model.level0ToAdd
-            }
+        , button_ (Maybe.map AddLevel0 model.level0ToAdd) "Add"
         ]
 
 
@@ -354,27 +355,8 @@ addBackboneView model =
             Html.button
                 [ HA.style "margin" "50px" ]
                 [ Html.text "Load Genbank file" ]
-        , Input.button
-            [ centerX
-            , Background.color color.blue
-            , padding 10
-            , Font.color color.white
-            , Border.width 3
-            , Border.solid
-            , Border.color color.darkCharcoal
-            , Border.rounded 25
-            ]
-            { label = Element.text "Add"
-            , onPress = Maybe.map AddBackbone model.backboneToAdd
-            }
+        , button_ (Maybe.map AddBackbone model.backboneToAdd) "Add"
         ]
-
-
-constructLevel2View : Model -> Element Msg
-constructLevel2View _ =
-    row
-        [ Element.width Element.fill, Element.height Element.fill, centerX ]
-        [ navLinks, Element.html <| Html.img [ HA.src "../img/under_construction.jpg" ] [] ]
 
 
 constructLevel1View : Model -> Element Msg
@@ -383,14 +365,12 @@ constructLevel1View model =
         [ el
             [ Element.Region.heading 1
             , Font.size 50
-            , Font.color color.darkCharcoal
             ]
           <|
             Element.text "Level 1 construct design"
         , el
             [ Element.Region.heading 2
             , Font.size 25
-            , Font.color color.darkCharcoal
             ]
           <|
             Element.text "Construct information"
@@ -408,7 +388,7 @@ constructLevel1View model =
             }
         , row [ spacing 50 ]
             [ el [] <| Element.text "Length (bp):"
-            , el [ Background.color color.lightGrey, padding 10 ] <| Element.text (String.fromInt model.constructLength)
+            , el [ padding 10 ] <| Element.text (String.fromInt model.constructLength)
             ]
         , Input.multiline [ Element.height <| px 150 ]
             { text = model.applicationNote
@@ -427,7 +407,6 @@ constructLevel1View model =
         , el
             [ Element.Region.heading 2
             , Font.size 25
-            , Font.color color.darkCharcoal
             ]
           <|
             Element.text "Destination vector selection"
@@ -435,7 +414,6 @@ constructLevel1View model =
         , el
             [ Element.Region.heading 2
             , Font.size 25
-            , Font.color color.darkCharcoal
             ]
           <|
             Element.text "Donor vector selection"
@@ -446,7 +424,6 @@ constructLevel1View model =
         , el
             [ Element.Region.heading 2
             , Font.size 25
-            , Font.color color.darkCharcoal
             ]
           <|
             Element.text "Construct visualisation"
@@ -510,23 +487,6 @@ loginButton lgn =
         Element.link
             [ spacing 10, Font.size 18, Font.color (rgb 0 0 1) ]
             { url = lgn.url, label = Element.text lgn.name }
-
-
-customAddButton : String -> Msg -> Element Msg
-customAddButton buttonText msg =
-    Input.button
-        [ centerX
-        , Background.color color.blue
-        , Font.color color.white
-        , padding 25
-        , Border.width 3
-        , Border.solid
-        , Border.color color.darkCharcoal
-        , Border.rounded 100
-        ]
-        { label = Element.text buttonText
-        , onPress = Just msg
-        }
 
 
 
@@ -668,15 +628,10 @@ visualRepresentation model =
 
 navLinks : Element Msg
 navLinks =
-    column
-        [ Background.color color.blue
-        , Element.height Element.fill
-        , padding 10
-        , spacing 10
-        ]
-        [ link_ (SwitchPage Catalogue) "Home"
-        , link_ (SwitchPage Catalogue) "Vector Catalogue"
-        , link_ (SwitchPage ConstructLevel1) "New Level1 construct"
+    navBar
+        [ link_ (Just (SwitchPage Catalogue)) "Home"
+        , link_ (Just (SwitchPage Catalogue)) "Vector Catalogue"
+        , link_ (Just (SwitchPage ConstructLevel1)) "New Level1 construct"
         ]
 
 
@@ -686,44 +641,8 @@ downloadButtonBar =
         [ centerX
         , spacing 150
         ]
-        [ Input.button
-            [ padding 10
-            , Border.width 3
-            , Border.rounded 6
-            , Border.color color.blue
-            , Background.color color.white
-            , centerX
-            , mouseDown
-                [ Background.color color.blue
-                , Font.color color.white
-                ]
-            , mouseOver
-                [ Background.color color.lightBlue
-                , Border.color color.lightGrey
-                ]
-            ]
-            { onPress = Nothing
-            , label = Element.text "Save To Database"
-            }
-        , Element.downloadAs
-            [ Border.color color.blue
-            , Border.width 3
-            , Border.solid
-            , padding 10
-            , rounded 6
-            , mouseDown
-                [ Background.color color.blue
-                , Font.color color.white
-                ]
-            , mouseOver
-                [ Background.color color.lightBlue
-                , Border.color color.lightGrey
-                ]
-            ]
-            { label = Element.text "Download Genbank"
-            , filename = ""
-            , url = "./Example_Data/Example_Genbank_format.gb"
-            }
+        [ button_ Nothing "Save to database"
+        , download_ "./Example_Data/Example_Genbank_format.gb" "" "Download GenBank"
         ]
 
 
@@ -733,7 +652,7 @@ overhangRadioRow model =
         makeButton : Bsa1Overhang -> Input.Option Bsa1Overhang Msg
         makeButton bsa1_overhang =
             showBsa1Overhang bsa1_overhang
-                |> button
+                |> option_
                 |> Input.optionWith bsa1_overhang
     in
     Input.radioRow
@@ -747,21 +666,6 @@ overhangRadioRow model =
                 Element.text "Choose Overhang type"
         , options = List.map makeButton <| overhangShape model.currApp
         }
-
-
-button : String -> Input.OptionState -> Element msg
-button label state =
-    el
-        [ paddingEach { left = 20, right = 20, top = 10, bottom = 10 }
-        , Border.color color.blue
-        , Background.color <|
-            if state == Input.Selected then
-                color.lightBlue
-
-            else
-                color.white
-        ]
-        (el [ centerX, centerY ] (Element.text label))
 
 
 applicationRadioButton : Model -> Element Msg
@@ -786,11 +690,7 @@ insertTable : Model -> Element Msg
 insertTable model =
     let
         headerAttrs =
-            [ Font.bold
-            , Font.color color.blue
-            , Border.widthEach { bottom = 2, top = 0, left = 0, right = 0 }
-            , Border.color color.blue
-            ]
+            [ Font.bold ]
     in
     column
         [ Element.width Element.fill
@@ -831,11 +731,7 @@ insertTable model =
                     , { header = none
                       , width = fillPortion 5
                       , view =
-                            \level0 ->
-                                Input.button [ Font.color color.blue, Font.bold, Font.underline ]
-                                    { onPress = Just (AppendInsert level0)
-                                    , label = Element.text level0.name
-                                    }
+                            \level0 -> link_ (Just (AppendInsert level0)) level0.name
                       }
                     , { header = none
                       , width = fillPortion 1
@@ -854,11 +750,7 @@ backboneTable : Model -> Element Msg
 backboneTable model =
     let
         headerAttrs =
-            [ Font.bold
-            , Font.color color.blue
-            , Border.widthEach { bottom = 2, top = 0, left = 0, right = 0 }
-            , Border.color color.blue
-            ]
+            [ Font.bold ]
     in
     column
         [ Element.width Element.fill
@@ -896,11 +788,7 @@ backboneTable model =
                     , { header = none
                       , width = fillPortion 5
                       , view =
-                            \backbone ->
-                                Input.button [ Font.color color.blue, Font.bold, Font.underline ]
-                                    { onPress = Just (ChangeBackbone backbone)
-                                    , label = Element.text backbone.name
-                                    }
+                            \backbone -> link_ (Just (ChangeBackbone backbone)) backbone.name
                       }
                     , { header = none
                       , width = fillPortion 1
@@ -1309,13 +1197,3 @@ main =
         , onUrlRequest = LinkClicked
         , onUrlChange = UrlChanged
         }
-
-
-color : { blue : Element.Color, darkCharcoal : Element.Color, lightBlue : Element.Color, lightGrey : Element.Color, white : Element.Color }
-color =
-    { blue = Element.rgb255 152 171 198
-    , darkCharcoal = Element.rgb255 0x2E 0x34 0x36
-    , lightBlue = Element.rgb255 0xC5 0xE8 0xF7
-    , lightGrey = Element.rgb255 0xE0 0xE0 0xE0
-    , white = Element.rgb255 0xFF 0xFF 0xFF
-    }

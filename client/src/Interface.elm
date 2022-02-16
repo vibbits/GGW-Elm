@@ -1,48 +1,72 @@
-module Interface exposing (button_, link_, title, viewMaybe)
+module Interface exposing
+    ( addButton
+    , button_
+    , download_
+    , link_
+    , navBar
+    , option_
+    , title
+    , viewMaybe
+    )
 
 import Element
     exposing
         ( Color
         , Element
+        , centerX
         , centerY
+        , column
+        , downloadAs
         , el
         , fill
+        , height
+        , htmlAttribute
         , mouseDown
         , mouseOver
         , padding
+        , paddingEach
+        , px
+        , shrink
+        , spacing
         , text
         , width
         )
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Element.Input exposing (button)
+import Element.Input exposing (OptionState(..), button)
 import Element.Region exposing (heading)
-
-
-blue : Color
-blue =
-    Element.rgb255 152 171 198
-
-
-darkCharcoal : Color
-darkCharcoal =
-    Element.rgb255 0x2E 0x34 0x36
-
-
-lightBlue : Color
-lightBlue =
-    Element.rgb255 0xC5 0xE8 0xF7
-
-
-lightGrey : Color
-lightGrey =
-    Element.rgb255 0xE0 0xE0 0xE0
+import Html.Attributes exposing (style)
 
 
 white : Color
 white =
     Element.rgb255 0xFF 0xFF 0xFF
+
+
+backgroundPrimary : Color
+backgroundPrimary =
+    Element.rgb255 244 244 244
+
+
+backgroundSecondary : Color
+backgroundSecondary =
+    Element.rgba255 128 128 128 0.1
+
+
+foregroundPrimary : Color
+foregroundPrimary =
+    Element.rgb255 0x1B 0x29 0x44
+
+
+foregroundSecondary : Color
+foregroundSecondary =
+    Element.rgb255 0x1C 0xBB 0xBA
+
+
+foregroundHighlight : Color
+foregroundHighlight =
+    Element.rgb255 0xFF 0x68 0x1E
 
 
 viewMaybe : (a -> String) -> Maybe a -> Element msg
@@ -55,43 +79,126 @@ viewMaybe show mby =
 
 {-| A button with a simple message
 -}
-button_ : msg -> String -> Element msg
+button_ : Maybe msg -> String -> Element msg
 button_ msg label =
     button
-        [ Border.solid
-        , Border.color blue
+        [ padding 10
+        , Border.solid
+        , Border.color foregroundPrimary
         , Border.width 3
         , Border.rounded 6
-        , padding 10
-        , Background.color white
-        , mouseDown
-            [ Background.color blue
-            , Font.color white
-            ]
+        , Background.color backgroundPrimary
+        , Font.color foregroundPrimary
         , mouseOver
-            [ Background.color lightBlue
-            , Border.color lightGrey
+            [ Font.color foregroundSecondary
+            , Border.color foregroundSecondary
             ]
         ]
-        { onPress = Just msg
+        { onPress = msg
         , label = text label
+        }
+
+
+{-| A download with a simple message
+-}
+download_ : String -> String -> String -> Element msg
+download_ url filename label =
+    downloadAs
+        [ padding 10
+        , Border.solid
+        , Border.color foregroundPrimary
+        , Border.width 3
+        , Border.rounded 6
+        , Background.color backgroundPrimary
+        , Font.color foregroundPrimary
+        , mouseOver
+            [ Border.color foregroundSecondary
+            , Font.color foregroundSecondary
+            ]
+        ]
+        { url = url
+        , label = text label
+        , filename = filename
         }
 
 
 {-| A link with a simple message
 -}
-link_ : msg -> String -> Element msg
+link_ : Maybe msg -> String -> Element msg
 link_ msg label =
     button
         [ Font.size 15
-        , Font.color white
+        , Font.color foregroundPrimary
         , Font.underline
         , Font.bold
         , width fill
+        , mouseOver
+            [ Font.color foregroundSecondary ]
         ]
-        { onPress = Just msg
+        { onPress = msg
         , label = text label
         }
+
+
+{-| A radio option
+-}
+option_ : String -> OptionState -> Element msg
+option_ label state =
+    el
+        [ paddingEach { left = 20, right = 20, top = 10, bottom = 10 }
+        , Border.color foregroundPrimary
+        , Background.color <|
+            if state == Selected then
+                foregroundHighlight
+
+            else
+                white
+        ]
+        (el
+            [ centerX, centerY ]
+            (Element.text label)
+        )
+
+
+addButton : msg -> Element msg
+addButton msg =
+    button
+        [ height (px 70)
+        , width (px 70)
+        , Border.width 7
+        , Border.solid
+        , Border.color foregroundPrimary
+        , Border.rounded 35
+        , Font.color foregroundPrimary
+        , mouseOver
+            [ Border.color foregroundSecondary
+            , Font.color foregroundSecondary
+            ]
+        ]
+        { onPress = Just msg
+        , label =
+            el
+                [ centerX
+                , centerY
+                , Font.bold
+                , Font.size 40
+                ]
+                (text "+")
+        }
+
+
+navBar : List (Element msg) -> Element msg
+navBar links =
+    column
+        [ padding 10
+        , spacing 10
+        , height fill
+        , width shrink
+        , htmlAttribute <| style "position" "sticky"
+        , htmlAttribute <| style "top" "0"
+        , Background.color backgroundSecondary
+        ]
+        links
 
 
 {-| A title heading
@@ -101,6 +208,6 @@ title t =
     el
         [ heading 1
         , Font.size 50
-        , Font.color darkCharcoal
+        , Font.color foregroundPrimary
         ]
         (text t)
