@@ -2,10 +2,8 @@ module Auth exposing
     ( Auth(..)
     , AuthCode
     , Login
-    , User
     , authCode
     , authDecoder
-    , authRequestDecoder
     )
 
 import Json.Decode as Decode
@@ -47,13 +45,6 @@ authCode url =
             s "oidc_login" </> query (map2 (Maybe.map2 AuthCode) (string "code") (string "state"))
     in
     parse parser url |> Maybe.andThen identity
-
-
-authRequestDecoder : Decode.Decoder AuthCode
-authRequestDecoder =
-    Decode.map2 AuthCode
-        (Decode.field "code" Decode.string)
-        (Decode.field "state" Decode.string)
 
 
 authDecoder : Decode.Decoder Auth

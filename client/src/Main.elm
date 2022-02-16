@@ -7,10 +7,8 @@ import Auth
         ( Auth(..)
         , AuthCode
         , Login
-        , User
         , authCode
         , authDecoder
-        , authRequestDecoder
         )
 import Browser exposing (Document)
 import Browser.Dom exposing (Error(..))
@@ -24,7 +22,7 @@ import Element.Events as EE
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region
-import Html exposing (Html, a)
+import Html exposing (Html)
 import Html.Attributes as HA
 import Html.Events exposing (onClick)
 import Http exposing (Error(..), expectJson, jsonBody)
@@ -509,17 +507,9 @@ loginButton lgn =
         , mouseOver [ Background.color (rgb 0.9 0.9 0.9) ]
         ]
     <|
-        Element.link [ spacing 10, Font.size 18, Font.color (rgb 0 0 1) ] { url = lgn.url, label = Element.text lgn.name }
-
-
-viewLoginUrls : List Login -> List (Html Msg)
-viewLoginUrls loginUrls =
-    case loginUrls of
-        [] ->
-            [ Html.text "Fetching..." ]
-
-        _ ->
-            List.map (\lgn -> a [ HA.href lgn.url ] [ Html.text lgn.name ]) loginUrls
+        Element.link
+            [ spacing 10, Font.size 18, Font.color (rgb 0 0 1) ]
+            { url = lgn.url, label = Element.text lgn.name }
 
 
 customAddButton : String -> Msg -> Element Msg

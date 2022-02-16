@@ -1,8 +1,7 @@
 module TestAuth exposing (suite)
 
-import Auth exposing (Auth(..), User, authDecoder)
+import Auth exposing (Auth(..), authDecoder)
 import Expect
-import Fuzz exposing (Fuzzer, int, list, string)
 import Json.Decode exposing (decodeString)
 import Test exposing (..)
 
@@ -14,5 +13,9 @@ suite =
             \_ ->
                 Expect.equal
                     (decodeString authDecoder "{\"access_token\":\"token\",\"token_type\":\"bearer\",\"user\":{\"name\":\"ggw\",\"role\":\"admin\",\"id\":1}}")
-                    (Ok (Authenticated (User 1 (Just "ggw") "admin" "token")))
+                    (Ok
+                        (Authenticated
+                            { id = 1, name = Just "ggw", role = "admin", token = "token" }
+                        )
+                    )
         ]

@@ -73,7 +73,6 @@ type ChangeMol
     = ChangeName String
     | ChangeMPG String
     | ChangeBsa1 Bsa1Overhang
-    | ChangeBsmb1 Bsmb1Overhang
 
 
 initLevel0 : Level0
@@ -107,9 +106,6 @@ interpretBackboneChange msg bb =
         ChangeBsa1 bsa1 ->
             { bb | bsa1Overhang = Just bsa1 }
 
-        ChangeBsmb1 bsmb1 ->
-            { bb | bsmb1Overhang = Just bsmb1 }
-
 
 interpretLevel0Change : ChangeMol -> Level0 -> Level0
 interpretLevel0Change msg l0 =
@@ -122,9 +118,6 @@ interpretLevel0Change msg l0 =
 
         ChangeBsa1 bsa1 ->
             { l0 | bsa1Overhang = bsa1 }
-
-        ChangeBsmb1 _ ->
-            l0
 
 
 overhangs : Dict Int (List Bsa1Overhang)
