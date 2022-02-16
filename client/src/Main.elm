@@ -112,13 +112,15 @@ init _ url key =
       , backboneLevel = 1
 
       -- Level1 fields
-      , constructName = "Demo Construct"
-      , constructNumber = "MP-G1-000000001"
+      , constructName = ""
+      , constructNumber = ""
       , constructLength = 0
       , applicationNote = ""
       , description = ""
       , selectedInserts = []
       , selectedBackbone = Nothing
+
+      -- |
       , loginUrls = []
       , token = Nothing
       , user = Nothing

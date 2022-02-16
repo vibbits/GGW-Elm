@@ -53,6 +53,8 @@ viewMaybe show mby =
         |> el [ centerY ]
 
 
+{-| A button with a simple message
+-}
 button_ : msg -> String -> Element msg
 button_ msg label =
     button
@@ -76,6 +78,8 @@ button_ msg label =
         }
 
 
+{-| A link with a simple message
+-}
 link_ : msg -> String -> Element msg
 link_ msg label =
     button
@@ -90,6 +94,8 @@ link_ msg label =
         }
 
 
+{-| A title heading
+-}
 title : String -> Element msg
 title t =
     el
