@@ -50,7 +50,7 @@ type Bsmb1Overhang
 -}
 type alias Backbone =
     { name : String
-    , mPGBNumber : String
+    , mPGNumber : String
     , bsa1Overhang : Maybe Bsa1Overhang
     , bsmb1Overhang : Maybe Bsmb1Overhang
     , sequence : String
@@ -61,7 +61,7 @@ type alias Backbone =
 -}
 type alias Level0 =
     { name : String
-    , mPG0Number : String
+    , mPGNumber : String
     , bsa1Overhang : Bsa1Overhang
     , sequence : String
     }
@@ -79,7 +79,7 @@ type ChangeMol
 initLevel0 : Level0
 initLevel0 =
     { name = ""
-    , mPG0Number = ""
+    , mPGNumber = ""
     , bsa1Overhang = A__B
     , sequence = ""
     }
@@ -88,7 +88,7 @@ initLevel0 =
 initBackbone : Backbone
 initBackbone =
     { name = ""
-    , mPGBNumber = ""
+    , mPGNumber = ""
     , bsa1Overhang = Nothing
     , bsmb1Overhang = Nothing
     , sequence = ""
@@ -102,7 +102,7 @@ interpretBackboneChange msg bb =
             { bb | name = name }
 
         ChangeMPG mpg ->
-            { bb | mPGBNumber = mpg }
+            { bb | mPGNumber = mpg }
 
         ChangeBsa1 bsa1 ->
             { bb | bsa1Overhang = Just bsa1 }
@@ -118,7 +118,7 @@ interpretLevel0Change msg l0 =
             { l0 | name = name }
 
         ChangeMPG mpg ->
-            { l0 | mPG0Number = mpg }
+            { l0 | mPGNumber = mpg }
 
         ChangeBsa1 bsa1 ->
             { l0 | bsa1Overhang = bsa1 }

@@ -7,7 +7,8 @@
     "start": "parcel serve --port 49999 index.html",
     "build": "parcel build",
     "check-format": "elm-format --validate src/",
-    "review": "elm-review"
+    "review": "elm-review",
+    "test": "elm-test"
   },
   "author": "",
   "license": "ISC",
@@ -16,6 +17,7 @@
     "elm": "^0.19.1-5",
     "elm-format": "^0.8.5",
     "elm-review": "^2.7.0",
+    "elm-test": "^0.19.1-revision7",
     "parcel": "^2.1.1"
   }
 }

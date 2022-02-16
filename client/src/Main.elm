@@ -2,6 +2,16 @@ module Main exposing (..)
 
 import Accordion
 import Array exposing (Array)
+import Auth
+    exposing
+        ( Auth(..)
+        , AuthCode
+        , Login
+        , User
+        , authCode
+        , authDecoder
+        , authRequestDecoder
+        )
 import Browser exposing (Document)
 import Browser.Dom exposing (Error(..))
 import Browser.Navigation as Nav
@@ -14,8 +24,6 @@ import Element.Events as EE
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region
-import File exposing (File)
-import File.Select as Select
 import Html exposing (Html, a)
 import Html.Attributes as HA
 import Html.Events exposing (onClick)
@@ -35,16 +43,7 @@ import TypedSvg.Attributes exposing (dy, stroke, textAnchor, transform, viewBox,
 import TypedSvg.Core exposing (Svg)
 import TypedSvg.Types exposing (AnchorAlignment(..), Paint(..), Transform(..), em)
 import UINotification as Notify
-import Url exposing (..)
-import Url.Parser exposing ((</>), Parser, parse, query, s)
-import Url.Parser.Query exposing (map2, string)
-
-
-type alias User =
-    { id : Int
-    , name : Maybe String
-    , role : String
-    }
+import Url exposing (Url)
 
 
 type DisplayPage
@@ -53,6 +52,10 @@ type DisplayPage
     | ConstructLevel1
     | AddLevel0Page
     | AddBackbonePage
+
+
+
+-- Model
 
 
 type alias Model =
@@ -67,9 +70,7 @@ type alias Model =
     , description : String
     , selectedInserts : List Level0
     , selectedBackbone : Maybe Backbone
-    , loginUrls : List Login
-    , token : Maybe String
-    , user : Maybe User
+    , auth : Auth
     , notifications : Notify.Notifications
     , key : Nav.Key
 
@@ -91,82 +92,46 @@ type alias Model =
     }
 
 
-
--- Model
-
-
 init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ url key =
     let
-        cmd =
-            case url.path of
-                "/oidc_login" ->
-                    checkAuthUrl url
+        model : Model
+        model =
+            { page = LoginPage
+            , currApp = Standard
+            , currOverhang = A__B
+            , backboneLevel = 1
 
-                _ ->
-                    getLoginUrls
+            -- Level1 fields
+            , constructName = ""
+            , constructNumber = ""
+            , constructLength = 0
+            , applicationNote = ""
+            , description = ""
+            , selectedInserts = []
+            , selectedBackbone = Nothing
+
+            -- |
+            , auth = NotAuthenticated []
+            , notifications = Notify.init
+            , key = key
+            , backboneFilterString = Nothing
+            , level0FilterString = Nothing
+            , level1FilterString = Nothing
+            , backboneAccordionStatus = False
+            , level0AccordionStatus = False
+            , level1AccordionStatus = False
+            , backboneList = []
+            , insertList = []
+
+            -- Backbone To Add attributes
+            , backboneToAdd = Nothing
+
+            -- Level0 To Add Attributes
+            , level0ToAdd = Nothing
+            }
     in
-    ( { page = LoginPage
-      , currApp = Standard
-      , currOverhang = A__B
-      , backboneLevel = 1
-
-      -- Level1 fields
-      , constructName = ""
-      , constructNumber = ""
-      , constructLength = 0
-      , applicationNote = ""
-      , description = ""
-      , selectedInserts = []
-      , selectedBackbone = Nothing
-
-      -- |
-      , loginUrls = []
-      , token = Nothing
-      , user = Nothing
-      , notifications = Notify.init
-      , key = key
-      , backboneFilterString = Nothing
-      , level0FilterString = Nothing
-      , level1FilterString = Nothing
-      , backboneAccordionStatus = False
-      , level0AccordionStatus = False
-      , level1AccordionStatus = False
-      , backboneList = []
-      , insertList = []
-
-      -- Backbone To Add attributes
-      , backboneToAdd = Nothing
-
-      -- Level0 To Add Attributes
-      , level0ToAdd = Nothing
-      }
-    , cmd
-    )
-
-
-checkAuthUrl : Url -> Cmd Msg
-checkAuthUrl url =
-    case extractCodeAndState url of
-        Just authReq ->
-            getAuthentication authReq
-
-        Nothing ->
-            Cmd.none
-
-
-extractCodeAndState : Url -> Maybe Authentication
-extractCodeAndState url =
-    let
-        makeAuthentication : Maybe String -> Maybe String -> Maybe Authentication
-        makeAuthentication =
-            Maybe.map2 Authentication
-
-        parser : Parser (Maybe Authentication -> Maybe Authentication) (Maybe Authentication)
-        parser =
-            s "oidc_login" </> query (map2 makeAuthentication (string "code") (string "state"))
-    in
-    parse parser url |> Maybe.andThen identity
+    ( model, router url model )
 
 
 type Application
@@ -174,12 +139,6 @@ type Application
     | Five
     | Four
     | Three
-
-
-type ButtonPosition
-    = First
-    | Mid
-    | Last
 
 
 type Msg
@@ -195,17 +154,17 @@ type Msg
     | ResetInsertList
     | ResetAll
       -- Login Msg
-    | GotLoginUrls (Result Http.Error (List Login))
-    | UrlChanged
+    | GotLoginUrls (Result Http.Error Auth)
+    | GotAuthentication (Result Http.Error Auth)
+    | UrlChanged Url
     | LinkClicked Browser.UrlRequest
-    | GotAuthentication (Result Http.Error AuthenticationResponse)
       -- Msg Switching pages
     | SwitchPage DisplayPage
       -- Vector catalogue Msg
-    | BackboneAccordionToggled
+    | BackboneAccordionToggled -- TODO: Unify these 3
     | Level0AccordionToggled
     | ToggleAll
-    | FilterBackboneTable String
+    | FilterBackboneTable String -- TODO: Unify
     | FilterLevel0Table String
       -- Msg for adding Backbones
     | AddBackbone Backbone
@@ -223,7 +182,6 @@ type Msg
 
 
 
--- File Uploads
 -- view
 
 
@@ -344,7 +302,7 @@ addLevel0View model =
             { label = Input.labelLeft [] <| Element.text "MP-G0-number:\tMP-G0- "
             , onChange = ChangeMPG >> ChangeLevel0ToAdd
             , placeholder = Nothing
-            , text = Maybe.withDefault "" <| Maybe.map (.mPG0Number >> String.fromInt) model.level0ToAdd
+            , text = Maybe.withDefault "" <| Maybe.map (.mPGNumber >> String.fromInt) model.level0ToAdd
             }
         , Input.radioRow [ spacing 5, padding 10 ]
             { label = Input.labelAbove [] <| Element.text "Overhang Type:\t"
@@ -390,7 +348,7 @@ addBackboneView model =
             }
         , Input.text []
             { onChange = ChangeMPG >> ChangeBackboneToAdd
-            , text = Maybe.withDefault "" <| Maybe.map (.mPGBNumber >> String.fromInt) model.backboneToAdd
+            , text = Maybe.withDefault "" <| Maybe.map (.mPGNumber >> String.fromInt) model.backboneToAdd
             , label = Input.labelLeft [] <| Element.text "MP-GB-number:\tMP-GB-"
             , placeholder = Nothing
             }
@@ -416,7 +374,9 @@ addBackboneView model =
 
 constructLevel2View : Model -> Element Msg
 constructLevel2View _ =
-    row [ Element.width Element.fill, Element.height Element.fill, centerX ] [ navLinks, Element.html <| Html.img [ HA.src "../img/under_construction.jpg" ] [] ]
+    row
+        [ Element.width Element.fill, Element.height Element.fill, centerX ]
+        [ navLinks, Element.html <| Html.img [ HA.src "../img/under_construction.jpg" ] [] ]
 
 
 constructLevel1View : Model -> Element Msg
@@ -503,13 +463,13 @@ loginView model =
         , Element.height Element.fill
         ]
     <|
-        case model.user of
-            Just user ->
+        case model.auth of
+            Authenticated user ->
                 [ Element.text ("Welcome " ++ Maybe.withDefault "No user name" user.name)
                 ]
 
-            Nothing ->
-                viewLoginForm model.loginUrls
+            NotAuthenticated urls ->
+                viewLoginForm urls
 
 
 viewLoginForm : List Login -> List (Element Msg)
@@ -872,11 +832,11 @@ insertTable model =
                 { data =
                     model.insertList
                         |> List.filter (filterLevel0OnOverhang model.currOverhang)
-                        |> List.filter (filterLevel0 model.level0FilterString)
+                        |> List.filter (filterMolecule model.level0FilterString)
                 , columns =
                     [ { header = none
                       , width = fillPortion 3
-                      , view = .mPG0Number >> String.fromInt >> Element.text >> el [ centerY ]
+                      , view = .mPGNumber >> String.fromInt >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 5
@@ -937,11 +897,11 @@ backboneTable model =
                 , spacing 20
                 , padding 15
                 ]
-                { data = List.filter (filterBackbone model.backboneFilterString) model.backboneList
+                { data = List.filter (filterMolecule model.backboneFilterString) model.backboneList
                 , columns =
                     [ { header = none
                       , width = fillPortion 3
-                      , view = .mPGBNumber >> String.fromInt >> Element.text >> el [ centerY ]
+                      , view = .mPGNumber >> String.fromInt >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 5
@@ -971,58 +931,6 @@ backboneTable model =
 
 
 -- update
-
-
-type alias AuthenticationResponse =
-    { token : String
-    , user : User
-    }
-
-
-type alias Authentication =
-    { code : String
-    , state : String
-    }
-
-
-authDecoder : Decode.Decoder Authentication
-authDecoder =
-    Decode.map2 Authentication
-        (Decode.field "code" Decode.string)
-        (Decode.field "state" Decode.string)
-
-
-authUrlsDecoder : Decode.Decoder AuthenticationResponse
-authUrlsDecoder =
-    Decode.map2 AuthenticationResponse
-        (Decode.field "access_token" Decode.string)
-        (Decode.field "user" userDecoder)
-
-
-userDecoder : Decode.Decoder User
-userDecoder =
-    Decode.map3 User
-        (Decode.field "id" Decode.int)
-        (Decode.field "name" (Decode.nullable Decode.string))
-        (Decode.field "role" Decode.string)
-
-
-type alias Login =
-    { url : String
-    , name : String
-    }
-
-
-loginDecoder : Decode.Decoder Login
-loginDecoder =
-    Decode.map2 Login
-        (Decode.field "url" Decode.string)
-        (Decode.field "name" Decode.string)
-
-
-loginUrlsDecoder : Decode.Decoder (List Login)
-loginUrlsDecoder =
-    Decode.list loginDecoder
 
 
 showHttpError : Http.Error -> String
@@ -1166,13 +1074,13 @@ update msg model =
             , Cmd.none
             )
 
-        UrlChanged ->
-            ( model, Cmd.none )
+        UrlChanged url ->
+            ( model, router url model )
 
         GotLoginUrls res ->
             case res of
-                Ok urls ->
-                    ( { model | loginUrls = urls }, Cmd.none )
+                Ok auth ->
+                    ( { model | auth = auth }, Cmd.none )
 
                 Err err ->
                     ( { model
@@ -1196,8 +1104,10 @@ update msg model =
                     Nav.pushUrl model.key "/"
             in
             case res of
-                Ok response ->
-                    ( { model | user = Just response.user, token = Just response.token }, Cmd.batch [ navToRoot, Task.succeed Catalogue |> Task.perform SwitchPage ] )
+                Ok auth ->
+                    ( { model | auth = auth }
+                    , Cmd.batch [ navToRoot, Task.succeed Catalogue |> Task.perform SwitchPage ]
+                    )
 
                 Err err ->
                     ( { model
@@ -1263,16 +1173,16 @@ update msg model =
             ( model, Cmd.none )
 
         RequestAllLevel0 ->
-            case model.token of
-                Just token ->
+            case model.auth of
+                Authenticated user ->
                     ( model
-                    , authenticatedGet token
+                    , authenticatedGet user.token
                         "http://localhost:8000/vectors/level0"
                         Level0Received
                         (Decode.list level0Decoder)
                     )
 
-                Nothing ->
+                _ ->
                     ( { model
                         | notifications =
                             Notify.makeWarning "Not logged in" "" model.notifications
@@ -1292,16 +1202,16 @@ update msg model =
             ( model, Cmd.none )
 
         RequestAllBackbones ->
-            case model.token of
-                Just token ->
+            case model.auth of
+                Authenticated user ->
                     ( model
-                    , authenticatedGet token
+                    , authenticatedGet user.token
                         "http://localhost:8000/vectors/backbones"
                         BackbonesReceived
                         (Decode.list backboneDecoder)
                     )
 
-                Nothing ->
+                _ ->
                     ( { model
                         | notifications =
                             Notify.makeWarning "Not logged in" "" model.notifications
@@ -1314,24 +1224,15 @@ update msg model =
 -- Filter functions
 
 
-filterBackbone : Maybe String -> Backbone -> Bool
-filterBackbone needle val =
+filterMolecule : Maybe String -> { a | name : String, mPGNumber : String } -> Bool
+filterMolecule needle val =
     case needle of
         Nothing ->
             True
 
         Just ndle ->
-            String.contains ndle val.name || (String.contains ndle <| String.fromInt val.mPGBNumber)
-
-
-filterLevel0 : Maybe String -> Level0 -> Bool
-filterLevel0 needle val =
-    case needle of
-        Nothing ->
-            True
-
-        Just ndle ->
-            String.contains ndle val.name || (String.contains ndle <| String.fromInt val.mPG0Number)
+            String.contains ndle val.name
+                || String.contains ndle (String.fromInt val.mPGNumber)
 
 
 filterLevel0OnOverhang : Bsa1Overhang -> Level0 -> Bool
@@ -1340,7 +1241,7 @@ filterLevel0OnOverhang needle val =
 
 
 
--- End Filter functions
+-- HTTP API
 
 
 authenticatedGet : String -> String -> (Result Http.Error a -> Msg) -> Decode.Decoder a -> Cmd Msg
@@ -1356,19 +1257,15 @@ authenticatedGet token url msg decoder =
         }
 
 
-
--- Login & Authentication functions
-
-
 getLoginUrls : Cmd Msg
 getLoginUrls =
     Http.get
         { url = "http://localhost:8000/login"
-        , expect = expectJson GotLoginUrls loginUrlsDecoder
+        , expect = expectJson GotLoginUrls authDecoder
         }
 
 
-getAuthentication : Authentication -> Cmd Msg
+getAuthentication : AuthCode -> Cmd Msg
 getAuthentication auth =
     Http.post
         { url = "http://localhost:8000/authorize"
@@ -1379,12 +1276,37 @@ getAuthentication auth =
                     , ( "code", Encode.string auth.code )
                     ]
                 )
-        , expect = expectJson GotAuthentication authUrlsDecoder
+        , expect = expectJson GotAuthentication authDecoder
         }
 
 
 
--- End Login & Authentication functions
+-- ROUTING
+
+
+router : Url -> { a | auth : Auth, key : Nav.Key } -> Cmd Msg
+router url model =
+    case ( url.path, model.auth ) of
+        ( "/oidc_login", _ ) ->
+            authCode url
+                |> Maybe.map getAuthentication
+                |> Maybe.withDefault Cmd.none
+
+        ( "/login", NotAuthenticated _ ) ->
+            getLoginUrls
+
+        ( "/login", _ ) ->
+            Nav.pushUrl model.key "/"
+
+        ( _, NotAuthenticated _ ) ->
+            Nav.pushUrl model.key "login"
+
+        _ ->
+            Cmd.none
+
+
+
+-- MAIN
 
 
 main : Program () Model Msg
@@ -1393,23 +1315,10 @@ main =
         { init = init
         , view = view
         , update = update
-        , subscriptions = subscriptions
+        , subscriptions = always Sub.none
         , onUrlRequest = LinkClicked
-        , onUrlChange = always UrlChanged
+        , onUrlChange = UrlChanged
         }
-
-
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.none
-
-
-
---
 
 
 color : { blue : Element.Color, darkCharcoal : Element.Color, lightBlue : Element.Color, lightGrey : Element.Color, white : Element.Color }

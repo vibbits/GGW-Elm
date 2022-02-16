@@ -29,3 +29,6 @@ jobs:
       - name: Review
         run: npm run review
         working-directory: ${{ env.working-directory }}
+      - name: Test
+        run: npm test
+        working-directory: ${{ env.working-directory }}
