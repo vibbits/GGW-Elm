@@ -621,7 +621,7 @@ navLinks auth =
 
         _ ->
             navBar
-                [ Element.text "Golden Gateway" ]
+                []
 
 
 downloadButtonBar : Element msg
