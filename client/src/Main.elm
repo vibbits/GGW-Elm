@@ -1720,7 +1720,7 @@ level0Decoder =
     in
     Decode.succeed Level0
         |> JDP.required "name" Decode.string
-        |> JDP.required "id" Decode.int
+        |> JDP.required "mpg_number" Decode.int
         |> JDP.required "bsa1_overhang" (Decode.string |> Decode.andThen decodeOverhang)
         |> JDP.required "bacterial_strain" Decode.string
         |> JDP.required "responsible" Decode.string
@@ -1740,7 +1740,7 @@ backboneDecoder : Decode.Decoder Backbone
 backboneDecoder =
     Decode.succeed Backbone
         |> JDP.required "name" Decode.string
-        |> JDP.required "id" Decode.int
+        |> JDP.required "mpg_number" Decode.int
         |> JDP.optional "bsa1_overhang" (Decode.string |> Decode.map (String.trim >> stringToBsa1Overhang)) Nothing
         |> JDP.required "bacterial_strain" Decode.string
         |> JDP.required "responsible" Decode.string
