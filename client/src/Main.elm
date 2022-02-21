@@ -531,7 +531,7 @@ addLevel0View model =
             { label = Input.labelLeft [] <| Element.text "MP-G0-number:\tMP-G0- "
             , onChange = ChangeLevel0MpgNumberToAdd
             , placeholder = Nothing
-            , text = String.fromInt <| Maybe.withDefault 0 <| Maybe.map .mPG0Number model.level0ToAdd
+            , text = Maybe.withDefault "" <| Maybe.map (.mPG0Number >> String.fromInt) model.level0ToAdd
             }
         , Input.radioRow [ spacing 5, padding 10 ]
             { label = Input.labelAbove [] <| Element.text "Overhang Type:\t"
@@ -574,7 +574,7 @@ addBackboneView model =
             }
         , Input.text []
             { onChange = ChangeBackboneMpgNumberToAdd
-            , text = String.fromInt <| Maybe.withDefault 0 <| Maybe.map .mPGBNumber model.backboneToAdd
+            , text = Maybe.withDefault "" <| Maybe.map (.mPGBNumber >> String.fromInt) model.backboneToAdd
             , label = Input.labelLeft [] <| Element.text "MP-GB-number:\tMP-GB-"
             , placeholder = Nothing
             }
