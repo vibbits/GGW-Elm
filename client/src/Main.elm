@@ -6,6 +6,7 @@ import Browser exposing (Document)
 import Browser.Dom exposing (Error(..))
 import Browser.Navigation as Nav
 import Color
+import Dict exposing (Dict, get)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border exposing (rounded)
@@ -38,42 +39,14 @@ import Url.Parser exposing ((</>), Parser, parse, query, s)
 import Url.Parser.Query exposing (map2, string)
 
 
-overhangList3 : List Bsa1Overhang
-overhangList3 =
-    [ A__B
-    , B__C
-    , C__G
-    ]
-
-
-overhangList4 : List Bsa1Overhang
-overhangList4 =
-    [ A__B
-    , B__C
-    , C__D
-    , D__G
-    ]
-
-
-overhangList5 : List Bsa1Overhang
-overhangList5 =
-    [ A__B
-    , B__C
-    , C__D
-    , D__E
-    , E__G
-    ]
-
-
-overhangList6 : List Bsa1Overhang
-overhangList6 =
-    [ A__B
-    , B__C
-    , C__D
-    , D__E
-    , E__F
-    , F__G
-    ]
+overhangList : Dict Int (List Bsa1Overhang)
+overhangList =
+    Dict.fromList
+        [ ( 3, [ A__B, B__C, C__G ] )
+        , ( 4, [ A__B, B__C, C__D, D__G ] )
+        , ( 5, [ A__B, B__C, C__D, D__E, E__G ] )
+        , ( 6, [ A__B, B__C, C__D, D__E, E__F, F__G ] )
+        ]
 
 
 completeOverhangList : List Bsa1Overhang
@@ -233,7 +206,7 @@ init _ url key =
       , currOverhang = A__B
       , numberInserts = 6
       , backboneLevel = 1
-      , overhangShape = overhangList6
+      , overhangShape = Maybe.withDefault [] <| get 6 overhangList
 
       -- Level1 fields
       , constructName = "Demo Construct"
@@ -1343,16 +1316,16 @@ update msg model =
         updateOverhangShape app =
             case app of
                 Standard ->
-                    overhangList6
+                    Maybe.withDefault [] <| get 6 overhangList
 
                 Five ->
-                    overhangList5
+                    Maybe.withDefault [] <| get 5 overhangList
 
                 Four ->
-                    overhangList4
+                    Maybe.withDefault [] <| get 4 overhangList
 
                 Three ->
-                    overhangList3
+                    Maybe.withDefault [] <| get 3 overhangList
     in
     case msg of
         ChangeOverhang newOverhang ->
