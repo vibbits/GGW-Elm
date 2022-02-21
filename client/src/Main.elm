@@ -894,7 +894,7 @@ visualRepresentation model =
             sortByWith .bsa1_overhang ascending insertRecordList
 
         chartLabels =
-            List.reverse ((Maybe.withDefault "" <| Maybe.map .name model.selectedBackbone) :: List.reverse (List.map .name sortedInsertRecordList))
+            (Maybe.withDefault "" <| Maybe.map .name model.selectedBackbone) :: List.map .name sortedInsertRecordList
 
         chartLengths =
             List.reverse (List.map toFloat <| String.length (Maybe.withDefault "" <| Maybe.map .sequence model.selectedBackbone) :: List.reverse (List.map .length sortedInsertRecordList))
