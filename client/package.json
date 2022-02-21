@@ -13,11 +13,11 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@parcel/transformer-elm": "^2.1.1",
+    "@parcel/transformer-elm": "^2.3.2",
     "elm": "^0.19.1-5",
     "elm-format": "^0.8.5",
     "elm-review": "^2.7.0",
     "elm-test": "^0.19.1-revision7",
-    "parcel": "^2.1.1"
+    "parcel": "^2.3.2"
   }
 }
