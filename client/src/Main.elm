@@ -389,7 +389,7 @@ view model =
         [ Element.layout
             [ Element.height Element.fill
             , inFront <| Notify.view CloseNotification model.notifications
-            , inFront <| navLinks
+            , inFront navLinks
             ]
             (row
                 [ Element.width Element.fill
