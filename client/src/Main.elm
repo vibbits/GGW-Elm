@@ -559,7 +559,7 @@ addLevel0View model =
 
 makeOverhangOptions : List Bsa1Overhang -> List (Input.Option Bsa1Overhang msg)
 makeOverhangOptions overHangList =
-    List.map2 Input.option overHangList (List.map Element.text (List.map showBsa1Overhang overHangList))
+    List.map (\ohang -> Input.option ohang (showBsa1Overhang ohang |> Element.text)) overHangList
 
 
 addBackboneView : Model -> Element Msg
