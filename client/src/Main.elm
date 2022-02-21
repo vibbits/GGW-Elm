@@ -1158,7 +1158,7 @@ insertTable model =
                       }
                     , { header = none
                       , width = fillPortion 1
-                      , view = .bsa1_overhang >> showBsa1Overhang >> Element.text >> el [ centerY ]
+                      , view = .bsa1_overhang >> Just >> viewOverhang showBsa1Overhang
                       }
                     ]
                 }
@@ -1836,43 +1836,6 @@ showBsa1Overhang bsa1_overhang =
 
         F__G ->
             "F__G"
-
-
-showMaybeBsa1Overhang : Maybe Bsa1Overhang -> String
-showMaybeBsa1Overhang bsa1_overhang =
-    case bsa1_overhang of
-        Just A__B ->
-            "A__B"
-
-        Just A__G ->
-            "A__G"
-
-        Just B__C ->
-            "B__C"
-
-        Just C__D ->
-            "C__D"
-
-        Just C__G ->
-            "C__G"
-
-        Just D__E ->
-            "D__E"
-
-        Just D__G ->
-            "D__G"
-
-        Just E__F ->
-            "E__F"
-
-        Just E__G ->
-            "E__G"
-
-        Just F__G ->
-            "F__G"
-
-        _ ->
-            "Not defined"
 
 
 stringToBsa1Overhang : String -> Maybe Bsa1Overhang
