@@ -1738,29 +1738,10 @@ level0Decoder =
 
 backboneDecoder : Decode.Decoder Backbone
 backboneDecoder =
-    let
-        decodeOverhang : String -> Decode.Decoder Bsa1Overhang
-        decodeOverhang str =
-            case stringToBsa1Overhang (String.trim str) of
-                Just oh ->
-                    Decode.succeed oh
-
-                _ ->
-                    Decode.fail "Not a valid overhang"
-
-        decodeBsmb1Overhang : String -> Decode.Decoder Bsmb1Overhang
-        decodeBsmb1Overhang bsmb1_str =
-            case stringToBsmb1Overhang (String.trim bsmb1_str) of
-                Just bsmb1 ->
-                    Decode.succeed bsmb1
-
-                _ ->
-                    Decode.fail "Not a valid Gateway site"
-    in
     Decode.succeed Backbone
         |> JDP.required "name" Decode.string
         |> JDP.required "id" Decode.int
-        |> JDP.optional "bsa1_overhang" (Decode.maybe (Decode.string |> Decode.andThen decodeOverhang)) Nothing
+        |> JDP.optional "bsa1_overhang" (Decode.string |> Decode.map (String.trim >> stringToBsa1Overhang)) Nothing
         |> JDP.required "bacterial_strain" Decode.string
         |> JDP.required "responsible" Decode.string
         |> JDP.required "group" Decode.string
@@ -1769,7 +1750,7 @@ backboneDecoder =
         |> JDP.required "vector_type" Decode.string
         |> JDP.optional "notes" (Decode.maybe Decode.string) Nothing
         |> JDP.required "REase_digest" Decode.string
-        |> JDP.optional "bsmb1_overhang" (Decode.maybe (Decode.string |> Decode.andThen decodeBsmb1Overhang)) Nothing
+        |> JDP.optional "bsmb1_overhang" (Decode.string |> Decode.map (String.trim >> stringToBsmb1Overhang)) Nothing
         |> JDP.required "sequence" Decode.string
         |> JDP.required "annotations" (Decode.list annotationDecoder)
         |> JDP.required "features" (Decode.list featureDecoder)
