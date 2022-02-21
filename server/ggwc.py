@@ -128,9 +128,9 @@ def vector_level(g: str) -> Optional[VectorLevel]:
         return None
 
 
-def extract_mpg(mpg: str) -> Tuple[Optional[VectorLevel], int]:
+def extract_loc(loc: str) -> Tuple[Optional[VectorLevel], int]:
     "Splits the MP-GX-number and returns the VectorLevel and the numberpart"
-    split = mpg.split("-")
+    split = loc.split("-")
     return (vector_level(split[1]), int(split[2]))
 
 
@@ -170,13 +170,13 @@ def import0(csv_path, gbk_path, user):
     for i, gbk_file in files_to_read:
         # Create vector and fill in data from csv file
         vec = Vector()
-        mpg = extract_mpg(csv_content[i]["\ufeffMP-G- number"])
-        vec.mpg_number = mpg[1]
+        loc = extract_loc(csv_content[i]["\ufeffMP-G- number"])
+        vec.location = loc[1]
         vec.name = csv_content[i]["Plasmid name"]
         vec.bacterial_strain = csv_content[i]["Bacterial strain"]
         vec.responsible = csv_content[i]["Responsible"]
         vec.group = csv_content[i]["Group"]
-        vec.level = mpg[0]
+        vec.level = loc[0]
         vec.bsa1_overhang = csv_content[i]["BsaI overhang"]
         vec.selection = csv_content[i]["Selection"]
         vec.cloning_technique = csv_content[i]["DNA synthesis or PCR?"]
@@ -191,7 +191,7 @@ def import0(csv_path, gbk_path, user):
             vec.date = None
         vec.gateway_site = csv_content[i]["Gateway site"]
         vec.vector_type = csv_content[i]["Vector type (MP-G2-)"]
-        vec.children = []
+        vec.children = []  # TODOD: implement make the script also store the children.
 
         # Reading the sequence from the genbank file
         gbk_file_path = Path(gbk_path) / Path(gbk_file)

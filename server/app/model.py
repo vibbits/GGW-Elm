@@ -80,7 +80,7 @@ class Vector(Base):
     id: int = Column(Integer, primary_key=True, index=True)
 
     # General information
-    mpg_number: int = Column(Integer, nullable=False)
+    location: int = Column(Integer, nullable=False)
     name: str = Column(String, nullable=False, unique=True)  # Plasmid name
     bacterial_strain: str = Column(String, nullable=False)
     responsible: str = Column(String, nullable=False)
@@ -127,7 +127,7 @@ class Vector(Base):
     date: datetime = Column(DateTime, nullable=True)
 
     # Unique MP-GX-numbering constraint
-    __table_args__ = (UniqueConstraint("level", "mpg_number", name="lvl_mpg"),)
+    __table_args__ = (UniqueConstraint("level", "location", name="lvl_loc"),)
 
     def __str__(self):
         first_ann = str(self.annotations[0]) if len(self.annotations) > 0 else "null"

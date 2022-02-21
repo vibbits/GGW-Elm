@@ -23,3 +23,11 @@ def get_backbones(
     current_user: schemas.User = Depends(deps.get_current_user),
 ) -> List[Vector]:
     return crud.get_backbones_for_user(database=database, user=current_user)
+
+
+@router.get("/vectors/level1", response_model=List[schemas.Vector])
+def get_level1_constructs(
+    database: Session = Depends(deps.get_db),
+    current_user: schemas.User = Depends(deps.get_current_user),
+) -> List[Vector]:
+    return crud.get_level1_constructs_for_user(database=database, user=current_user)

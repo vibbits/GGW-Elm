@@ -70,14 +70,7 @@ type alias Model =
     { page : DisplayPage
     , currApp : Application
     , currOverhang : Bsa1Overhang
-    , backboneLevel : Int
-    , constructName : String
-    , constructNumber : String
-    , constructLength : Int
-    , applicationNote : String
-    , description : String
-    , selectedInserts : List Level0
-    , selectedBackbone : Maybe Backbone
+    , level1_construct : Level1
     , auth : Auth
     , notifications : Notify.Notifications
     , key : Nav.Key
@@ -91,6 +84,7 @@ type alias Model =
     , level1AccordionStatus : Bool
     , backboneList : List Backbone
     , insertList : List Level0
+    , level1List : List Level1
 
     -- Attributes for adding backbones
     , backboneToAdd : Maybe Backbone
@@ -108,16 +102,7 @@ init _ url key =
             { page = LoginPage
             , currApp = Standard
             , currOverhang = A__B
-            , backboneLevel = 1
-
-            -- Level1 fields
-            , constructName = ""
-            , constructNumber = ""
-            , constructLength = 0
-            , applicationNote = ""
-            , description = ""
-            , selectedInserts = []
-            , selectedBackbone = Nothing
+            , level1_construct = initLevel1
 
             -- |
             , auth = NotAuthenticated []
@@ -131,6 +116,7 @@ init _ url key =
             , level1AccordionStatus = False
             , backboneList = []
             , insertList = []
+            , level1List = []
 
             -- Backbone To Add attributes
             , backboneToAdd = Nothing
@@ -154,9 +140,9 @@ type Msg
       ChooseApplication Application
     | ChangeOverhang Bsa1Overhang
     | ChangeConstructName String
-    | ChangeConstructNumber String
+    | ChangeConstructNumber Int
     | ChangeApplicationNote String
-    | ChangeDescription String
+    | ChangeConstructDesignerName String
     | AppendInsert Level0
     | ChangeBackbone Backbone
     | ResetInsertList
@@ -171,9 +157,11 @@ type Msg
       -- Vector catalogue Msg
     | BackboneAccordionToggled -- TODO: Unify these 3
     | Level0AccordionToggled
+    | Level1AccordionToggled
     | ToggleAll
     | FilterBackboneTable String -- TODO: Unify
     | FilterLevel0Table String
+    | FilterLevel1Table String
       -- Msg for adding Backbones
     | AddBackbone Backbone
     | ChangeBackboneToAdd ChangeMol
@@ -185,6 +173,8 @@ type Msg
     | Level0Received (Result Http.Error (List Level0))
     | RequestAllBackbones
     | BackbonesReceived (Result Http.Error (List Backbone))
+    | RequestAllLevel1
+    | Level1Received (Result Http.Error (List Level1))
       -- Notifications
     | CloseNotification Int
 
@@ -247,6 +237,7 @@ catalogueView model =
             [ button_ (Just ToggleAll) "Toggle all"
             , button_ (Just RequestAllLevel0) "Populate Level 0 table from DB"
             , button_ (Just RequestAllBackbones) "Populate Backbone table from DB"
+            , button_ (Just RequestAllLevel1) "Populate Level 1 table from DB"
             ]
         , Accordion.accordion
             (Accordion.head
@@ -291,11 +282,32 @@ catalogueView model =
                     , placeholder = Nothing
                     }
                 , overhangRadioRow model
-                , insertTable model
+                , level0Table model
                 , Element.row [ centerX, spacing 50 ] [ addButton (SwitchPage AddLevel0Page) ]
                 ]
             )
             model.level0AccordionStatus
+        , Accordion.accordion
+            (Accordion.head
+                [ EE.onClick Level1AccordionToggled
+                , padding 25
+                , Border.solid
+                , Border.rounded 6
+                ]
+                [ Element.text "Level 1"
+                ]
+            )
+            (Accordion.body [ padding 25 ]
+                [ Input.text []
+                    { onChange = FilterLevel1Table
+                    , text = Maybe.withDefault "" model.level1FilterString
+                    , label = Input.labelLeft [] <| Element.text "Filter:"
+                    , placeholder = Nothing
+                    }
+                , level1Table model
+                ]
+            )
+            model.level1AccordionStatus
         ]
 
 
@@ -317,7 +329,7 @@ addLevel0View model =
                         |> Maybe.map (ChangeMPG >> ChangeLevel0ToAdd)
                         |> Maybe.withDefault (ChangeLevel0ToAdd (ChangeMPG 0))
             , placeholder = Nothing
-            , text = Maybe.withDefault "" <| Maybe.map (.mPGNumber >> String.fromInt) model.level0ToAdd
+            , text = Maybe.withDefault "" <| Maybe.map (.location >> String.fromInt) model.level0ToAdd
             }
         , Input.radioRow [ spacing 5, padding 10 ]
             { label = Input.labelAbove [] <| Element.text "Overhang Type:\t"
@@ -355,7 +367,7 @@ addBackboneView model =
                     String.toInt val
                         |> Maybe.map (ChangeMPG >> ChangeBackboneToAdd)
                         |> Maybe.withDefault (ChangeBackboneToAdd (ChangeMPG 0))
-            , text = Maybe.withDefault "" <| Maybe.map (.mPGNumber >> String.fromInt) model.backboneToAdd
+            , text = Maybe.withDefault "" <| Maybe.map (.location >> String.fromInt) model.backboneToAdd
             , label = Input.labelLeft [] <| Element.text "MP-GB-number:\tMP-GB-"
             , placeholder = Nothing
             }
@@ -385,31 +397,34 @@ constructLevel1View model =
         , Input.text []
             { onChange = ChangeConstructName
             , label = Input.labelLeft [] <| Element.text "Construct name: "
-            , text = model.constructName
+            , text = .name <| model.level1_construct
             , placeholder = Nothing
             }
         , Input.text []
-            { onChange = ChangeConstructNumber
+            { onChange =
+                \val ->
+                    String.toInt val
+                        |> Maybe.map ChangeConstructNumber
+                        |> Maybe.withDefault (ChangeConstructNumber 0)
             , label = Input.labelLeft [] <| Element.text "Construct number: "
-            , text = model.constructNumber
+            , text = String.fromInt <| .location <| model.level1_construct
             , placeholder = Nothing
             }
         , row [ spacing 50 ]
             [ el [] <| Element.text "Length (bp):"
-            , el [ padding 10 ] <| Element.text (String.fromInt model.constructLength)
+            , el [ padding 10 ] <| Element.text <| String.fromInt <| calculateLevel1Length <| model.level1_construct
             ]
         , Input.multiline [ Element.height <| px 150 ]
-            { text = model.applicationNote
+            { text = (.notes >> Maybe.withDefault "") <| model.level1_construct
             , onChange = ChangeApplicationNote
-            , label = Input.labelLeft [] <| Element.text "Application Note: "
+            , label = Input.labelLeft [] <| Element.text "Notes: "
             , spellcheck = True
             , placeholder = Nothing
             }
-        , Input.multiline [ Element.height <| px 150 ]
-            { text = model.description
-            , onChange = ChangeDescription
-            , label = Input.labelLeft [] <| Element.text "Description: "
-            , spellcheck = True
+        , Input.text []
+            { onChange = ChangeConstructDesignerName
+            , label = Input.labelLeft [] <| Element.text "Designer Name: "
+            , text = .responsible <| model.level1_construct
             , placeholder = Nothing
             }
         , el
@@ -427,7 +442,7 @@ constructLevel1View model =
             Element.text "Donor vector selection"
         , applicationRadioButton model
         , overhangRadioRow model
-        , insertTable model
+        , level0Table model
         , downloadButtonBar
         , el
             [ Element.Region.heading 2
@@ -537,18 +552,28 @@ tupleToRecord ( t_name, t_overhang, t_length ) =
     { name = t_name, bsa1_overhang = t_overhang, length = t_length }
 
 
+getInsertsFromLevel1 : Level1 -> List Level0
+getInsertsFromLevel1 l1 =
+    l1.inserts
+
+
+getBackboneFromLevel1 : Level1 -> Backbone
+getBackboneFromLevel1 l1 =
+    Maybe.withDefault initBackbone l1.backbone
+
+
 visualRepresentation : Model -> Html Msg
 visualRepresentation model =
     let
         -- Note: The reversing is for making sure Level0 1 is at position 0. This way the destination vector is appended on the back of the list!
         insertOverhangs =
-            List.map showBsa1Overhang <| List.map .bsa1Overhang model.selectedInserts
+            getInsertsFromLevel1 model.level1_construct |> List.map .bsa1Overhang >> List.map showBsa1Overhang
 
         insertNames =
-            List.map .name model.selectedInserts
+            getInsertsFromLevel1 model.level1_construct |> List.map .name
 
         insertLengths =
-            List.map (String.length << .sequence) model.selectedInserts
+            getInsertsFromLevel1 model.level1_construct |> List.map (String.length << .sequence)
 
         insertTuple =
             List.Extra.zip3 insertNames insertOverhangs insertLengths
@@ -560,14 +585,10 @@ visualRepresentation model =
             List.sortBy .bsa1_overhang insertRecordList
 
         chartLabels =
-            (Maybe.withDefault "" <| Maybe.map .name model.selectedBackbone) :: List.map .name sortedInsertRecordList
+            (Maybe.withDefault "" <| Maybe.map .name model.level1_construct.backbone) :: List.map .name sortedInsertRecordList
 
         chartLengths =
-            List.reverse
-                (List.map toFloat <|
-                    String.length (Maybe.withDefault "" <| Maybe.map .sequence model.selectedBackbone)
-                        :: List.reverse (List.map .length sortedInsertRecordList)
-                )
+            List.reverse (List.map toFloat <| String.length (model.level1_construct |> getBackboneFromLevel1 |> .sequence) :: List.reverse (List.map .length sortedInsertRecordList))
 
         data =
             List.map2 Tuple.pair chartLabels chartLengths
@@ -682,8 +703,8 @@ applicationRadioButton model =
         }
 
 
-insertTable : Model -> Element Msg
-insertTable model =
+level0Table : Model -> Element Msg
+level0Table model =
     let
         headerAttrs =
             [ Font.bold ]
@@ -722,7 +743,7 @@ insertTable model =
                 , columns =
                     [ { header = none
                       , width = fillPortion 3
-                      , view = .mPGNumber >> String.fromInt >> Element.text >> el [ centerY ]
+                      , view = .location >> String.fromInt >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 5
@@ -736,6 +757,59 @@ insertTable model =
                     , { header = none
                       , width = fillPortion 1
                       , view = .bsa1Overhang >> Just >> viewMaybe showBsa1Overhang
+                      }
+                    ]
+                }
+        ]
+
+
+level1Table : Model -> Element Msg
+level1Table model =
+    let
+        headerAttrs =
+            [ Font.bold
+            , Border.widthEach { bottom = 2, top = 0, left = 0, right = 0 }
+            ]
+    in
+    column
+        [ Element.width Element.fill
+        ]
+        [ row
+            [ spacing 20
+            , Element.width Element.fill
+            , padding 30
+            , clipY
+            ]
+            [ el ((Element.width <| fillPortion 3) :: headerAttrs) <| Element.text "MP-G1-Number"
+            , el ((Element.width <| fillPortion 5) :: headerAttrs) <| Element.text "Level1 Name"
+            , el ((Element.width <| fillPortion 1) :: headerAttrs) <| Element.text "Length"
+            ]
+        , el
+            [ Element.width Element.fill
+            , Border.width 1
+            , Border.rounded 50
+            ]
+          <|
+            table
+                [ Element.width Element.fill
+                , Element.height <| px 250
+                , scrollbarY
+                , spacing 20
+                , padding 25
+                ]
+                { data = List.filter (filterMolecule model.level1FilterString) model.level1List
+                , columns =
+                    [ { header = none
+                      , width = fillPortion 3
+                      , view = .location >> String.fromInt >> Element.text >> el [ centerY ]
+                      }
+                    , { header = none
+                      , width = fillPortion 5
+                      , view = .name >> Element.text >> el [ centerY ]
+                      }
+                    , { header = none
+                      , width = fillPortion 1
+                      , view = .sequence >> String.length >> String.fromInt >> Element.text >> el [ centerY ]
                       }
                     ]
                 }
@@ -779,7 +853,7 @@ backboneTable model =
                 , columns =
                     [ { header = none
                       , width = fillPortion 3
-                      , view = .mPGNumber >> String.fromInt >> Element.text >> el [ centerY ]
+                      , view = .location >> String.fromInt >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 5
@@ -859,91 +933,102 @@ update msg model =
             ( { model | currApp = newApp }, Cmd.none )
 
         ChangeConstructName newName ->
-            ( { model | constructName = newName }, Cmd.none )
+            ( { model
+                | level1_construct =
+                    (\l1 -> { l1 | name = newName })
+                        model.level1_construct
+              }
+            , Cmd.none
+            )
 
         ChangeConstructNumber newNumber ->
-            ( { model | constructNumber = newNumber }, Cmd.none )
+            ( { model
+                | level1_construct =
+                    (\l1 -> { l1 | location = newNumber })
+                        model.level1_construct
+              }
+            , Cmd.none
+            )
 
         ChangeApplicationNote newAN ->
-            ( { model | applicationNote = newAN }, Cmd.none )
+            ( { model
+                | level1_construct =
+                    (\l1 -> { l1 | notes = Just newAN })
+                        model.level1_construct
+              }
+            , Cmd.none
+            )
 
-        ChangeDescription newDescription ->
-            ( { model | description = newDescription }, Cmd.none )
+        ChangeConstructDesignerName newDesignerName ->
+            ( { model
+                | level1_construct =
+                    (\l1 -> { l1 | responsible = newDesignerName })
+                        model.level1_construct
+              }
+            , Cmd.none
+            )
 
         AppendInsert newInsert ->
-            if not (List.member newInsert.bsa1Overhang (List.map .bsa1Overhang model.selectedInserts)) then
+            if not (List.member newInsert.bsa1Overhang (List.map .bsa1Overhang <| getInsertsFromLevel1 model.level1_construct)) then
                 ( { model
-                    | selectedInserts = List.append model.selectedInserts [ newInsert ]
-                    , constructLength =
-                        List.sum
-                            (String.length
-                                (Maybe.withDefault "" <|
-                                    Maybe.map .sequence model.selectedBackbone
-                                )
-                                :: String.length newInsert.sequence
-                                :: List.map (.sequence >> String.length) model.selectedInserts
-                            )
+                    | level1_construct =
+                        (\l1 -> { l1 | inserts = List.append l1.inserts [ newInsert ] })
+                            model.level1_construct
                   }
                 , Cmd.none
                 )
 
             else
                 ( { model
-                    | selectedInserts =
-                        newInsert
-                            :: List.filter
-                                (\level0 ->
-                                    not (level0.bsa1Overhang == newInsert.bsa1Overhang)
-                                )
-                                model.selectedInserts
-                    , constructLength =
-                        List.sum
-                            (String.length
-                                (Maybe.withDefault "" <|
-                                    Maybe.map .sequence model.selectedBackbone
-                                )
-                                :: List.map (.sequence >> String.length)
-                                    (newInsert
+                    | level1_construct =
+                        (\l1 ->
+                            { l1
+                                | inserts =
+                                    newInsert
                                         :: List.filter
-                                            (\level0 ->
-                                                not (level0.bsa1Overhang == newInsert.bsa1Overhang)
+                                            (\l0 ->
+                                                l0.bsa1Overhang /= newInsert.bsa1Overhang
                                             )
-                                            model.selectedInserts
-                                    )
-                            )
+                                            l1.inserts
+                            }
+                        )
+                            model.level1_construct
                   }
                 , Cmd.none
                 )
 
         ChangeBackbone newBackbone ->
             ( { model
-                | selectedBackbone = Just newBackbone
-                , constructLength =
-                    List.sum
-                        (String.length newBackbone.sequence
-                            :: List.map (.sequence >> String.length) model.selectedInserts
-                        )
+                | level1_construct =
+                    (\l1 ->
+                        { l1 | backbone = Just newBackbone }
+                    )
+                        model.level1_construct
               }
             , Cmd.none
             )
 
         ResetInsertList ->
             ( { model
-                | selectedInserts = []
-                , constructLength =
-                    String.length
-                        (Maybe.withDefault "" <|
-                            Maybe.map .sequence model.selectedBackbone
-                        )
+                | level1_construct =
+                    (\l1 ->
+                        { l1 | inserts = [] }
+                    )
+                        model.level1_construct
               }
             , Cmd.none
             )
 
         ResetAll ->
             ( { model
-                | selectedInserts = []
-                , selectedBackbone = Nothing
-                , constructLength = 0
+                | level1_construct =
+                    (\l1 ->
+                        { l1
+                            | inserts = []
+                            , backbone = Nothing
+                        }
+                    )
+                        model.level1_construct
               }
             , Cmd.none
             )
@@ -999,11 +1084,17 @@ update msg model =
         FilterLevel0Table filter ->
             ( { model | level0FilterString = Just filter }, Cmd.none )
 
+        FilterLevel1Table filter ->
+            ( { model | level1FilterString = Just filter }, Cmd.none )
+
         BackboneAccordionToggled ->
             ( { model | backboneAccordionStatus = not model.backboneAccordionStatus }, Cmd.none )
 
         Level0AccordionToggled ->
             ( { model | level0AccordionStatus = not model.level0AccordionStatus }, Cmd.none )
+
+        Level1AccordionToggled ->
+            ( { model | level1AccordionStatus = not model.level1AccordionStatus }, Cmd.none )
 
         ToggleAll ->
             ( { model
@@ -1093,12 +1184,36 @@ update msg model =
                     , Cmd.none
                     )
 
+        Level1Received (Ok level1s) ->
+            ( { model | level1List = level1s }, Cmd.none )
+
+        Level1Received (Err _) ->
+            ( model, Cmd.none )
+
+        RequestAllLevel1 ->
+            case model.auth of
+                Authenticated user ->
+                    ( model
+                    , authenticatedGet user.token
+                        "http://localhost:8000/vectors/level1"
+                        Level1Received
+                        (Decode.list level1Decoder)
+                    )
+
+                _ ->
+                    ( { model
+                        | notifications =
+                            Notify.makeWarning "Not logged in" "" model.notifications
+                      }
+                    , Cmd.none
+                    )
+
 
 
 -- Filter functions
 
 
-filterMolecule : Maybe String -> { a | name : String, mPGNumber : Int } -> Bool
+filterMolecule : Maybe String -> { a | name : String, location : Int } -> Bool
 filterMolecule needle val =
     case needle of
         Nothing ->
@@ -1106,12 +1221,20 @@ filterMolecule needle val =
 
         Just ndle ->
             String.contains ndle val.name
-                || String.contains ndle (String.fromInt val.mPGNumber)
+                || String.contains ndle (String.fromInt val.location)
 
 
 filterLevel0OnOverhang : Bsa1Overhang -> Level0 -> Bool
 filterLevel0OnOverhang needle val =
     needle == val.bsa1Overhang
+
+
+calculateLevel1Length : Level1 -> Int
+calculateLevel1Length l1 =
+    List.sum
+        (String.length (Maybe.withDefault "" <| Maybe.map .sequence l1.backbone)
+            :: List.map (.sequence >> String.length) l1.inserts
+        )
 
 
 
