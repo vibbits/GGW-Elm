@@ -311,7 +311,11 @@ addLevel0View model =
             }
         , Input.text []
             { label = Input.labelLeft [] <| Element.text "MP-G0-number:\tMP-G0- "
-            , onChange = ChangeMPG >> ChangeLevel0ToAdd
+            , onChange =
+                \val ->
+                    String.toInt val
+                        |> Maybe.map (ChangeMPG >> ChangeLevel0ToAdd)
+                        |> Maybe.withDefault (ChangeLevel0ToAdd (ChangeMPG 0))
             , placeholder = Nothing
             , text = Maybe.withDefault "" <| Maybe.map (.mPGNumber >> String.fromInt) model.level0ToAdd
             }
@@ -346,7 +350,11 @@ addBackboneView model =
             , placeholder = Nothing
             }
         , Input.text []
-            { onChange = ChangeMPG >> ChangeBackboneToAdd
+            { onChange =
+                \val ->
+                    String.toInt val
+                        |> Maybe.map (ChangeMPG >> ChangeBackboneToAdd)
+                        |> Maybe.withDefault (ChangeBackboneToAdd (ChangeMPG 0))
             , text = Maybe.withDefault "" <| Maybe.map (.mPGNumber >> String.fromInt) model.backboneToAdd
             , label = Input.labelLeft [] <| Element.text "MP-GB-number:\tMP-GB-"
             , placeholder = Nothing
@@ -1090,7 +1098,7 @@ update msg model =
 -- Filter functions
 
 
-filterMolecule : Maybe String -> { a | name : String, mPGNumber : String } -> Bool
+filterMolecule : Maybe String -> { a | name : String, mPGNumber : Int } -> Bool
 filterMolecule needle val =
     case needle of
         Nothing ->
