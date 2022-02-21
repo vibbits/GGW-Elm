@@ -176,7 +176,7 @@ type alias Reference =
 
 type alias Level0 =
     { name : String
-    , mPG0Number : String
+    , mPG0Number : Int
     , bsa1_overhang : Bsa1Overhang
     , bacterial_strain : String
     , responsible : String
@@ -195,7 +195,7 @@ type alias Level0 =
 
 type alias Backbone =
     { name : String
-    , mPGBNumber : String
+    , mPGBNumber : Int
     , bsa1Overhang : Maybe Bsa1Overhang
     , bacterial_strain : String
     , responsible : String
@@ -558,7 +558,7 @@ addLevel0View model =
             { label = Input.labelLeft [] <| Element.text "MP-G0-number:\tMP-G0- "
             , onChange = ChangeLevel0MpgNumberToAdd
             , placeholder = Nothing
-            , text = Maybe.withDefault "" <| Maybe.map .mPG0Number model.level0ToAdd
+            , text = String.fromInt <| Maybe.withDefault 0 <| Maybe.map .mPG0Number model.level0ToAdd
             }
         , Input.radioRow [ spacing 5, padding 10 ]
             { label = Input.labelAbove [] <| Element.text "Overhang Type:\t"
@@ -601,7 +601,7 @@ addBackboneView model =
             }
         , Input.text []
             { onChange = ChangeBackboneMpgNumberToAdd
-            , text = Maybe.withDefault "" <| Maybe.map .mPGBNumber model.backboneToAdd
+            , text = String.fromInt <| Maybe.withDefault 0 <| Maybe.map .mPGBNumber model.backboneToAdd
             , label = Input.labelLeft [] <| Element.text "MP-GB-number:\tMP-GB-"
             , placeholder = Nothing
             }
@@ -1168,7 +1168,7 @@ insertTable model =
                 , columns =
                     [ { header = none
                       , width = fillPortion 3
-                      , view = .mPG0Number >> Element.text >> el [ centerY ]
+                      , view = .mPG0Number >> String.fromInt >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 5
@@ -1233,7 +1233,7 @@ backboneTable model =
                 , columns =
                     [ { header = none
                       , width = fillPortion 3
-                      , view = .mPGBNumber >> Element.text >> el [ centerY ]
+                      , view = .mPGBNumber >> String.fromInt >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 5
@@ -1525,7 +1525,7 @@ update msg model =
             ( { model | backboneToAdd = Maybe.map (\bb -> { bb | name = name }) model.backboneToAdd }, Cmd.none )
 
         ChangeBackboneMpgNumberToAdd mpgbNumber ->
-            ( { model | backboneToAdd = Maybe.map (\bb -> { bb | mPGBNumber = mpgbNumber }) model.backboneToAdd }, Cmd.none )
+            ( { model | backboneToAdd = Maybe.map (\bb -> { bb | mPGBNumber = Maybe.withDefault 0 <| String.toInt mpgbNumber }) model.backboneToAdd }, Cmd.none )
 
         GbNewBackboneRequested ->
             ( model, Select.file [ "text" ] GbNewBackboneSelected )
@@ -1543,7 +1543,7 @@ update msg model =
             ( { model | level0ToAdd = Maybe.map (\l0 -> { l0 | name = name }) model.level0ToAdd }, Cmd.none )
 
         ChangeLevel0MpgNumberToAdd mpg0Number ->
-            ( { model | level0ToAdd = Maybe.map (\l0 -> { l0 | mPG0Number = mpg0Number }) model.level0ToAdd }, Cmd.none )
+            ( { model | level0ToAdd = Maybe.map (\l0 -> { l0 | mPG0Number = Maybe.withDefault 0 <| String.toInt <| mpg0Number }) model.level0ToAdd }, Cmd.none )
 
         ChangeLevel0OverhangToAdd bsa1_overhang ->
             ( { model | level0ToAdd = Maybe.map (\l0 -> { l0 | bsa1_overhang = bsa1_overhang }) model.level0ToAdd }, Cmd.none )
@@ -1622,7 +1622,7 @@ filterBackbone needle val =
             True
 
         Just ndle ->
-            String.contains ndle val.name || String.contains ndle val.mPGBNumber
+            String.contains ndle val.name || (String.contains ndle <| String.fromInt val.mPGBNumber)
 
 
 filterLevel0 : Maybe String -> Level0 -> Bool
@@ -1632,7 +1632,7 @@ filterLevel0 needle val =
             True
 
         Just ndle ->
-            String.contains ndle val.name || String.contains ndle val.mPG0Number
+            String.contains ndle val.name || (String.contains ndle <| String.fromInt val.mPG0Number)
 
 
 filterLevel0OnOverhang : Bsa1Overhang -> Level0 -> Bool
@@ -1720,7 +1720,7 @@ level0Decoder =
     in
     Decode.succeed Level0
         |> JDP.required "name" Decode.string
-        |> JDP.required "id" (Decode.int |> Decode.map String.fromInt)
+        |> JDP.required "id" Decode.int
         |> JDP.required "bsa1_overhang" (Decode.string |> Decode.andThen decodeOverhang)
         |> JDP.required "bacterial_strain" Decode.string
         |> JDP.required "responsible" Decode.string
@@ -1759,7 +1759,7 @@ backboneDecoder =
     in
     Decode.succeed Backbone
         |> JDP.required "name" Decode.string
-        |> JDP.required "id" (Decode.int |> Decode.map String.fromInt)
+        |> JDP.required "id" Decode.int
         |> JDP.optional "bsa1_overhang" (Decode.maybe (Decode.string |> Decode.andThen decodeOverhang)) Nothing
         |> JDP.required "bacterial_strain" Decode.string
         |> JDP.required "responsible" Decode.string
