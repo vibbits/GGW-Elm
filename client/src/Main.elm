@@ -1223,15 +1223,23 @@ backboneTable model =
                       }
                     , { header = none
                       , width = fillPortion 3
-                      , view = .bsa1Overhang >> showMaybeBsa1Overhang >> Element.text >> el [ centerY ]
+                      , view = .bsa1Overhang >> viewOverhang showBsa1Overhang
                       }
                     , { header = none
                       , width = fillPortion 3
-                      , view = .bsmb1_overhang >> showMaybeBsmb1Overhang >> Element.text >> el [ centerY ]
+                      , view = .bsmb1_overhang >> viewOverhang showBsmb1Overhang
                       }
                     ]
                 }
         ]
+
+
+viewOverhang : (a -> String) -> Maybe a -> Element Msg
+viewOverhang show ohang =
+    Maybe.map show ohang
+        |> Maybe.withDefault "Not defined"
+        |> Element.text
+        |> el [ centerY ]
 
 
 
@@ -1904,26 +1912,23 @@ stringToBsa1Overhang strOverhang =
             Nothing
 
 
-showMaybeBsmb1Overhang : Maybe Bsmb1Overhang -> String
-showMaybeBsmb1Overhang bsmb1 =
+showBsmb1Overhang : Bsmb1Overhang -> String
+showBsmb1Overhang bsmb1 =
     case bsmb1 of
-        Just W__X ->
+        W__X ->
             "W__X"
 
-        Just W__Z ->
+        W__Z ->
             "W__Z"
 
-        Just X__Y ->
+        X__Y ->
             "X__Y"
 
-        Just X__Z ->
+        X__Z ->
             "X__Z"
 
-        Just Y__Z ->
+        Y__Z ->
             "Y__Z"
-
-        _ ->
-            "Not defined"
 
 
 stringToBsmb1Overhang : String -> Maybe Bsmb1Overhang
