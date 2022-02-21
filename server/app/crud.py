@@ -79,7 +79,7 @@ def add_vector(
     database: Session, vector: schemas.Vector, user: schemas.User
 ) -> Optional[model.Vector]:
     new_vector = model.Vector(
-        mpg_number=vector.mpg_number,
+        location=vector.location,
         name=vector.name,
         bacterial_strain=vector.bacterial_strain,
         responsible=vector.responsible,

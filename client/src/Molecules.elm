@@ -53,7 +53,7 @@ type Bsmb1Overhang
 -}
 type alias Backbone =
     { name : String
-    , mPGNumber : Int
+    , location : Int
     , bsa1Overhang : Maybe Bsa1Overhang
     , bsmb1Overhang : Maybe Bsmb1Overhang
     , sequence : String
@@ -64,7 +64,7 @@ type alias Backbone =
 -}
 type alias Level0 =
     { name : String
-    , mPGNumber : Int
+    , location : Int
     , bsa1Overhang : Bsa1Overhang
     , sequence : String
     }
@@ -74,7 +74,7 @@ type alias Level0 =
 -}
 type alias Level1 =
     { name : String
-    , mPGNumber : Int
+    , location : Int
     , bsmb1Overhang : Maybe Bsmb1Overhang
     , responsible : String
     , notes : Maybe String
@@ -87,7 +87,7 @@ type alias Level1 =
 initLevel1 : Level1
 initLevel1 =
     { name = ""
-    , mPGNumber = 1
+    , location = 1
     , bsmb1Overhang = Nothing
     , responsible = ""
     , notes = Just ""
@@ -108,7 +108,7 @@ type ChangeMol
 initLevel0 : Level0
 initLevel0 =
     { name = ""
-    , mPGNumber = 0
+    , location = 0
     , bsa1Overhang = A__B
     , sequence = ""
     }
@@ -117,7 +117,7 @@ initLevel0 =
 initBackbone : Backbone
 initBackbone =
     { name = ""
-    , mPGNumber = 0
+    , location = 0
     , bsa1Overhang = Nothing
     , bsmb1Overhang = Nothing
     , sequence = ""
@@ -130,8 +130,8 @@ interpretBackboneChange msg bb =
         ChangeName name ->
             { bb | name = name }
 
-        ChangeMPG mpg ->
-            { bb | mPGNumber = mpg }
+        ChangeMPG loc ->
+            { bb | location = loc }
 
         ChangeBsa1 bsa1 ->
             { bb | bsa1Overhang = Just bsa1 }
@@ -143,8 +143,8 @@ interpretLevel0Change msg l0 =
         ChangeName name ->
             { l0 | name = name }
 
-        ChangeMPG mpg ->
-            { l0 | mPGNumber = mpg }
+        ChangeMPG loc ->
+            { l0 | location = loc }
 
         ChangeBsa1 bsa1 ->
             { l0 | bsa1Overhang = bsa1 }
@@ -189,7 +189,7 @@ level0Decoder : Decode.Decoder Level0
 level0Decoder =
     Decode.succeed Level0
         |> JDP.required "name" Decode.string
-        |> JDP.required "id" Decode.int
+        |> JDP.required "location" Decode.int
         |> JDP.required "bsa1_overhang"
             (Decode.string
                 |> Decode.andThen decodeOverhang
@@ -201,7 +201,7 @@ backboneDecoder : Decode.Decoder Backbone
 backboneDecoder =
     Decode.succeed Backbone
         |> JDP.required "name" Decode.string
-        |> JDP.required "id" Decode.int
+        |> JDP.required "location" Decode.int
         |> JDP.optional "bsa1_overhang"
             (Decode.string
                 |> Decode.map (String.trim >> parseBsa1Overhang)
@@ -219,7 +219,7 @@ level1Decoder : Decode.Decoder Level1
 level1Decoder =
     Decode.succeed Level1
         |> JDP.required "name" Decode.string
-        |> JDP.required "mpg_number" Decode.int
+        |> JDP.required "location" Decode.int
         |> JDP.optional "bsmb1_overhang"
             (Decode.string
                 |> Decode.map (String.trim >> parseBsmb1Overhang)

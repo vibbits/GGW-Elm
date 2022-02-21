@@ -294,7 +294,7 @@ catalogueView model =
                 , Border.solid
                 , Border.rounded 6
                 ]
-                [ Element.text "Level 1\t▼"
+                [ Element.text "Level 1"
                 ]
             )
             (Accordion.body [ padding 25 ]
@@ -329,7 +329,7 @@ addLevel0View model =
                         |> Maybe.map (ChangeMPG >> ChangeLevel0ToAdd)
                         |> Maybe.withDefault (ChangeLevel0ToAdd (ChangeMPG 0))
             , placeholder = Nothing
-            , text = Maybe.withDefault "" <| Maybe.map (.mPGNumber >> String.fromInt) model.level0ToAdd
+            , text = Maybe.withDefault "" <| Maybe.map (.location >> String.fromInt) model.level0ToAdd
             }
         , Input.radioRow [ spacing 5, padding 10 ]
             { label = Input.labelAbove [] <| Element.text "Overhang Type:\t"
@@ -367,7 +367,7 @@ addBackboneView model =
                     String.toInt val
                         |> Maybe.map (ChangeMPG >> ChangeBackboneToAdd)
                         |> Maybe.withDefault (ChangeBackboneToAdd (ChangeMPG 0))
-            , text = Maybe.withDefault "" <| Maybe.map (.mPGNumber >> String.fromInt) model.backboneToAdd
+            , text = Maybe.withDefault "" <| Maybe.map (.location >> String.fromInt) model.backboneToAdd
             , label = Input.labelLeft [] <| Element.text "MP-GB-number:\tMP-GB-"
             , placeholder = Nothing
             }
@@ -407,7 +407,7 @@ constructLevel1View model =
                         |> Maybe.map ChangeConstructNumber
                         |> Maybe.withDefault (ChangeConstructNumber 0)
             , label = Input.labelLeft [] <| Element.text "Construct number: "
-            , text = String.fromInt <| .mPGNumber <| model.level1_construct
+            , text = String.fromInt <| .location <| model.level1_construct
             , placeholder = Nothing
             }
         , row [ spacing 50 ]
@@ -743,7 +743,7 @@ level0Table model =
                 , columns =
                     [ { header = none
                       , width = fillPortion 3
-                      , view = .mPGNumber >> String.fromInt >> Element.text >> el [ centerY ]
+                      , view = .location >> String.fromInt >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 5
@@ -794,17 +794,14 @@ level1Table model =
                 [ Element.width Element.fill
                 , Element.height <| px 250
                 , scrollbarY
-                , spacing 10
+                , spacing 20
                 , padding 25
                 ]
-                { data =
-                    model.insertList
-                        |> List.filter (filterLevel0OnOverhang model.currOverhang)
-                        |> List.filter (filterMolecule model.level0FilterString)
+                { data = List.filter (filterMolecule model.level1FilterString) model.level1List
                 , columns =
                     [ { header = none
                       , width = fillPortion 3
-                      , view = .mPGNumber >> String.fromInt >> Element.text >> el [ centerY ]
+                      , view = .location >> String.fromInt >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 5
@@ -856,7 +853,7 @@ backboneTable model =
                 , columns =
                     [ { header = none
                       , width = fillPortion 3
-                      , view = .mPGNumber >> String.fromInt >> Element.text >> el [ centerY ]
+                      , view = .location >> String.fromInt >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 5
@@ -947,7 +944,7 @@ update msg model =
         ChangeConstructNumber newNumber ->
             ( { model
                 | level1_construct =
-                    (\l1 -> { l1 | mPGNumber = newNumber })
+                    (\l1 -> { l1 | location = newNumber })
                         model.level1_construct
               }
             , Cmd.none
@@ -1216,7 +1213,7 @@ update msg model =
 -- Filter functions
 
 
-filterMolecule : Maybe String -> { a | name : String, mPGNumber : Int } -> Bool
+filterMolecule : Maybe String -> { a | name : String, location : Int } -> Bool
 filterMolecule needle val =
     case needle of
         Nothing ->
@@ -1224,7 +1221,7 @@ filterMolecule needle val =
 
         Just ndle ->
             String.contains ndle val.name
-                || String.contains ndle (String.fromInt val.mPGNumber)
+                || String.contains ndle (String.fromInt val.location)
 
 
 filterLevel0OnOverhang : Bsa1Overhang -> Level0 -> Bool

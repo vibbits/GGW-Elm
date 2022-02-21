@@ -98,7 +98,7 @@ class Annotation(BaseModel):
 
 class Vector(BaseModel):
     id: int = 0
-    mpg_number: int
+    location: int
     name: str
     bacterial_strain: str
     responsible: str
