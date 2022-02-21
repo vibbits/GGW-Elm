@@ -90,7 +90,7 @@ async def verify_authorization(
     userinfo = await oidc.userinfo(
         http_client, config, access_token=response["access_token"]
     )
-    user = schemas.UserCreate(**{**id_token, **userinfo}, role="user")
+    user = schemas.UserCreate(**{**id_token, **userinfo, "role": "user"})
 
     if (
         db_user := crud.get_user_by_identity(
