@@ -4,13 +4,16 @@ module Molecules exposing
     , Bsmb1Overhang(..)
     , ChangeMol(..)
     , Level0
+    , Level1
     , allOverhangs
     , backboneDecoder
     , initBackbone
     , initLevel0
+    , initLevel1
     , interpretBackboneChange
     , interpretLevel0Change
     , level0Decoder
+    , level1Decoder
     , overhangs
     , showBsa1Overhang
     , showBsmb1Overhang
@@ -64,6 +67,33 @@ type alias Level0 =
     , mPGNumber : Int
     , bsa1Overhang : Bsa1Overhang
     , sequence : String
+    }
+
+
+{-| What is this?
+-}
+type alias Level1 =
+    { name : String
+    , mPGNumber : Int
+    , bsmb1Overhang : Maybe Bsmb1Overhang
+    , responsible : String
+    , notes : Maybe String
+    , sequence : String
+    , inserts : List Level0
+    , backbone : Maybe Backbone
+    }
+
+
+initLevel1 : Level1
+initLevel1 =
+    { name = ""
+    , mPGNumber = 1
+    , bsmb1Overhang = Nothing
+    , responsible = ""
+    , notes = Just ""
+    , sequence = ""
+    , inserts = []
+    , backbone = Nothing
     }
 
 
@@ -145,18 +175,18 @@ allOverhangs =
     ]
 
 
+decodeOverhang : String -> Decode.Decoder Bsa1Overhang
+decodeOverhang str =
+    case parseBsa1Overhang (String.trim str) of
+        Just oh ->
+            Decode.succeed oh
+
+        _ ->
+            Decode.fail "Not a valid overhang"
+
+
 level0Decoder : Decode.Decoder Level0
 level0Decoder =
-    let
-        decodeOverhang : String -> Decode.Decoder Bsa1Overhang
-        decodeOverhang str =
-            case parseBsa1Overhang (String.trim str) of
-                Just oh ->
-                    Decode.succeed oh
-
-                _ ->
-                    Decode.fail "Not a valid overhang"
-    in
     Decode.succeed Level0
         |> JDP.required "name" Decode.string
         |> JDP.required "id" Decode.int
@@ -183,6 +213,24 @@ backboneDecoder =
             )
             Nothing
         |> JDP.required "sequence" Decode.string
+
+
+level1Decoder : Decode.Decoder Level1
+level1Decoder =
+    Decode.succeed Level1
+        |> JDP.required "name" Decode.string
+        |> JDP.required "mpg_number" Decode.int
+        |> JDP.optional "bsmb1_overhang"
+            (Decode.string
+                |> Decode.map (String.trim >> parseBsmb1Overhang)
+            )
+            Nothing
+        |> JDP.required "responsible" Decode.string
+        |> JDP.optional "notes" (Decode.maybe Decode.string) Nothing
+        |> JDP.required "sequence" Decode.string
+        |> JDP.required "children" (Decode.list level0Decoder)
+        -- TODO: This should be properly decoded
+        |> JDP.hardcoded Nothing
 
 
 parseBsa1Overhang : String -> Maybe Bsa1Overhang
