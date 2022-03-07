@@ -62,7 +62,7 @@ type alias Backbone =
     , location : Int
     , bsa1Overhang : Maybe Bsa1Overhang
     , bsmb1Overhang : Maybe Bsmb1Overhang
-    , sequence : String
+    , sequenceLength : Int
     , bacterialStrain : Maybe String
     , responsible : String -- Owner of the Level 0 element = User that adds the vector.
     , group : String
@@ -71,7 +71,6 @@ type alias Backbone =
     , reaseDigest : Maybe String
     , date : Maybe String
     , vectorType : Maybe String
-    , vectorLevel : String
     }
 
 
@@ -81,7 +80,7 @@ type alias Level0 =
     { name : String
     , location : Int
     , bsa1Overhang : Bsa1Overhang
-    , sequence : String
+    , sequenceLength : Int
     , bacterialStrain : Maybe String
     , responsible : String -- Owner of the Level 0 element = User that adds the vector.
     , group : String
@@ -91,7 +90,6 @@ type alias Level0 =
     , notes : Maybe String
     , reaseDigest : Maybe String
     , date : Maybe String
-    , vectorLevel : String
     }
 
 
@@ -104,10 +102,9 @@ type alias Level1 =
     , bsmb1Overhang : Maybe Bsmb1Overhang
     , responsible : String
     , notes : Maybe String
-    , sequence : String
+    , sequenceLength : Int
     , inserts : List Level0
     , backbone : Maybe Backbone
-    , vectorLevel : String
     }
 
 
@@ -118,10 +115,9 @@ initLevel1 =
     , bsmb1Overhang = Nothing
     , responsible = ""
     , notes = Just ""
-    , sequence = ""
+    , sequenceLength = 0
     , inserts = []
     , backbone = Nothing
-    , vectorLevel = "LEVEL1" -- Hardcoded!
     }
 
 
@@ -149,7 +145,7 @@ initLevel0 =
     { name = ""
     , location = 0
     , bsa1Overhang = A__B
-    , sequence = ""
+    , sequenceLength = 0
     , bacterialStrain = Nothing
     , responsible = "" -- Owner of the Level 0 element = User that adds the vector.
     , group = ""
@@ -159,7 +155,6 @@ initLevel0 =
     , notes = Nothing
     , reaseDigest = Nothing
     , date = Nothing
-    , vectorLevel = "LEVEL0" -- Hardcoded!
     }
 
 
@@ -169,7 +164,7 @@ initBackbone =
     , location = 0
     , bsa1Overhang = Nothing
     , bsmb1Overhang = Nothing
-    , sequence = ""
+    , sequenceLength = 0
     , bacterialStrain = Nothing
     , responsible = "" -- Owner of the Level 0 element = User that adds the vector.
     , group = ""
@@ -178,7 +173,6 @@ initBackbone =
     , reaseDigest = Nothing
     , date = Nothing
     , vectorType = Nothing
-    , vectorLevel = "BACKBONE" -- Hardcoded!
     }
 
 
@@ -324,7 +318,7 @@ level0Decoder =
             (Decode.string
                 |> Decode.andThen decodeOverhang
             )
-        |> JDP.required "sequence" Decode.string
+        |> JDP.required "sequence_length" Decode.int
         |> JDP.optional "bacterial_strain" (Decode.maybe Decode.string) Nothing
         |> JDP.required "responsible" Decode.string
         |> JDP.required "group" Decode.string
@@ -338,7 +332,6 @@ level0Decoder =
         |> JDP.optional "notes" (Decode.maybe Decode.string) Nothing
         |> JDP.optional "reaseDigest" (Decode.maybe Decode.string) Nothing
         |> JDP.optional "date" (Decode.maybe Decode.string) Nothing
-        |> JDP.hardcoded "LEVEL0"
 
 
 backboneDecoder : Decode.Decoder Backbone
@@ -356,7 +349,7 @@ backboneDecoder =
                 |> Decode.map (String.trim >> parseBsmb1Overhang)
             )
             Nothing
-        |> JDP.required "sequence" Decode.string
+        |> JDP.required "sequence_length" Decode.int
         |> JDP.optional "bacterial_strain" (Decode.maybe Decode.string) Nothing
         |> JDP.required "responsible" Decode.string
         |> JDP.required "group" Decode.string
@@ -365,7 +358,6 @@ backboneDecoder =
         |> JDP.optional "reaseDigest" (Decode.maybe Decode.string) Nothing
         |> JDP.optional "date" (Decode.maybe Decode.string) Nothing
         |> JDP.optional "vector_type" (Decode.maybe Decode.string) Nothing
-        |> JDP.hardcoded "BACKBONE"
 
 
 level1Decoder : Decode.Decoder Level1
@@ -380,22 +372,38 @@ level1Decoder =
             Nothing
         |> JDP.required "responsible" Decode.string
         |> JDP.optional "notes" (Decode.maybe Decode.string) Nothing
-        |> JDP.required "sequence" Decode.string
+        |> JDP.required "sequence_length" Decode.int
         |> JDP.required "children" (Decode.list level0Decoder)
         |> JDP.optional "backbone" (Decode.maybe backboneDecoder) Nothing
-        -- TODO: This should be properly decoded
-        |> JDP.hardcoded "LEVEL1"
+
+
+
+-- TODO: This should be properly decoded
+
+
+dispatchDecoder : Decode.Decoder Vector
+dispatchDecoder =
+    Decode.field "level" Decode.int
+        |> Decode.andThen
+            (\level ->
+                case level of
+                    1 ->
+                        Decode.andThen (Decode.succeed << BackboneVec) backboneDecoder
+
+                    2 ->
+                        Decode.andThen (Decode.succeed << Level0Vec) level0Decoder
+
+                    3 ->
+                        Decode.andThen (Decode.succeed << LevelNVec) level1Decoder
+
+                    _ ->
+                        Decode.fail "Unknow Level!"
+            )
 
 
 vectorDecoder : Decode.Decoder (List Vector)
 vectorDecoder =
-    Decode.list
-        (Decode.oneOf
-            [ Decode.andThen (Decode.succeed << BackboneVec) backboneDecoder
-            , Decode.andThen (Decode.succeed << Level0Vec) level0Decoder
-            , Decode.andThen (Decode.succeed << LevelNVec) level1Decoder
-            ]
-        )
+    Decode.list dispatchDecoder
 
 
 parseBsa1Overhang : String -> Maybe Bsa1Overhang

@@ -621,7 +621,7 @@ visualRepresentation model =
             getInsertsFromLevel1 model.level1_construct |> List.map .name
 
         insertLengths =
-            getInsertsFromLevel1 model.level1_construct |> List.map (String.length << .sequence)
+            getInsertsFromLevel1 model.level1_construct |> List.map .sequenceLength
 
         insertTuple =
             List.Extra.zip3 insertNames insertOverhangs insertLengths
@@ -636,7 +636,7 @@ visualRepresentation model =
             (Maybe.withDefault "" <| Maybe.map .name model.level1_construct.backbone) :: List.map .name sortedInsertRecordList
 
         chartLengths =
-            List.reverse (List.map toFloat <| String.length (model.level1_construct |> getBackboneFromLevel1 |> .sequence) :: List.reverse (List.map .length sortedInsertRecordList))
+            List.reverse (List.map toFloat <| (model.level1_construct |> getBackboneFromLevel1 |> .sequenceLength) :: List.reverse (List.map .length sortedInsertRecordList))
 
         data =
             List.map2 Tuple.pair chartLabels chartLengths
@@ -817,7 +817,7 @@ level0Table model =
                       }
                     , { header = none
                       , width = fillPortion 1
-                      , view = .sequence >> String.length >> String.fromInt >> Element.text >> el [ centerY ]
+                      , view = .sequenceLength >> String.fromInt >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 1
@@ -887,7 +887,7 @@ level1Table model =
                       }
                     , { header = none
                       , width = fillPortion 1
-                      , view = .sequence >> String.length >> String.fromInt >> Element.text >> el [ centerY ]
+                      , view = .sequenceLength >> String.fromInt >> Element.text >> el [ centerY ]
                       }
                     ]
                 }
@@ -953,7 +953,7 @@ backboneTable model =
                       }
                     , { header = none
                       , width = fillPortion 1
-                      , view = .sequence >> String.length >> String.fromInt >> Element.text >> el [ centerY ]
+                      , view = .sequenceLength >> String.fromInt >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 3
@@ -1268,8 +1268,8 @@ filterLevel0OnOverhang needle val =
 calculateLevel1Length : Level1 -> Int
 calculateLevel1Length l1 =
     List.sum
-        (String.length (Maybe.withDefault "" <| Maybe.map .sequence l1.backbone)
-            :: List.map (.sequence >> String.length) l1.inserts
+        ((Maybe.withDefault 0 <| Maybe.map .sequenceLength l1.backbone)
+            :: List.map .sequenceLength l1.inserts
         )
 
 

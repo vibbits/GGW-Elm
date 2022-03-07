@@ -92,7 +92,6 @@ def add_vector(
         REase_digest=vector.REase_digest,
         sequence=vector.sequence,
         level=vector.level,
-        BsmB1_site=vector.BsmB1_site,
         bsmb1_overhang=vector.bsmb1_overhang,
         gateway_site=vector.gateway_site,
         vector_type=vector.vector_type,

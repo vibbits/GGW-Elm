@@ -100,6 +100,10 @@ class Vector(BaseModel):
     id: int = 0
     location: int
     name: str
+    bsa1_overhang: str
+    bsmb1_overhang: str
+    cloning_technique: str
+    children: List["Vector"]
     bacterial_strain: str
     responsible: str
     group: str
@@ -117,7 +121,7 @@ class Vector(BaseModel):
     date: Optional[datetime]
 
 
-class VectorInDB(BaseModel):
+class VectorInDB(Vector):
     sequence: str
 
     class Config:
