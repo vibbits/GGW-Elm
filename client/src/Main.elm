@@ -131,8 +131,11 @@ init _ url key =
 type Application
     = Standard
     | Five
+    | FiveAC
     | Four
+    | FourAC
     | Three
+    | ThreeAC
 
 
 type Msg
@@ -331,17 +334,75 @@ addLevel0View model =
             , placeholder = Nothing
             , text = Maybe.withDefault "" <| Maybe.map (.location >> String.fromInt) model.level0ToAdd
             }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Bacterial strain:"
+            , onChange = ChangeBacterialStrain >> ChangeLevel0ToAdd
+            , placeholder = Nothing
+            , text = Maybe.withDefault "" <| Maybe.map (.bacterialStrain >> Maybe.withDefault "") model.level0ToAdd
+            }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Responsible:"
+            , onChange = ChangeResponsible >> ChangeLevel0ToAdd
+            , placeholder = Nothing
+            , text = Maybe.withDefault "" <| Maybe.map .responsible model.level0ToAdd
+            }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Group:"
+            , onChange = ChangeGroup >> ChangeLevel0ToAdd
+            , placeholder = Nothing
+            , text = Maybe.withDefault "" <| Maybe.map .group model.level0ToAdd
+            }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Selection:"
+            , onChange = ChangeSelection >> ChangeLevel0ToAdd
+            , placeholder = Nothing
+            , text = Maybe.withDefault "" <| Maybe.map (.selection >> Maybe.withDefault "") model.level0ToAdd
+            }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Cloning Technique:"
+            , onChange = ChangeCloningTechnique >> ChangeLevel0ToAdd
+            , placeholder = Nothing
+            , text = Maybe.withDefault "" <| Maybe.map (.cloningTechnique >> Maybe.withDefault "") model.level0ToAdd
+            }
+        , Input.checkbox []
+            { onChange = ChangeIsBsmB1Free >> ChangeLevel0ToAdd
+            , icon = Input.defaultCheckbox
+            , checked = Maybe.withDefault False <| Maybe.map (.isBsmb1Free >> Maybe.withDefault False) model.level0ToAdd
+            , label = Input.labelLeft [] <| Element.text "Is the construct BsmbI free?"
+            }
         , Input.radioRow [ spacing 5, padding 10 ]
-            { label = Input.labelAbove [] <| Element.text "Overhang Type:\t"
+            { label = Input.labelAbove [] <| Element.text "BsaI Overhang Type:\t"
             , onChange = ChangeBsa1 >> ChangeLevel0ToAdd
             , options =
                 makeOverhangOptions allOverhangs
             , selected = Maybe.map .bsa1Overhang model.level0ToAdd
             }
+        , Input.multiline [ Element.height <| px 150 ]
+            { text = Maybe.withDefault "" <| Maybe.map (.notes >> Maybe.withDefault "") model.level0ToAdd
+            , onChange = ChangeNotes >> ChangeLevel0ToAdd
+            , label = Input.labelLeft [] <| Element.text "Notes: "
+            , spellcheck = True
+            , placeholder = Nothing
+            }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Restriction Site:"
+            , onChange = ChangeReaseDigest >> ChangeLevel0ToAdd
+            , placeholder = Nothing
+            , text = Maybe.withDefault "" <| Maybe.map (.reaseDigest >> Maybe.withDefault "") model.level0ToAdd
+            }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Date (YYYY-MM-DD): "
+            , onChange = ChangeDate >> ChangeLevel0ToAdd
+            , placeholder = Nothing
+            , text = Maybe.withDefault "" <| Maybe.map (.date >> Maybe.withDefault "") model.level0ToAdd
+            }
         , Element.html <|
             Html.button
-                [ HA.style "margin" "50px" ]
-                [ Html.text "Load Genbank file" ]
+                [ HA.style "margin" "50px"
+                , HA.style "font-size" "20px"
+                ]
+                [ Html.text "Load Genbank file"
+                ]
         , button_ (Maybe.map AddLevel0 model.level0ToAdd) "Add"
         ]
 
@@ -687,9 +748,10 @@ overhangRadioRow model =
 
 applicationRadioButton : Model -> Element Msg
 applicationRadioButton model =
-    Input.radioRow
+    Input.radio
         [ padding 10
         , spacing 20
+        , Element.width Element.fill
         ]
         { onChange = ChooseApplication
         , selected = Just model.currApp
@@ -697,8 +759,11 @@ applicationRadioButton model =
         , options =
             [ Input.option Standard <| Element.text "Standard application with 6 inserts"
             , Input.option Five <| Element.text "Custom - 5 inserts"
+            , Input.option FiveAC <| Element.text "Custom - 5 inserts with A__C"
             , Input.option Four <| Element.text "Custom - 4 inserts"
+            , Input.option FourAC <| Element.text "Custom - 4 inserts with A__C"
             , Input.option Three <| Element.text "Custom - 3 inserts"
+            , Input.option ThreeAC <| Element.text "Custom - 3 inserts with A__C"
             ]
         }
 
@@ -909,16 +974,25 @@ overhangShape app =
     in
     (case app of
         Standard ->
-            Dict.get 6 overhangs
+            Dict.get "6" overhangs
 
         Five ->
-            Dict.get 5 overhangs
+            Dict.get "5" overhangs
+
+        FiveAC ->
+            Dict.get "5AC" overhangs
 
         Four ->
-            Dict.get 4 overhangs
+            Dict.get "4" overhangs
+
+        FourAC ->
+            Dict.get "4AC" overhangs
 
         Three ->
-            Dict.get 3 overhangs
+            Dict.get "3" overhangs
+
+        ThreeAC ->
+            Dict.get "3AC" overhangs
     )
         |> Maybe.withDefault default
 
