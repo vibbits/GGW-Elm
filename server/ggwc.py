@@ -156,7 +156,7 @@ def import0(csv_path, gbk_path, user):
     csv_content = []
 
     with open(csv_path) as csv_file:
-        csv_reader = csv.DictReader(csv_file, delimiter=";")
+        csv_reader = csv.DictReader(csv_file)
         for item in csv_reader:
             csv_content.append(item)
     csv_file.close()
@@ -170,7 +170,7 @@ def import0(csv_path, gbk_path, user):
     for i, gbk_file in files_to_read:
         # Create vector and fill in data from csv file
         vec = Vector()
-        loc = extract_loc(csv_content[i]["\ufeffMP-G- number"])
+        loc = extract_loc(csv_content[i]["MP-G- number"])
         vec.location = loc[1]
         vec.name = csv_content[i]["Plasmid name"]
         vec.bacterial_strain = csv_content[i]["Bacterial strain"]
@@ -192,6 +192,14 @@ def import0(csv_path, gbk_path, user):
         vec.gateway_site = csv_content[i]["Gateway site"]
         vec.vector_type = csv_content[i]["Vector type (MP-G2-)"]
         vec.children = []  # TODOD: implement make the script also store the children.
+
+        child_ids = (
+            csv_content[i]["Children ID"].replace("[", "").replace("]", "").split(",")
+        )
+
+        print("#" * 80)
+        print(f"Child ID's: {child_ids}")
+        print("#" * 80)
 
         # Reading the sequence from the genbank file
         gbk_file_path = Path(gbk_path) / Path(gbk_file)

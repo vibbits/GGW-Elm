@@ -25,13 +25,13 @@ def get_vectors(
     ]
 
 
-@router.post("/vectors", response_model=Optional[schemas.Vector])
+@router.post("/vectors", response_model=Optional[schemas.VectorInDB])
 def add_level0_construct(
-    new_lvl0_vec: schemas.Vector,
+    new_vec: schemas.VectorInDB,
     database: Session = Depends(deps.get_db),
     current_user: schemas.User = Depends(deps.get_current_user),
 ) -> Optional[Vector]:
-    return crud.add_vector(database=database, vector=new_lvl0_vec, user=current_user)
+    return crud.add_vector(database=database, vector=new_vec, user=current_user)
 
 
 @router.delete("/vectors/{vector_id}")
