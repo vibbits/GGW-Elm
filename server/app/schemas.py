@@ -103,9 +103,7 @@ class Vector(BaseModel):
     bacterial_strain: str
     responsible: str
     group: str
-    bsa1_overhang: str
     selection: str
-    cloning_technique: str
     is_BsmB1_free: str
     notes: str
     REase_digest: str
@@ -114,13 +112,27 @@ class Vector(BaseModel):
     features: List[Feature]
     references: List[Reference]
     users: List[User]
-    level: Optional[VectorLevel]
-    BsmB1_site: Optional[str]
-    children: List["Vector"]
-    bsmb1_overhang: str
+    level: VectorLevel
     gateway_site: str
     vector_type: str
     date: Optional[datetime]
 
     class Config:
         orm_mode = True
+
+
+class Backbone(Vector):
+    bsmb1_overhang: str
+    bsa1_overhang: str
+
+
+class Level0(Vector):
+    bsa1_overhang: str
+    cloning_technique: str
+    backbone: Backbone
+
+
+class LevelN(Vector):
+    bsmb1_overhang: str
+    children: List["Vector"]
+    backbone: Backbone
