@@ -1,44 +1,36 @@
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app import deps, schemas, crud
 from app.model import Vector
+from app.level import VectorLevel
 
 router = APIRouter()
 
 
-@router.get("/vectors/level0", response_model=List[schemas.Vector])
+def vector_to_world(vector: schemas.VectorInDB) -> schemas.VectorOut:
+    return schemas.VectorOut(**vector.dict(), sequence_length=len(vector.sequence))
+
+
+@router.get("/vectors/", response_model=List[schemas.VectorOut])
 def get_vectors(
     database: Session = Depends(deps.get_db),
     current_user: schemas.User = Depends(deps.get_current_user),
-) -> List[Vector]:
-    return crud.get_level0_for_user(database=database, user=current_user)
+) -> List[schemas.VectorOut]:
+    return [
+        vector_to_world(schemas.VectorInDB(vec))
+        for vec in crud.get_vectors_for_user(database=database, user=current_user)
+    ]
 
 
-@router.get("/vectors/backbones", response_model=List[schemas.Vector])
-def get_backbones(
-    database: Session = Depends(deps.get_db),
-    current_user: schemas.User = Depends(deps.get_current_user),
-) -> List[Vector]:
-    return crud.get_backbones_for_user(database=database, user=current_user)
-
-
-@router.get("/vectors/level1", response_model=List[schemas.Vector])
-def get_level1_constructs(
-    database: Session = Depends(deps.get_db),
-    current_user: schemas.User = Depends(deps.get_current_user),
-) -> List[Vector]:
-    return crud.get_level1_constructs_for_user(database=database, user=current_user)
-
-
-@router.post("/vectors", response_model=schemas.Vector)
+@router.post("/vectors", response_model=Optional[schemas.Vector])
 def add_level0_construct(
     new_lvl0_vec: schemas.Vector,
     database: Session = Depends(deps.get_db),
     current_user: schemas.User = Depends(deps.get_current_user),
-) -> Vector:
+) -> Optional[Vector]:
     return crud.add_vector(database=database, vector=new_lvl0_vec, user=current_user)
 
 

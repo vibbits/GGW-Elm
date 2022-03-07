@@ -5,18 +5,17 @@ module Molecules exposing
     , ChangeMol(..)
     , Level0
     , Level1
+    , Vector(..)
     , allOverhangs
-    , backboneDecoder
     , initBackbone
     , initLevel0
     , initLevel1
     , interpretBackboneChange
     , interpretLevel0Change
-    , level0Decoder
-    , level1Decoder
     , overhangs
     , showBsa1Overhang
     , showBsmb1Overhang
+    , vectorDecoder
     )
 
 import Dict exposing (Dict)
@@ -38,6 +37,12 @@ type Bsa1Overhang
     | E__F
     | E__G
     | F__G
+
+
+type Vector
+    = BackboneVec Backbone
+    | Level0Vec Level0
+    | LevelNVec Level1
 
 
 {-| All possible overhangs that are produced by a BsmbI digest of a vector.
@@ -62,7 +67,6 @@ type alias Backbone =
     , responsible : String -- Owner of the Level 0 element = User that adds the vector.
     , group : String
     , selection : Maybe String
-    , cloningTechnique : Maybe String
     , notes : Maybe String
     , reaseDigest : Maybe String
     , date : Maybe String
@@ -170,7 +174,6 @@ initBackbone =
     , responsible = "" -- Owner of the Level 0 element = User that adds the vector.
     , group = ""
     , selection = Nothing
-    , cloningTechnique = Nothing
     , notes = Nothing
     , reaseDigest = Nothing
     , date = Nothing
@@ -218,8 +221,8 @@ interpretBackboneChange msg bb =
         ChangeBacterialStrain bactStrain ->
             { bb | bacterialStrain = Just bactStrain }
 
-        ChangeCloningTechnique cloningTech ->
-            { bb | cloningTechnique = Just cloningTech }
+        ChangeCloningTechnique _ ->
+            bb
 
         ChangeIsBsmB1Free _ ->
             bb
@@ -358,7 +361,6 @@ backboneDecoder =
         |> JDP.required "responsible" Decode.string
         |> JDP.required "group" Decode.string
         |> JDP.optional "selection" (Decode.maybe Decode.string) Nothing
-        |> JDP.optional "cloning_technique" (Decode.maybe Decode.string) Nothing
         |> JDP.optional "notes" (Decode.maybe Decode.string) Nothing
         |> JDP.optional "reaseDigest" (Decode.maybe Decode.string) Nothing
         |> JDP.optional "date" (Decode.maybe Decode.string) Nothing
@@ -383,6 +385,17 @@ level1Decoder =
         |> JDP.optional "backbone" (Decode.maybe backboneDecoder) Nothing
         -- TODO: This should be properly decoded
         |> JDP.hardcoded "LEVEL1"
+
+
+vectorDecoder : Decode.Decoder (List Vector)
+vectorDecoder =
+    Decode.list
+        (Decode.oneOf
+            [ Decode.andThen (Decode.succeed << BackboneVec) backboneDecoder
+            , Decode.andThen (Decode.succeed << Level0Vec) level0Decoder
+            , Decode.andThen (Decode.succeed << LevelNVec) level1Decoder
+            ]
+        )
 
 
 parseBsa1Overhang : String -> Maybe Bsa1Overhang

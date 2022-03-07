@@ -107,7 +107,6 @@ class Vector(BaseModel):
     is_BsmB1_free: str
     notes: str
     REase_digest: str
-    sequence: str
     annotations: List[Annotation]
     features: List[Feature]
     references: List[Reference]
@@ -117,22 +116,13 @@ class Vector(BaseModel):
     vector_type: str
     date: Optional[datetime]
 
+
+class VectorInDB(BaseModel):
+    sequence: str
+
     class Config:
         orm_mode = True
 
 
-class Backbone(Vector):
-    bsmb1_overhang: str
-    bsa1_overhang: str
-
-
-class Level0(Vector):
-    bsa1_overhang: str
-    cloning_technique: str
-    backbone: Backbone
-
-
-class LevelN(Vector):
-    bsmb1_overhang: str
-    children: List["Vector"]
-    backbone: Backbone
+class VectorOut(Vector):
+    sequence_length: int

@@ -45,7 +45,6 @@ import Molecules exposing (..)
 import Path
 import Shape exposing (defaultPieConfig)
 import String
-import Task
 import TypedSvg exposing (g, svg, text_)
 import TypedSvg.Attributes exposing (dy, stroke, textAnchor, transform, viewBox, x)
 import TypedSvg.Core exposing (Svg)
@@ -82,9 +81,7 @@ type alias Model =
     , backboneAccordionStatus : Bool
     , level0AccordionStatus : Bool
     , level1AccordionStatus : Bool
-    , backboneList : List Backbone
-    , insertList : List Level0
-    , level1List : List Level1
+    , vectors : List Vector
 
     -- Attributes for adding backbones
     , backboneToAdd : Maybe Backbone
@@ -114,9 +111,7 @@ init _ url key =
             , backboneAccordionStatus = False
             , level0AccordionStatus = False
             , level1AccordionStatus = False
-            , backboneList = []
-            , insertList = []
-            , level1List = []
+            , vectors = []
 
             -- Backbone To Add attributes
             , backboneToAdd = Nothing
@@ -172,12 +167,7 @@ type Msg
     | AddLevel0 Level0
     | ChangeLevel0ToAdd ChangeMol
       -- Msg for retrieving Vectors
-    | RequestAllLevel0
-    | Level0Received (Result Http.Error (List Level0))
-    | RequestAllBackbones
-    | BackbonesReceived (Result Http.Error (List Backbone))
-    | RequestAllLevel1
-    | Level1Received (Result Http.Error (List Level1))
+    | VectorsReceived (Result Http.Error (List Vector))
       -- Notifications
     | CloseNotification Int
 
@@ -238,9 +228,6 @@ catalogueView model =
         [ title "Vector Catalog"
         , row [ spacing 20 ]
             [ button_ (Just ToggleAll) "Toggle all"
-            , button_ (Just RequestAllLevel0) "Populate Level 0 table from DB"
-            , button_ (Just RequestAllBackbones) "Populate Backbone table from DB"
-            , button_ (Just RequestAllLevel1) "Populate Level 1 table from DB"
             ]
         , Accordion.accordion
             (Accordion.head
@@ -773,6 +760,19 @@ level0Table model =
     let
         headerAttrs =
             [ Font.bold ]
+
+        insertList : List Level0
+        insertList =
+            List.filterMap onlyLevel0 model.vectors
+
+        onlyLevel0 : Vector -> Maybe Level0
+        onlyLevel0 vec =
+            case vec of
+                Level0Vec level0 ->
+                    Just level0
+
+                _ ->
+                    Nothing
     in
     column
         [ Element.width Element.fill
@@ -802,7 +802,7 @@ level0Table model =
                 , padding 25
                 ]
                 { data =
-                    model.insertList
+                    insertList
                         |> List.filter (filterLevel0OnOverhang model.currOverhang)
                         |> List.filter (filterMolecule model.level0FilterString)
                 , columns =
@@ -835,6 +835,19 @@ level1Table model =
             [ Font.bold
             , Border.widthEach { bottom = 2, top = 0, left = 0, right = 0 }
             ]
+
+        level1List : List Level1
+        level1List =
+            List.filterMap onlyLevel1 model.vectors
+
+        onlyLevel1 : Vector -> Maybe Level1
+        onlyLevel1 vec =
+            case vec of
+                LevelNVec level1 ->
+                    Just level1
+
+                _ ->
+                    Nothing
     in
     column
         [ Element.width Element.fill
@@ -862,7 +875,7 @@ level1Table model =
                 , spacing 20
                 , padding 25
                 ]
-                { data = List.filter (filterMolecule model.level1FilterString) model.level1List
+                { data = List.filter (filterMolecule model.level1FilterString) level1List
                 , columns =
                     [ { header = none
                       , width = fillPortion 3
@@ -886,6 +899,19 @@ backboneTable model =
     let
         headerAttrs =
             [ Font.bold ]
+
+        backboneList : List Backbone
+        backboneList =
+            List.filterMap onlyBackbone model.vectors
+
+        onlyBackbone : Vector -> Maybe Backbone
+        onlyBackbone vec =
+            case vec of
+                BackboneVec backbone ->
+                    Just backbone
+
+                _ ->
+                    Nothing
     in
     column
         [ Element.width Element.fill
@@ -914,7 +940,7 @@ backboneTable model =
                 , spacing 20
                 , padding 15
                 ]
-                { data = List.filter (filterMolecule model.backboneFilterString) model.backboneList
+                { data = List.filter (filterMolecule model.backboneFilterString) backboneList
                 , columns =
                     [ { header = none
                       , width = fillPortion 3
@@ -1138,8 +1164,8 @@ update msg model =
             in
             case res of
                 Ok auth ->
-                    ( { model | auth = auth }
-                    , Cmd.batch [ navToRoot, Task.succeed Catalogue |> Task.perform SwitchPage ]
+                    ( { model | auth = auth, page = Catalogue }
+                    , Cmd.batch [ navToRoot, getVectors auth ]
                     )
 
                 Err err ->
@@ -1180,7 +1206,7 @@ update msg model =
             )
 
         AddBackbone newBB ->
-            ( { model | backboneList = newBB :: model.backboneList }, Cmd.none )
+            ( { model | vectors = BackboneVec newBB :: model.vectors }, Cmd.none )
 
         ChangeBackboneToAdd change ->
             ( { model
@@ -1193,7 +1219,7 @@ update msg model =
             )
 
         AddLevel0 newIns ->
-            ( { model | insertList = newIns :: model.insertList }, Cmd.none )
+            ( { model | vectors = Level0Vec newIns :: model.vectors }, Cmd.none )
 
         ChangeLevel0ToAdd change ->
             ( { model
@@ -1205,82 +1231,18 @@ update msg model =
             , Cmd.none
             )
 
-        Level0Received (Ok level0s) ->
-            ( { model | insertList = level0s }, Cmd.none )
-
-        Level0Received (Err _) ->
-            ( model, Cmd.none )
-
-        RequestAllLevel0 ->
-            case model.auth of
-                Authenticated user ->
-                    ( model
-                    , authenticatedGet user.token
-                        "http://localhost:8000/vectors/level0"
-                        Level0Received
-                        (Decode.list level0Decoder)
-                    )
-
-                _ ->
-                    ( { model
-                        | notifications =
-                            Notify.makeWarning "Not logged in" "" model.notifications
-                      }
-                    , Cmd.none
-                    )
-
         CloseNotification which ->
             ( { model | notifications = Notify.close which model.notifications }
             , Cmd.none
             )
 
-        BackbonesReceived (Ok backbones) ->
-            ( { model | backboneList = backbones }, Cmd.none )
+        VectorsReceived (Ok vectors) ->
+            ( { model | vectors = vectors }, Cmd.none )
 
-        BackbonesReceived (Err _) ->
-            ( model, Cmd.none )
-
-        RequestAllBackbones ->
-            case model.auth of
-                Authenticated user ->
-                    ( model
-                    , authenticatedGet user.token
-                        "http://localhost:8000/vectors/backbones"
-                        BackbonesReceived
-                        (Decode.list backboneDecoder)
-                    )
-
-                _ ->
-                    ( { model
-                        | notifications =
-                            Notify.makeWarning "Not logged in" "" model.notifications
-                      }
-                    , Cmd.none
-                    )
-
-        Level1Received (Ok level1s) ->
-            ( { model | level1List = level1s }, Cmd.none )
-
-        Level1Received (Err _) ->
-            ( model, Cmd.none )
-
-        RequestAllLevel1 ->
-            case model.auth of
-                Authenticated user ->
-                    ( model
-                    , authenticatedGet user.token
-                        "http://localhost:8000/vectors/level1"
-                        Level1Received
-                        (Decode.list level1Decoder)
-                    )
-
-                _ ->
-                    ( { model
-                        | notifications =
-                            Notify.makeWarning "Not logged in" "" model.notifications
-                      }
-                    , Cmd.none
-                    )
+        VectorsReceived (Err err) ->
+            ( { model | notifications = Notify.makeError "Fetching vectors" (showHttpError err) model.notifications }
+            , Cmd.none
+            )
 
 
 
@@ -1349,6 +1311,16 @@ getAuthentication auth =
                 )
         , expect = expectJson GotAuthentication authDecoder
         }
+
+
+getVectors : Auth -> Cmd Msg
+getVectors auth =
+    case auth of
+        Authenticated usr ->
+            authenticatedGet usr.token "http://localhost:8000/vectors/" VectorsReceived vectorDecoder
+
+        _ ->
+            Cmd.none
 
 
 
