@@ -234,7 +234,6 @@ class VectorInDB(Vector):
 
 class VectorToAdd(VectorBase):
     """
-    This class inherit from the VectorBase class.
     It contains supplemental information provided
     when a new vector is posted to the database.
 
