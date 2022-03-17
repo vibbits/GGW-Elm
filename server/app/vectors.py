@@ -32,8 +32,6 @@ def get_vectors(
 ) -> List[schemas.VectorOut]:
     """Returns all of the vectors accessible by this user.
 
-    Returns:
-        List[schemas.VectorOut]: List of Vectors readable for the UI.
     """
     return [
         vector_to_world(schemas.VectorInDB.from_orm(vec))
