@@ -16,6 +16,8 @@ module Molecules exposing
     , interpretLevel0Change
     , level0Decoder
     , level0Encoder
+    , level1Decoder
+    , levelNEncoder
     , overhangs
     , showBsa1Overhang
     , showBsmb1Overhang
@@ -23,13 +25,11 @@ module Molecules exposing
     )
 
 import Dict exposing (Dict)
-import File exposing (File)
-import File.Select as Select
 import Html exposing (select)
 import Json.Decode as Decode
 import Json.Decode.Pipeline as JDP
 import Json.Encode as Encode
-import Task
+import List.Extra exposing (group)
 
 
 {-| All possible overhangs that are produced by a BsaI digest of a vector.
@@ -116,6 +116,7 @@ type alias Level1 =
     , location : Int
     , bsmb1Overhang : Maybe Bsmb1Overhang
     , responsible : String
+    , group : String
     , notes : Maybe String
     , sequenceLength : Int
     , inserts : List Level0
@@ -130,6 +131,7 @@ initLevel1 =
     , location = 1
     , bsmb1Overhang = Nothing
     , responsible = ""
+    , group = ""
     , notes = Just ""
     , sequenceLength = 0
     , inserts = []
@@ -403,6 +405,7 @@ level1Decoder =
             )
             Nothing
         |> JDP.required "responsible" Decode.string
+        |> JDP.required "group" Decode.string
         |> JDP.optional "notes" (Decode.maybe Decode.string) Nothing
         |> JDP.required "sequence_length" Decode.int
         |> JDP.required "children" (Decode.list level0Decoder)
@@ -448,10 +451,21 @@ backboneEncoder backbone =
     Encode.object
         [ ( "name", Encode.string backbone.name )
         , ( "location", Encode.int backbone.location )
-        , ( "bsa1_overhang", Encode.string <| showBsa1Overhang <| Maybe.withDefault InvalidBsa1 backbone.bsa1Overhang )
-        , ( "bsmb1_overhang", Encode.string <| showBsmb1Overhang <| Maybe.withDefault InvalidBsmb1 backbone.bsmb1Overhang )
+        , ( "bsa1_overhang"
+          , Encode.string <|
+                showBsa1Overhang <|
+                    Maybe.withDefault InvalidBsa1 backbone.bsa1Overhang
+          )
+        , ( "bsmb1_overhang"
+          , Encode.string <|
+                showBsmb1Overhang <|
+                    Maybe.withDefault InvalidBsmb1 backbone.bsmb1Overhang
+          )
         , ( "sequence", Encode.string "NNNNNNNNNNNNNNNNN---NNNNNNN" ) -- TODO: We do need the sequence!!!
-        , ( "bacterial_strain", Encode.string <| Maybe.withDefault "" backbone.bacterialStrain )
+        , ( "bacterial_strain"
+          , Encode.string <|
+                Maybe.withDefault "" backbone.bacterialStrain
+          )
         , ( "responsible", Encode.string <| backbone.responsible )
         , ( "group", Encode.string <| backbone.group )
         , ( "selection", Encode.string <| Maybe.withDefault "" backbone.selection )
@@ -478,6 +492,24 @@ level0Encoder level0 =
         , ( "REase_digest", Encode.string <| Maybe.withDefault "" level0.reaseDigest )
         , ( "date", Encode.string <| Maybe.withDefault "" level0.date )
         , ( "genbank_content", Encode.string <| Maybe.withDefault "" level0.genbankContent )
+        ]
+
+
+levelNEncoder : Level1 -> Encode.Value
+levelNEncoder level1 =
+    Encode.object
+        [ ( "name", Encode.string level1.name )
+        , ( "location", Encode.int level1.location )
+        , ( "bsmb1_overhang"
+          , Encode.string <|
+                showBsmb1Overhang <|
+                    Maybe.withDefault InvalidBsmb1 level1.bsmb1Overhang
+          )
+        , ( "responsible", Encode.string <| level1.responsible )
+        , ( "group", Encode.string <| level1.group )
+        , ( "notes", Encode.string <| Maybe.withDefault "" level1.notes )
+        , ( "sequenceLength", Encode.int level1.sequenceLength )
+        , ( "genbank_content", Encode.string <| Maybe.withDefault "" level1.genbankContent )
         ]
 
 

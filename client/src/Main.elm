@@ -173,6 +173,8 @@ type Msg
     | ChangeLevel0ToAdd ChangeMol
     | RequestGBLevel0
     | GBSelectedLevel0 File
+      -- Msg for adding Level 1
+    | Level1Created (Result Http.Error Level1)
       -- Msg for retrieving Vectors
     | VectorsReceived (Result Http.Error (List Vector))
       -- Notifications
@@ -737,7 +739,7 @@ overhangRadioRow model =
                 [ paddingEach { bottom = 20, top = 0, left = 0, right = 0 } ]
             <|
                 Element.text "Choose Overhang type"
-        , options = List.map makeButton <| overhangShape model.currApp
+        , options = List.map makeButton <| allOverhangs
         }
 
 
@@ -1214,7 +1216,7 @@ update msg model =
             )
 
         AddBackbone newBB ->
-            ( model, createBackbone newBB )
+            ( model, postVectors model.auth (BackboneVec newBB) )
 
         ChangeBackboneToAdd change ->
             ( { model
@@ -1227,7 +1229,7 @@ update msg model =
             )
 
         AddLevel0 newIns ->
-            ( model, postVectors model.auth newIns )
+            ( model, postVectors model.auth (Level0Vec newIns) )
 
         RequestGBLevel0 ->
             ( model, Select.file [ "text" ] GBSelectedLevel0 )
@@ -1284,6 +1286,16 @@ update msg model =
             , Cmd.none
             )
 
+        Level1Created (Ok level1) ->
+            ( model
+            , Cmd.none
+            )
+
+        Level1Created (Err err) ->
+            ( model
+            , Cmd.none
+            )
+
 
 
 -- Filter functions
@@ -1296,7 +1308,7 @@ filterMolecule needle val =
             True
 
         Just ndle ->
-            String.contains ndle val.name
+            String.contains (String.toLower ndle) (String.toLower val.name)
                 || String.contains ndle (String.fromInt val.location)
 
 
@@ -1363,37 +1375,56 @@ getVectors auth =
             Cmd.none
 
 
-createBackbone : String -> Level0 -> Cmd Msg
-createBackbone token backbone =
-    Http.request
-        { method = "POST"
-        , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
-        , url = "http://localhost:8000/vectors/"
-        , body = Http.jsonBody (backboneEncoder backbone)
-        , expect = Http.expectJson BackboneCreated backboneDecoder
-        , timeout = Nothing
-        , tracker = Nothing
-        }
+createVector : String -> Vector -> Cmd Msg
+createVector token vector =
+    case vector of
+        Level0Vec vec ->
+            Http.request
+                { method = "POST"
+                , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
+                , url = "http://localhost:8000/vectors/"
+                , body = Http.jsonBody (level0Encoder vec)
+                , expect = Http.expectJson Level0Created level0Decoder
+                , timeout = Nothing
+                , tracker = Nothing
+                }
+
+        BackboneVec vec ->
+            Http.request
+                { method = "POST"
+                , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
+                , url = "http://localhost:8000/vectors/"
+                , body = Http.jsonBody (backboneEncoder vec)
+                , expect = Http.expectJson BackboneCreated backboneDecoder
+                , timeout = Nothing
+                , tracker = Nothing
+                }
+
+        LevelNVec vec ->
+            Http.request
+                { method = "POST"
+                , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
+                , url = "http://localhost:8000/vectors/"
+                , body = Http.jsonBody (levelNEncoder vec)
+                , expect = Http.expectJson Level1Created level1Decoder
+                , timeout = Nothing
+                , tracker = Nothing
+                }
 
 
-createLevel0 : String -> Level0 -> Cmd Msg
-createLevel0 token level0 =
-    Http.request
-        { method = "POST"
-        , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
-        , url = "http://localhost:8000/vectors/"
-        , body = Http.jsonBody (level0Encoder level0)
-        , expect = Http.expectJson Level0Created level0Decoder
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
-postVectors : Auth -> Level0 -> Cmd Msg
-postVectors auth level0 =
+postVectors : Auth -> Vector -> Cmd Msg
+postVectors auth vector =
     case auth of
         Authenticated usr ->
-            createLevel0 usr.token level0
+            case vector of
+                Level0Vec vec ->
+                    createVector usr.token vector
+
+                BackboneVec vec ->
+                    createVector usr.token vector
+
+                LevelNVec vec ->
+                    createVector usr.token vector
 
         _ ->
             Cmd.none
