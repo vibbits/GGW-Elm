@@ -135,9 +135,6 @@ class Feature(BaseModel):
 
     Features can contain multiple qualifiers to
     provide more information
-
-    Args:
-        BaseModel (_type_): _description_
     """
 
     type: str
