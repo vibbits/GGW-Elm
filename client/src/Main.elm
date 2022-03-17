@@ -1416,15 +1416,7 @@ postVectors : Auth -> Vector -> Cmd Msg
 postVectors auth vector =
     case auth of
         Authenticated usr ->
-            case vector of
-                Level0Vec _ ->
-                    createVector usr.token vector
-
-                BackboneVec _ ->
-                    createVector usr.token vector
-
-                LevelNVec _ ->
-                    createVector usr.token vector
+            createVector usr.token vector
 
         _ ->
             Cmd.none
