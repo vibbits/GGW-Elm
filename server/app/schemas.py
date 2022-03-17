@@ -1,5 +1,5 @@
 "Data schemas for HTTP interface"
-
+# pylint: disable=too-few-public-methods
 from datetime import datetime
 import enum
 from typing import List, Optional
@@ -12,19 +12,36 @@ from app.level import VectorLevel
 
 
 class UserBase(BaseModel):
+    """
+    Base Class for a user
+    """
+
     name: Optional[str]
     role: str = "user"
 
 
 class UserCreate(UserBase):
+    """
+    Class to create a user.
+    Inherits from UserBase class.
+    """
+
     iss: str  # Issuer
     sub: str  # Subject
 
 
 class User(UserBase):
+    """
+    Class for a user.
+    Inherits from UserBase.
+    @params:
+    """
+
     id: int
 
     class Config:
+        """Orm mode configuration"""
+
         orm_mode = True
 
 
@@ -32,17 +49,31 @@ class User(UserBase):
 
 
 class AuthorizationResponse(BaseModel):
+    """
+    Base Class for a Authorization Response when
+    using the API
+    """
+
     state: str
     code: str
 
 
 class Token(BaseModel):
+    """
+    Base Class for defining a Token.
+    The token is also linked to a user.
+    """
+
     access_token: str
     token_type: str
     user: User
 
 
 class Provider(BaseModel):
+    """
+    Base Class for defining a provider.
+    """
+
     id: int
     name: str
     issuer: str
@@ -54,6 +85,10 @@ class Provider(BaseModel):
 
 
 class LoginUrl(BaseModel):
+    """
+    Base Class for defining a LoginUrl
+    """
+
     name: str
     url: str
 
@@ -62,22 +97,55 @@ class LoginUrl(BaseModel):
 
 
 class Reference(BaseModel):
+    """
+    Base Class for defining a Reference.
+    This links the genbank file to the maker.
+
+    Args:
+        BaseModel (_type_): _description_
+    """
+
     authors: str
     title: str
 
     class Config:
+        """Orm mode configuration"""
+
         orm_mode = True
 
 
 class Qualifier(BaseModel):
+    """
+    Base Class for defining qualifiers.
+    Qualifiers are descriptive components
+    from a genbank file.
+
+    Args:
+        BaseModel (_type_): _description_
+    """
+
     key: str
     value: str
 
     class Config:
+        """Orm mode configuration"""
+
         orm_mode = True
 
 
 class Feature(BaseModel):
+    """
+    Base Class for defining Features.
+    The features describe like on a map where certain
+    pieces of a construct can be found.
+
+    Features can contain multiple qualifiers to
+    provide more information
+
+    Args:
+        BaseModel (_type_): _description_
+    """
+
     type: str
     qualifiers: List[Qualifier]
     start_pos: int
@@ -89,14 +157,35 @@ class Feature(BaseModel):
 
 
 class Annotation(BaseModel):
+    """
+    Base Class defining an Annotation.
+    Annotations are considered as extra
+    information for a construct.
+
+    Args:
+        BaseModel (_type_): _description_
+    """
+
     key: str
     value: str
 
     class Config:
+        """Orm mode configuration"""
+
         orm_mode = True
 
 
 class VectorBase(BaseModel):
+    """
+    Base Class for defining a Vector.
+    The Vector class contains all fields that are
+    shared with all the other Vector classes,
+    except the VectorFromGenbank class.
+
+    Args:
+        BaseModel (_type_): _description_
+    """
+
     location: int
     name: str
     bsa1_overhang: str
@@ -111,6 +200,15 @@ class VectorBase(BaseModel):
 
 
 class VectorFromGenbank(BaseModel):
+    """
+    Base Class for defining a Vector.
+    This class contains all the vector information
+    that is read from a genbank file.
+
+    Args:
+        BaseModel (_type_): _description_
+    """
+
     sequence: str
     annotations: List[Annotation]
     features: List[Feature]
@@ -118,6 +216,15 @@ class VectorFromGenbank(BaseModel):
 
 
 class Vector(VectorBase):
+    """
+    This class inherits from the VectorBase class.
+    This contains additional information shared by
+    most Vector classes.
+
+    Args:
+        VectorBase (_type_): _description_
+    """
+
     id: int = 0
     children: List["Vector"]
     annotations: List[Annotation]
@@ -132,16 +239,45 @@ class Vector(VectorBase):
 
 
 class VectorInDB(Vector):
+    """
+    This class inherits from the Vector class.
+    It contains all the necessary information for
+    a Vector object when it is stored in the database.
+
+    Args:
+        Vector (_type_): _description_
+    """
+
     sequence: str
 
     class Config:
+        """Orm mode configuration"""
+
         orm_mode = True
 
 
 class VectorToAdd(VectorBase):
+    """
+    This class inherit from the VectorBase class.
+    It contains supplemental information provided
+    when a new vector is posted to the database.
+
+    Args:
+        VectorBase (_type_): _description_
+    """
+
     date: str
     genbank_content: str
 
 
 class VectorOut(Vector):
+    """
+    This class inherit from the Vector class.
+    It contains all the necessary information for
+    a Vector object when it is queried from the database.
+
+    Args:
+        Vector (_type_): _description_
+    """
+
     sequence_length: int

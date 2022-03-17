@@ -13,6 +13,14 @@ router = APIRouter()
 
 
 def vector_to_world(vector: schemas.VectorInDB) -> schemas.VectorOut:
+    """Returns a vector readable by the UI
+
+    Args:
+        vector (schemas.VectorInDB): Vector as stored in DB
+
+    Returns:
+        schemas.VectorOut: Vector readable by UI
+    """
     return schemas.VectorOut(**vector.dict(), sequence_length=len(vector.sequence))
 
 
@@ -21,6 +29,17 @@ def get_vectors(
     database: Session = Depends(deps.get_db),
     current_user: schemas.User = Depends(deps.get_current_user),
 ) -> List[schemas.VectorOut]:
+    """Processes GET request from the UI
+
+    Args:
+        database (Session, optional): Database Session.
+        Defaults to Depends(deps.get_db).
+        current_user (schemas.User, optional): User from UI.
+        Defaults to Depends(deps.get_current_user).
+
+    Returns:
+        List[schemas.VectorOut]: List of Vectors readable for the UI.
+    """
     return [
         vector_to_world(schemas.VectorInDB.from_orm(vec))
         for vec in crud.get_vectors_for_user(database=database, user=current_user)
@@ -33,6 +52,24 @@ def add_level0_construct(
     database: Session = Depends(deps.get_db),
     current_user: schemas.User = Depends(deps.get_current_user),
 ) -> schemas.VectorOut:
+    """Handles POST requests from the UI
+
+    Args:
+        new_vec (schemas.VectorToAdd):
+        A Vector object when posted from UI.
+        database (Session, optional): Database Session.
+        Defaults to Depends(deps.get_db).
+        current_user (schemas.User, optional): Current User.
+        Defaults to Depends(deps.get_current_user).
+
+    Raises:
+        HTTPException: If the function encounters an error,
+        it raises an HTTP Exception:
+        HTTP_400_BAD_REQUEST
+
+    Returns:
+        schemas.VectorOut: Returns the Vector posted by the UI.
+    """
     gbk = io.StringIO(new_vec.genbank_content)
     vec = new_vec.dict()
     del vec["date"]
@@ -55,13 +92,3 @@ def add_level0_construct(
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid vector"
     )
-
-
-@router.delete("/vectors/{vector_id}")
-def delete_vector(
-    vec_id: int,
-    database: Session = Depends(deps.get_db),
-    current_user: schemas.User = Depends(deps.get_current_user),
-):
-    # vector = database.get(Vector, vec_id)
-    pass

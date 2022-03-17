@@ -5,16 +5,14 @@ updating the database schema, adding an admin user,
 adding an identity provider, etc.
 """
 
-from typing import List, Tuple, Optional
+from typing import Tuple, Optional
 
-from pprint import pprint
 import sys
 from pathlib import Path
 from datetime import datetime
+import csv
 import click
 import httpx
-import csv
-import json
 from Bio import SeqIO
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -116,16 +114,17 @@ def login(iss):
             click.echo(oidc.login_url(config["authorization_endpoint"], provider))
 
 
-def vector_level(g: str) -> Optional[VectorLevel]:
+def vector_level(g_number: str) -> Optional[VectorLevel]:
     "Converts part of the MP-GX-name to a VectorLevel"
-    if g == "GB":
-        return VectorLevel.BACKBONE
-    elif g == "G0":
-        return VectorLevel.LEVEL0
-    elif g == "G1":
-        return VectorLevel.LEVEL1
+    if g_number == "GB":
+        vec_level = VectorLevel.BACKBONE
+    elif g_number == "G0":
+        vec_level = VectorLevel.LEVEL0
+    elif g_number == "G1":
+        vec_level = VectorLevel.LEVEL1
     else:
-        return None
+        vec_level = None
+    return vec_level
 
 
 def extract_loc(loc: str) -> Tuple[Optional[VectorLevel], int]:
@@ -209,16 +208,18 @@ def import0(csv_path, gbk_path, user):
         # Getting the annotations
         annotations = []
         references = []
-        for k, v in record.annotations.items():
-            # All annotations are strings, integers or list of them but references are a special case.
-            # References are objects that can be deconstructed to an author and a title, both strings.
-            if k == "references":
+        for key, value in record.annotations.items():
+            # All annotations are strings, integers or list of them
+            # but references are a special case.
+            # References are objects that can be deconstructed to
+            # an author and a title, both strings.
+            if key == "references":
                 for reference in record.annotations["references"]:
                     references.append(
                         Reference(authors=reference.authors, title=reference.title)
                     )
             else:
-                annotations.append(Annotation(key=k, value=str(v)))
+                annotations.append(Annotation(key=key, value=str(value)))
 
         vec.annotations = annotations
         vec.references = references
@@ -229,8 +230,8 @@ def import0(csv_path, gbk_path, user):
             # Getting the qualifiers of each feature
 
             new_qualifiers = []
-            for k, v in feature.qualifiers.items():
-                new_qualifiers.append(Qualifier(key=k, value=str(v)))
+            for key, value in feature.qualifiers.items():
+                new_qualifiers.append(Qualifier(key=key, value=str(value)))
             features.append(
                 Feature(
                     type=feature.type,

@@ -1,4 +1,5 @@
 " Database data model "
+# pylint: disable=too-few-public-methods
 
 from typing import Optional, List
 from datetime import datetime
@@ -88,9 +89,9 @@ class Vector(Base):
     bsa1_overhang: str = Column(String, nullable=True)
     selection: str = Column(String, nullable=True)
     cloning_technique: str = Column(String, nullable=True)  # DNA or PCR synthesis?
-    is_BsmB1_free: str = Column(String, nullable=True)  # TODO: Might be removed...
+    is_BsmB1_free: str = Column(String, nullable=True)  # Might be removed...
     notes: str = Column(String, nullable=True)
-    REase_digest: str = Column(String, nullable=True)  # TODO: Might be removed...
+    REase_digest: str = Column(String, nullable=True)  # Might be removed...
 
     # Genbank information
     sequence: str = Column(String, nullable=False)
