@@ -445,7 +445,6 @@ backboneEncoder backbone =
                 showBsmb1Overhang <|
                     Maybe.withDefault InvalidBsmb1 backbone.bsmb1Overhang
           )
-        , ( "sequence", Encode.string "NNNNNNNNNNNNNNNNN---NNNNNNN" ) -- TODO: We do need the sequence!!!
         , ( "bacterial_strain"
           , Encode.string <|
                 Maybe.withDefault "" backbone.bacterialStrain
@@ -499,17 +498,11 @@ levelNEncoder level1 =
 
 parseBsa1Overhang : String -> Maybe Bsa1Overhang
 parseBsa1Overhang str =
-    case str of
+    case String.replace "_" "" str of
         "AB" ->
             Just A__B
 
-        "A__B" ->
-            Just A__B
-
         "AC" ->
-            Just A__C
-
-        "A__C" ->
             Just A__C
 
         "AG" ->
@@ -518,49 +511,25 @@ parseBsa1Overhang str =
         "BC" ->
             Just B__C
 
-        "B__C" ->
-            Just B__C
-
         "CD" ->
-            Just C__D
-
-        "C__D" ->
             Just C__D
 
         "CG" ->
             Just C__G
 
-        "C__G" ->
-            Just C__G
-
         "DE" ->
-            Just D__E
-
-        "D__E" ->
             Just D__E
 
         "DG" ->
             Just D__G
 
-        "D__G" ->
-            Just D__G
-
         "EF" ->
-            Just E__F
-
-        "E__F" ->
             Just E__F
 
         "EG" ->
             Just E__G
 
-        "E__G" ->
-            Just E__G
-
         "FG" ->
-            Just F__G
-
-        "F__G" ->
             Just F__G
 
         _ ->
@@ -569,35 +538,20 @@ parseBsa1Overhang str =
 
 parseBsmb1Overhang : String -> Maybe Bsmb1Overhang
 parseBsmb1Overhang str =
-    case str of
+    case String.replace "_" "" str of
         "WX" ->
-            Just W__X
-
-        "W__X" ->
             Just W__X
 
         "WZ" ->
             Just W__Z
 
-        "W__Z" ->
-            Just W__Z
-
         "XY" ->
-            Just X__Y
-
-        "X__Y" ->
             Just X__Y
 
         "XZ" ->
             Just X__Z
 
-        "X__Z" ->
-            Just X__Z
-
         "YZ" ->
-            Just Y__Z
-
-        "Y__Z" ->
             Just Y__Z
 
         _ ->
