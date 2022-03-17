@@ -100,9 +100,6 @@ class Reference(BaseModel):
     """
     Base Class for defining a Reference.
     This links the genbank file to the maker.
-
-    Args:
-        BaseModel (_type_): _description_
     """
 
     authors: str
