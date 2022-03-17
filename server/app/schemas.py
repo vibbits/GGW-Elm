@@ -96,24 +96,34 @@ class Annotation(BaseModel):
         orm_mode = True
 
 
-class Vector(BaseModel):
-    id: int = 0
+class VectorBase(BaseModel):
     location: int
     name: str
     bsa1_overhang: str
-    bsmb1_overhang: str
     cloning_technique: str
-    children: List["Vector"]
     bacterial_strain: str
-    responsible: str
     group: str
     selection: str
+    responsible: str
     is_BsmB1_free: str
     notes: str
     REase_digest: str
+
+
+class VectorFromGenbank(BaseModel):
+    sequence: str
     annotations: List[Annotation]
     features: List[Feature]
     references: List[Reference]
+
+
+class Vector(VectorBase):
+    id: int = 0
+    children: List["Vector"]
+    annotations: List[Annotation]
+    features: List[Feature]
+    references: List[Reference]
+    bsmb1_overhang: str
     users: List[User]
     level: VectorLevel
     gateway_site: str
@@ -126,6 +136,11 @@ class VectorInDB(Vector):
 
     class Config:
         orm_mode = True
+
+
+class VectorToAdd(VectorBase):
+    date: str
+    genbank_content: str
 
 
 class VectorOut(Vector):

@@ -21,6 +21,8 @@ import Element.Events as EE
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region
+import File exposing (File)
+import File.Select as Select
 import Html exposing (Html)
 import Html.Attributes as HA
 import Html.Events exposing (onClick)
@@ -45,6 +47,7 @@ import Molecules exposing (..)
 import Path
 import Shape exposing (defaultPieConfig)
 import String
+import Task
 import TypedSvg exposing (g, svg, text_)
 import TypedSvg.Attributes exposing (dy, stroke, textAnchor, transform, viewBox, x)
 import TypedSvg.Core exposing (Svg)
@@ -161,11 +164,15 @@ type Msg
     | FilterLevel0Table String
     | FilterLevel1Table String
       -- Msg for adding Backbones
+    | BackboneCreated (Result Http.Error Backbone)
     | AddBackbone Backbone
     | ChangeBackboneToAdd ChangeMol
       -- Msg for adding Level 0
+    | Level0Created (Result Http.Error Level0)
     | AddLevel0 Level0
     | ChangeLevel0ToAdd ChangeMol
+    | RequestGBLevel0
+    | GBSelectedLevel0 File
       -- Msg for retrieving Vectors
     | VectorsReceived (Result Http.Error (List Vector))
       -- Notifications
@@ -387,6 +394,7 @@ addLevel0View model =
             Html.button
                 [ HA.style "margin" "50px"
                 , HA.style "font-size" "20px"
+                , onClick RequestGBLevel0
                 ]
                 [ Html.text "Load Genbank file"
                 ]
@@ -1206,7 +1214,7 @@ update msg model =
             )
 
         AddBackbone newBB ->
-            ( { model | vectors = BackboneVec newBB :: model.vectors }, Cmd.none )
+            ( model, createBackbone newBB )
 
         ChangeBackboneToAdd change ->
             ( { model
@@ -1219,7 +1227,13 @@ update msg model =
             )
 
         AddLevel0 newIns ->
-            ( { model | vectors = Level0Vec newIns :: model.vectors }, Cmd.none )
+            ( model, postVectors model.auth newIns )
+
+        RequestGBLevel0 ->
+            ( model, Select.file [ "text" ] GBSelectedLevel0 )
+
+        GBSelectedLevel0 file ->
+            ( model, Task.perform (ChangeLevel0ToAdd << ChangeGB) (File.toString file) )
 
         ChangeLevel0ToAdd change ->
             ( { model
@@ -1241,6 +1255,32 @@ update msg model =
 
         VectorsReceived (Err err) ->
             ( { model | notifications = Notify.makeError "Fetching vectors" (showHttpError err) model.notifications }
+            , Cmd.none
+            )
+
+        BackboneCreated (Ok backbone) ->
+            ( { model
+                | vectors = BackboneVec backbone :: model.vectors
+                , page = Catalogue
+              }
+            , Cmd.none
+            )
+
+        BackboneCreated (Err err) ->
+            ( { model | notifications = Notify.makeError "Creating new backbone failed" (showHttpError err) model.notifications }
+            , Cmd.none
+            )
+
+        Level0Created (Ok level0) ->
+            ( { model
+                | vectors = Level0Vec level0 :: model.vectors
+                , page = Catalogue
+              }
+            , Cmd.none
+            )
+
+        Level0Created (Err err) ->
+            ( { model | notifications = Notify.makeError "Creating new Level 0 vector failed" (showHttpError err) model.notifications }
             , Cmd.none
             )
 
@@ -1318,6 +1358,42 @@ getVectors auth =
     case auth of
         Authenticated usr ->
             authenticatedGet usr.token "http://localhost:8000/vectors/" VectorsReceived vectorDecoder
+
+        _ ->
+            Cmd.none
+
+
+createBackbone : String -> Level0 -> Cmd Msg
+createBackbone token backbone =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
+        , url = "http://localhost:8000/vectors/"
+        , body = Http.jsonBody (backboneEncoder backbone)
+        , expect = Http.expectJson BackboneCreated backboneDecoder
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+createLevel0 : String -> Level0 -> Cmd Msg
+createLevel0 token level0 =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
+        , url = "http://localhost:8000/vectors/"
+        , body = Http.jsonBody (level0Encoder level0)
+        , expect = Http.expectJson Level0Created level0Decoder
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+postVectors : Auth -> Level0 -> Cmd Msg
+postVectors auth level0 =
+    case auth of
+        Authenticated usr ->
+            createLevel0 usr.token level0
 
         _ ->
             Cmd.none

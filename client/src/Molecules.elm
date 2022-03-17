@@ -7,11 +7,15 @@ module Molecules exposing
     , Level1
     , Vector(..)
     , allOverhangs
+    , backboneDecoder
+    , backboneEncoder
     , initBackbone
     , initLevel0
     , initLevel1
     , interpretBackboneChange
     , interpretLevel0Change
+    , level0Decoder
+    , level0Encoder
     , overhangs
     , showBsa1Overhang
     , showBsmb1Overhang
@@ -19,8 +23,13 @@ module Molecules exposing
     )
 
 import Dict exposing (Dict)
+import File exposing (File)
+import File.Select as Select
+import Html exposing (select)
 import Json.Decode as Decode
 import Json.Decode.Pipeline as JDP
+import Json.Encode as Encode
+import Task
 
 
 {-| All possible overhangs that are produced by a BsaI digest of a vector.
@@ -37,12 +46,7 @@ type Bsa1Overhang
     | E__F
     | E__G
     | F__G
-
-
-type Vector
-    = BackboneVec Backbone
-    | Level0Vec Level0
-    | LevelNVec Level1
+    | InvalidBsa1
 
 
 {-| All possible overhangs that are produced by a BsmbI digest of a vector.
@@ -53,6 +57,15 @@ type Bsmb1Overhang
     | X__Y
     | X__Z
     | Y__Z
+    | InvalidBsmb1
+
+
+{-| All possible types of Vector
+-}
+type Vector
+    = BackboneVec Backbone
+    | Level0Vec Level0
+    | LevelNVec Level1
 
 
 {-| Vector that accept one or more donorvector. Also called a destination vector.
@@ -71,6 +84,7 @@ type alias Backbone =
     , reaseDigest : Maybe String
     , date : Maybe String
     , vectorType : Maybe String
+    , genbankContent : Maybe String
     }
 
 
@@ -90,6 +104,7 @@ type alias Level0 =
     , notes : Maybe String
     , reaseDigest : Maybe String
     , date : Maybe String
+    , genbankContent : Maybe String
     }
 
 
@@ -105,6 +120,7 @@ type alias Level1 =
     , sequenceLength : Int
     , inserts : List Level0
     , backbone : Maybe Backbone
+    , genbankContent : Maybe String
     }
 
 
@@ -118,6 +134,7 @@ initLevel1 =
     , sequenceLength = 0
     , inserts = []
     , backbone = Nothing
+    , genbankContent = Nothing
     }
 
 
@@ -138,6 +155,7 @@ type ChangeMol
     | ChangeNotes String
     | ChangeReaseDigest String
     | ChangeVectorType String
+    | ChangeGB String
 
 
 initLevel0 : Level0
@@ -155,6 +173,7 @@ initLevel0 =
     , notes = Nothing
     , reaseDigest = Nothing
     , date = Nothing
+    , genbankContent = Nothing
     }
 
 
@@ -173,6 +192,7 @@ initBackbone =
     , reaseDigest = Nothing
     , date = Nothing
     , vectorType = Nothing
+    , genbankContent = Nothing
     }
 
 
@@ -221,6 +241,9 @@ interpretBackboneChange msg bb =
         ChangeIsBsmB1Free _ ->
             bb
 
+        ChangeGB content ->
+            { bb | genbankContent = Just content }
+
 
 interpretLevel0Change : ChangeMol -> Level0 -> Level0
 interpretLevel0Change msg l0 =
@@ -267,6 +290,9 @@ interpretLevel0Change msg l0 =
         ChangeVectorType _ ->
             l0
 
+        ChangeGB content ->
+            { l0 | genbankContent = Just content }
+
 
 overhangs : Dict String (List Bsa1Overhang)
 overhangs =
@@ -297,6 +323,10 @@ allOverhangs =
     , E__G
     , F__G
     ]
+
+
+
+-- Decoders
 
 
 decodeOverhang : String -> Decode.Decoder Bsa1Overhang
@@ -332,6 +362,7 @@ level0Decoder =
         |> JDP.optional "notes" (Decode.maybe Decode.string) Nothing
         |> JDP.optional "reaseDigest" (Decode.maybe Decode.string) Nothing
         |> JDP.optional "date" (Decode.maybe Decode.string) Nothing
+        |> JDP.hardcoded Nothing
 
 
 backboneDecoder : Decode.Decoder Backbone
@@ -358,6 +389,7 @@ backboneDecoder =
         |> JDP.optional "reaseDigest" (Decode.maybe Decode.string) Nothing
         |> JDP.optional "date" (Decode.maybe Decode.string) Nothing
         |> JDP.optional "vector_type" (Decode.maybe Decode.string) Nothing
+        |> JDP.hardcoded Nothing
 
 
 level1Decoder : Decode.Decoder Level1
@@ -375,6 +407,7 @@ level1Decoder =
         |> JDP.required "sequence_length" Decode.int
         |> JDP.required "children" (Decode.list level0Decoder)
         |> JDP.optional "backbone" (Decode.maybe backboneDecoder) Nothing
+        |> JDP.hardcoded Nothing
 
 
 
@@ -406,11 +439,62 @@ vectorDecoder =
     Decode.list dispatchDecoder
 
 
+
+-- Encoders
+
+
+backboneEncoder : Backbone -> Encode.Value
+backboneEncoder backbone =
+    Encode.object
+        [ ( "name", Encode.string backbone.name )
+        , ( "location", Encode.int backbone.location )
+        , ( "bsa1_overhang", Encode.string <| showBsa1Overhang <| Maybe.withDefault InvalidBsa1 backbone.bsa1Overhang )
+        , ( "bsmb1_overhang", Encode.string <| showBsmb1Overhang <| Maybe.withDefault InvalidBsmb1 backbone.bsmb1Overhang )
+        , ( "sequence", Encode.string "NNNNNNNNNNNNNNNNN---NNNNNNN" ) -- TODO: We do need the sequence!!!
+        , ( "bacterial_strain", Encode.string <| Maybe.withDefault "" backbone.bacterialStrain )
+        , ( "responsible", Encode.string <| backbone.responsible )
+        , ( "group", Encode.string <| backbone.group )
+        , ( "selection", Encode.string <| Maybe.withDefault "" backbone.selection )
+        , ( "notes", Encode.string <| Maybe.withDefault "" backbone.notes )
+        , ( "REase_digest", Encode.string <| Maybe.withDefault "" backbone.reaseDigest )
+        , ( "date", Encode.string <| Maybe.withDefault "" backbone.date )
+        , ( "vector_type", Encode.string <| Maybe.withDefault "" backbone.vectorType )
+        ]
+
+
+level0Encoder : Level0 -> Encode.Value
+level0Encoder level0 =
+    Encode.object
+        [ ( "name", Encode.string level0.name )
+        , ( "location", Encode.int level0.location )
+        , ( "bsa1_overhang", Encode.string <| showBsa1Overhang <| level0.bsa1Overhang )
+        , ( "bacterial_strain", Encode.string <| Maybe.withDefault "" level0.bacterialStrain )
+        , ( "responsible", Encode.string <| level0.responsible )
+        , ( "group", Encode.string <| level0.group )
+        , ( "selection", Encode.string <| Maybe.withDefault "" level0.selection )
+        , ( "cloning_technique", Encode.string <| Maybe.withDefault "" level0.cloningTechnique )
+        , ( "is_BsmB1_free", Encode.string <| isBsmb1FreeToString level0.isBsmb1Free )
+        , ( "notes", Encode.string <| Maybe.withDefault "" level0.notes )
+        , ( "REase_digest", Encode.string <| Maybe.withDefault "" level0.reaseDigest )
+        , ( "date", Encode.string <| Maybe.withDefault "" level0.date )
+        , ( "genbank_content", Encode.string <| Maybe.withDefault "" level0.genbankContent )
+        ]
+
+
 parseBsa1Overhang : String -> Maybe Bsa1Overhang
 parseBsa1Overhang str =
     case str of
         "AB" ->
             Just A__B
+
+        "A__B" ->
+            Just A__B
+
+        "AC" ->
+            Just A__C
+
+        "A__C" ->
+            Just A__C
 
         "AG" ->
             Just A__G
@@ -418,25 +502,49 @@ parseBsa1Overhang str =
         "BC" ->
             Just B__C
 
+        "B__C" ->
+            Just B__C
+
         "CD" ->
+            Just C__D
+
+        "C__D" ->
             Just C__D
 
         "CG" ->
             Just C__G
 
+        "C__G" ->
+            Just C__G
+
         "DE" ->
+            Just D__E
+
+        "D__E" ->
             Just D__E
 
         "DG" ->
             Just D__G
 
+        "D__G" ->
+            Just D__G
+
         "EF" ->
+            Just E__F
+
+        "E__F" ->
             Just E__F
 
         "EG" ->
             Just E__G
 
+        "E__G" ->
+            Just E__G
+
         "FG" ->
+            Just F__G
+
+        "F__G" ->
             Just F__G
 
         _ ->
@@ -449,16 +557,31 @@ parseBsmb1Overhang str =
         "WX" ->
             Just W__X
 
+        "W__X" ->
+            Just W__X
+
         "WZ" ->
+            Just W__Z
+
+        "W__Z" ->
             Just W__Z
 
         "XY" ->
             Just X__Y
 
+        "X__Y" ->
+            Just X__Y
+
         "XZ" ->
             Just X__Z
 
+        "X__Z" ->
+            Just X__Z
+
         "YZ" ->
+            Just Y__Z
+
+        "Y__Z" ->
             Just Y__Z
 
         _ ->
@@ -501,6 +624,9 @@ showBsa1Overhang bsa1_overhang =
         F__G ->
             "F__G"
 
+        InvalidBsa1 ->
+            ""
+
 
 showBsmb1Overhang : Bsmb1Overhang -> String
 showBsmb1Overhang bsmb1 =
@@ -520,6 +646,9 @@ showBsmb1Overhang bsmb1 =
         Y__Z ->
             "Y__Z"
 
+        InvalidBsmb1 ->
+            ""
+
 
 isBsmb1FreeToBool : String -> Maybe Bool
 isBsmb1FreeToBool answer =
@@ -532,3 +661,16 @@ isBsmb1FreeToBool answer =
 
         _ ->
             Nothing
+
+
+isBsmb1FreeToString : Maybe Bool -> String
+isBsmb1FreeToString answer =
+    case answer of
+        Just True ->
+            "YES"
+
+        Just False ->
+            "NO"
+
+        Nothing ->
+            "NOT TESTED!"
