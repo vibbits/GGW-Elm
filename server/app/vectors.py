@@ -29,13 +29,7 @@ def get_vectors(
     database: Session = Depends(deps.get_db),
     current_user: schemas.User = Depends(deps.get_current_user),
 ) -> List[schemas.VectorOut]:
-    """Processes GET request from the UI
-
-    Args:
-        database (Session, optional): Database Session.
-        Defaults to Depends(deps.get_db).
-        current_user (schemas.User, optional): User from UI.
-        Defaults to Depends(deps.get_current_user).
+    """Returns all of the vectors accessible by this user.
 
     Returns:
         List[schemas.VectorOut]: List of Vectors readable for the UI.
