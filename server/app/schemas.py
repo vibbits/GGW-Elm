@@ -152,9 +152,6 @@ class Annotation(BaseModel):
     Base Class defining an Annotation.
     Annotations are considered as extra
     information for a construct.
-
-    Args:
-        BaseModel (_type_): _description_
     """
 
     key: str
