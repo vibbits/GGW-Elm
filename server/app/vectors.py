@@ -13,13 +13,14 @@ router = APIRouter()
 
 
 def vector_to_world(vector: schemas.VectorInDB) -> schemas.VectorOut:
-    """Returns a vector readable by the UI
+    """Returns a vector in the form sent over the wire:
+          - replace the sequence by its length
 
     Args:
-        vector (schemas.VectorInDB): Vector as stored in DB
+        vector: Vector as stored in DB
 
     Returns:
-        schemas.VectorOut: Vector readable by UI
+        schemas.VectorOut: Vector sent over the wire.
     """
     return schemas.VectorOut(**vector.dict(), sequence_length=len(vector.sequence))
 
@@ -29,16 +30,8 @@ def get_vectors(
     database: Session = Depends(deps.get_db),
     current_user: schemas.User = Depends(deps.get_current_user),
 ) -> List[schemas.VectorOut]:
-    """Processes GET request from the UI
+    """Returns all of the vectors accessible by this user.
 
-    Args:
-        database (Session, optional): Database Session.
-        Defaults to Depends(deps.get_db).
-        current_user (schemas.User, optional): User from UI.
-        Defaults to Depends(deps.get_current_user).
-
-    Returns:
-        List[schemas.VectorOut]: List of Vectors readable for the UI.
     """
     return [
         vector_to_world(schemas.VectorInDB.from_orm(vec))

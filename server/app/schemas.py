@@ -135,9 +135,6 @@ class Feature(BaseModel):
 
     Features can contain multiple qualifiers to
     provide more information
-
-    Args:
-        BaseModel (_type_): _description_
     """
 
     type: str
@@ -155,9 +152,6 @@ class Annotation(BaseModel):
     Base Class defining an Annotation.
     Annotations are considered as extra
     information for a construct.
-
-    Args:
-        BaseModel (_type_): _description_
     """
 
     key: str
@@ -172,12 +166,10 @@ class Annotation(BaseModel):
 class VectorBase(BaseModel):
     """
     Base Class for defining a Vector.
-    The Vector class contains all fields that are
-    shared with all the other Vector classes,
-    except the VectorFromGenbank class.
-
-    Args:
-        BaseModel (_type_): _description_
+    This class defines common fields that are
+    used whether the vector is stored in the
+    database, is being sent from the client, or
+    is being sent to the client.
     """
 
     location: int
@@ -198,9 +190,6 @@ class VectorFromGenbank(BaseModel):
     Base Class for defining a Vector.
     This class contains all the vector information
     that is read from a genbank file.
-
-    Args:
-        BaseModel (_type_): _description_
     """
 
     sequence: str
@@ -214,9 +203,6 @@ class Vector(VectorBase):
     This class inherits from the VectorBase class.
     This contains additional information shared by
     most Vector classes.
-
-    Args:
-        VectorBase (_type_): _description_
     """
 
     id: int = 0
@@ -234,12 +220,8 @@ class Vector(VectorBase):
 
 class VectorInDB(Vector):
     """
-    This class inherits from the Vector class.
     It contains all the necessary information for
     a Vector object when it is stored in the database.
-
-    Args:
-        Vector (_type_): _description_
     """
 
     sequence: str
@@ -252,12 +234,11 @@ class VectorInDB(Vector):
 
 class VectorToAdd(VectorBase):
     """
-    This class inherit from the VectorBase class.
     It contains supplemental information provided
     when a new vector is posted to the database.
-
-    Args:
-        VectorBase (_type_): _description_
+    The client sends a string that must be converted into
+    a Python datetime object along with unparsed genbank
+    data.
     """
 
     date: str
@@ -266,12 +247,12 @@ class VectorToAdd(VectorBase):
 
 class VectorOut(Vector):
     """
-    This class inherit from the Vector class.
     It contains all the necessary information for
     a Vector object when it is queried from the database.
-
-    Args:
-        Vector (_type_): _description_
+    Not that the `sequence` is **NOT** sent, but instead
+    is replaced by just the `sequence_length`. This is because
+    the sequence is not used by the client but the length is
+    so we save bytes over the wire.
     """
 
     sequence_length: int
