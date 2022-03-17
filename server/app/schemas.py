@@ -203,9 +203,6 @@ class Vector(VectorBase):
     This class inherits from the VectorBase class.
     This contains additional information shared by
     most Vector classes.
-
-    Args:
-        VectorBase (_type_): _description_
     """
 
     id: int = 0
