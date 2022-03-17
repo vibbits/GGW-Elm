@@ -236,9 +236,9 @@ class VectorToAdd(VectorBase):
     """
     It contains supplemental information provided
     when a new vector is posted to the database.
-
-    Args:
-        VectorBase (_type_): _description_
+    The client sends a string that must be converted into
+    a Python datetime object along with unparsed genbank
+    data.
     """
 
     date: str
