@@ -10,11 +10,5 @@ router = APIRouter()
 def hello(database: Session = Depends(deps.get_db)):
     """Test function that returns the user name.
 
-    Args:
-        db (Session, optional): database Session.
-        Defaults to Depends(deps.get_db).
-
-    Returns:
-        _type_: Returns the User.
     """
     return crud.get_user(database, 1)
