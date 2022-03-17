@@ -30,9 +30,7 @@ def get_vectors(
     database: Session = Depends(deps.get_db),
     current_user: schemas.User = Depends(deps.get_current_user),
 ) -> List[schemas.VectorOut]:
-    """Returns all of the vectors accessible by this user.
-
-    """
+    """Returns all of the vectors accessible by this user."""
     return [
         vector_to_world(schemas.VectorInDB.from_orm(vec))
         for vec in crud.get_vectors_for_user(database=database, user=current_user)
