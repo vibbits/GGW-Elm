@@ -13,13 +13,14 @@ router = APIRouter()
 
 
 def vector_to_world(vector: schemas.VectorInDB) -> schemas.VectorOut:
-    """Returns a vector readable by the UI
+    """Returns a vector in the form sent over the wire:
+          - replace the sequence by its length
 
     Args:
-        vector (schemas.VectorInDB): Vector as stored in DB
+        vector: Vector as stored in DB
 
     Returns:
-        schemas.VectorOut: Vector readable by UI
+        schemas.VectorOut: Vector sent over the wire.
     """
     return schemas.VectorOut(**vector.dict(), sequence_length=len(vector.sequence))
 
