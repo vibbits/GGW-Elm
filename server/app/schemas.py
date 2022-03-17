@@ -220,7 +220,6 @@ class Vector(VectorBase):
 
 class VectorInDB(Vector):
     """
-    This class inherits from the Vector class.
     It contains all the necessary information for
     a Vector object when it is stored in the database.
 
