@@ -166,12 +166,10 @@ class Annotation(BaseModel):
 class VectorBase(BaseModel):
     """
     Base Class for defining a Vector.
-    The Vector class contains all fields that are
-    shared with all the other Vector classes,
-    except the VectorFromGenbank class.
-
-    Args:
-        BaseModel (_type_): _description_
+    This class defines common fields that are
+    used whether the vector is stored in the
+    database, is being sent from the client, or
+    is being sent to the client.
     """
 
     location: int
