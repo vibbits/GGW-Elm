@@ -27,16 +27,17 @@ def get_vectors(
     ]
 
 
-@router.post("/vectors/", response_model=Optional[schemas.VectorOut])
+@router.post("/vectors/", response_model=schemas.VectorOut)
 def add_level0_construct(
     new_vec: schemas.VectorToAdd,
     database: Session = Depends(deps.get_db),
     current_user: schemas.User = Depends(deps.get_current_user),
-) -> Optional[schemas.VectorOut]:
+) -> schemas.VectorOut:
     gbk = io.StringIO(new_vec.genbank_content)
-    new_vec.date = datetime.strptime(new_vec.date, "%Y-%M-%d")
+    vec = new_vec.dict()
+    del vec["date"]
     lvl0 = schemas.VectorInDB(
-        **new_vec.dict(),
+        **vec,
         **convert_gbk_to_vector(gbk).dict(),
         children=[],
         users=[],
@@ -44,6 +45,7 @@ def add_level0_construct(
         gateway_site="",
         vector_type="",
         bsmb1_overhang="",
+        date=datetime.strptime(new_vec.date, "%Y-%M-%d"),
     )
     if (
         inserted := crud.add_vector(database=database, vector=lvl0, user=current_user)
