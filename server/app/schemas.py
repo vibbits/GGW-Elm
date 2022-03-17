@@ -247,12 +247,12 @@ class VectorToAdd(VectorBase):
 
 class VectorOut(Vector):
     """
-    This class inherit from the Vector class.
     It contains all the necessary information for
     a Vector object when it is queried from the database.
-
-    Args:
-        Vector (_type_): _description_
+    Not that the `sequence` is **NOT** sent, but instead
+    is replaced by just the `sequence_length`. This is because
+    the sequence is not used by the client but the length is
+    so we save bytes over the wire.
     """
 
     sequence_length: int
