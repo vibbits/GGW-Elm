@@ -222,9 +222,6 @@ class VectorInDB(Vector):
     """
     It contains all the necessary information for
     a Vector object when it is stored in the database.
-
-    Args:
-        Vector (_type_): _description_
     """
 
     sequence: str
