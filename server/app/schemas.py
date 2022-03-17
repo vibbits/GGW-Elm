@@ -190,9 +190,6 @@ class VectorFromGenbank(BaseModel):
     Base Class for defining a Vector.
     This class contains all the vector information
     that is read from a genbank file.
-
-    Args:
-        BaseModel (_type_): _description_
     """
 
     sequence: str
