@@ -116,9 +116,6 @@ class Qualifier(BaseModel):
     Base Class for defining qualifiers.
     Qualifiers are descriptive components
     from a genbank file.
-
-    Args:
-        BaseModel (_type_): _description_
     """
 
     key: str
