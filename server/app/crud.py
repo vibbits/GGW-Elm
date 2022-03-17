@@ -90,7 +90,6 @@ def add_vector(
         is_BsmB1_free=vector.is_BsmB1_free,
         notes=vector.notes,
         REase_digest=vector.REase_digest,
-        sequence=vector.sequence,
         level=vector.level,
         bsmb1_overhang=vector.bsmb1_overhang,
         gateway_site=vector.gateway_site,
