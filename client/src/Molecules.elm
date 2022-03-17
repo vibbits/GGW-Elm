@@ -25,11 +25,9 @@ module Molecules exposing
     )
 
 import Dict exposing (Dict)
-import Html exposing (select)
 import Json.Decode as Decode
 import Json.Decode.Pipeline as JDP
 import Json.Encode as Encode
-import List.Extra exposing (group)
 
 
 {-| All possible overhangs that are produced by a BsaI digest of a vector.

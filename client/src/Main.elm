@@ -1286,12 +1286,12 @@ update msg model =
             , Cmd.none
             )
 
-        Level1Created (Ok level1) ->
+        Level1Created (Ok _) ->
             ( model
             , Cmd.none
             )
 
-        Level1Created (Err err) ->
+        Level1Created (Err _) ->
             ( model
             , Cmd.none
             )
@@ -1417,13 +1417,13 @@ postVectors auth vector =
     case auth of
         Authenticated usr ->
             case vector of
-                Level0Vec vec ->
+                Level0Vec _ ->
                     createVector usr.token vector
 
-                BackboneVec vec ->
+                BackboneVec _ ->
                     createVector usr.token vector
 
-                LevelNVec vec ->
+                LevelNVec _ ->
                     createVector usr.token vector
 
         _ ->
