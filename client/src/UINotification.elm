@@ -130,9 +130,8 @@ viewNotification msgCtor index notification =
         color : Color
         color =
             case notification.level of
-                Warning ->
-                    yellow
-
+                -- Warning ->
+                --     yellow
                 Error ->
                     red
 
@@ -203,11 +202,6 @@ grey =
 -- blue : Color
 -- blue =
 --     rgb255 52 101 164
-
-
-yellow : Color
-yellow =
-    rgb255 237 212 0
 
 
 red : Color

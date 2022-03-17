@@ -144,7 +144,6 @@ type ChangeMol
     = ChangeName String
     | ChangeMPG Int
     | ChangeBsa1 Bsa1Overhang
-    | ChangeBsmb1 Bsmb1Overhang
     | ChangeDate String
     | ChangeBacterialStrain String
     | ChangeResponsible String
@@ -154,7 +153,6 @@ type ChangeMol
     | ChangeIsBsmB1Free Bool
     | ChangeNotes String
     | ChangeReaseDigest String
-    | ChangeVectorType String
     | ChangeGB String
 
 
@@ -217,9 +215,6 @@ interpretBackboneChange msg bb =
         ChangeSelection sel ->
             { bb | selection = Just sel }
 
-        ChangeBsmb1 bo ->
-            { bb | bsmb1Overhang = Just bo }
-
         ChangeNotes nts ->
             { bb | notes = Just nts }
 
@@ -228,9 +223,6 @@ interpretBackboneChange msg bb =
 
         ChangeDate dte ->
             { bb | date = Just dte }
-
-        ChangeVectorType vt ->
-            { bb | vectorType = Just vt }
 
         ChangeBacterialStrain bactStrain ->
             { bb | bacterialStrain = Just bactStrain }
@@ -283,12 +275,6 @@ interpretLevel0Change msg l0 =
 
         ChangeReaseDigest rease ->
             { l0 | reaseDigest = Just rease }
-
-        ChangeBsmb1 _ ->
-            l0
-
-        ChangeVectorType _ ->
-            l0
 
         ChangeGB content ->
             { l0 | genbankContent = Just content }
