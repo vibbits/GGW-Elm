@@ -971,7 +971,7 @@ backboneTable model =
                       }
                     , { header = none
                       , width = fillPortion 3
-                      , view = .bsmb1Overhang >> Just >> viewMaybe showBsmb1Overhang
+                      , view = .bsmb1Overhang >> viewMaybe showBsmb1Overhang
                       }
                     ]
                 }

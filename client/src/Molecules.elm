@@ -438,9 +438,8 @@ backboneEncoder backbone =
                 |> Maybe.withDefault Encode.null
           )
         , ( "bsmb1_overhang"
-          , Encode.string <|
-                showBsmb1Overhang <|
-                    backbone.bsmb1Overhang
+          , Maybe.map (showBsmb1Overhang >> Encode.string) backbone.bsmb1Overhang
+                |> Maybe.withDefault Encode.null
           )
         , ( "bacterial_strain"
           , Encode.string <|
@@ -481,9 +480,8 @@ levelNEncoder level1 =
         [ ( "name", Encode.string level1.name )
         , ( "location", Encode.int level1.location )
         , ( "bsmb1_overhang"
-          , Encode.string <|
-                showBsmb1Overhang <|
-                    level1.bsmb1Overhang
+          , Maybe.map (showBsmb1Overhang >> Encode.string) level1.bsmb1Overhang
+                |> Maybe.withDefault Encode.null
           )
         , ( "responsible", Encode.string <| level1.responsible )
         , ( "group", Encode.string <| level1.group )
@@ -592,26 +590,23 @@ showBsa1Overhang bsa1_overhang =
             "F__G"
 
 
-showBsmb1Overhang : Maybe Bsmb1Overhang -> String
+showBsmb1Overhang : Bsmb1Overhang -> String
 showBsmb1Overhang bsmb1 =
     case bsmb1 of
-        Just W__X ->
+        W__X ->
             "W__X"
 
-        Just W__Z ->
+        W__Z ->
             "W__Z"
 
-        Just X__Y ->
+        X__Y ->
             "X__Y"
 
-        Just X__Z ->
+        X__Z ->
             "X__Z"
 
-        Just Y__Z ->
+        Y__Z ->
             "Y__Z"
-
-        Nothing ->
-            "Not defined"
 
 
 isBsmb1FreeToBool : String -> Maybe Bool
