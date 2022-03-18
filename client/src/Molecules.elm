@@ -44,7 +44,6 @@ type Bsa1Overhang
     | E__F
     | E__G
     | F__G
-    | InvalidBsa1
 
 
 {-| All possible overhangs that are produced by a BsmbI digest of a vector.
@@ -55,7 +54,6 @@ type Bsmb1Overhang
     | X__Y
     | X__Z
     | Y__Z
-    | InvalidBsmb1
 
 
 {-| All possible types of Vector
@@ -438,12 +436,12 @@ backboneEncoder backbone =
         , ( "bsa1_overhang"
           , Encode.string <|
                 showBsa1Overhang <|
-                    Maybe.withDefault InvalidBsa1 backbone.bsa1Overhang
+                    backbone.bsa1Overhang
           )
         , ( "bsmb1_overhang"
           , Encode.string <|
                 showBsmb1Overhang <|
-                    Maybe.withDefault InvalidBsmb1 backbone.bsmb1Overhang
+                    backbone.bsmb1Overhang
           )
         , ( "bacterial_strain"
           , Encode.string <|
@@ -464,7 +462,7 @@ level0Encoder level0 =
     Encode.object
         [ ( "name", Encode.string level0.name )
         , ( "location", Encode.int level0.location )
-        , ( "bsa1_overhang", Encode.string <| showBsa1Overhang <| level0.bsa1Overhang )
+        , ( "bsa1_overhang", Encode.string <| showBsa1Overhang <| Just level0.bsa1Overhang )
         , ( "bacterial_strain", Encode.string <| Maybe.withDefault "" level0.bacterialStrain )
         , ( "responsible", Encode.string <| level0.responsible )
         , ( "group", Encode.string <| level0.group )
@@ -486,7 +484,7 @@ levelNEncoder level1 =
         , ( "bsmb1_overhang"
           , Encode.string <|
                 showBsmb1Overhang <|
-                    Maybe.withDefault InvalidBsmb1 level1.bsmb1Overhang
+                    level1.bsmb1Overhang
           )
         , ( "responsible", Encode.string <| level1.responsible )
         , ( "group", Encode.string <| level1.group )
@@ -558,66 +556,66 @@ parseBsmb1Overhang str =
             Nothing
 
 
-showBsa1Overhang : Bsa1Overhang -> String
+showBsa1Overhang : Maybe Bsa1Overhang -> String
 showBsa1Overhang bsa1_overhang =
     case bsa1_overhang of
-        A__B ->
+        Just A__B ->
             "A__B"
 
-        A__C ->
+        Just A__C ->
             "A__C"
 
-        A__G ->
+        Just A__G ->
             "A__G"
 
-        B__C ->
+        Just B__C ->
             "B__C"
 
-        C__D ->
+        Just C__D ->
             "C__D"
 
-        C__G ->
+        Just C__G ->
             "C__G"
 
-        D__E ->
+        Just D__E ->
             "D__E"
 
-        D__G ->
+        Just D__G ->
             "D__G"
 
-        E__F ->
+        Just E__F ->
             "E__F"
 
-        E__G ->
+        Just E__G ->
             "E__G"
 
-        F__G ->
+        Just F__G ->
             "F__G"
 
-        InvalidBsa1 ->
-            ""
+        Nothing ->
+            "None"
 
 
-showBsmb1Overhang : Bsmb1Overhang -> String
+showBsmb1Overhang : Maybe Bsmb1Overhang -> String
 showBsmb1Overhang bsmb1 =
     case bsmb1 of
-        W__X ->
+        Just W__X ->
             "W__X"
 
-        W__Z ->
+        Just W__Z ->
             "W__Z"
 
-        X__Y ->
+        Just X__Y ->
             "X__Y"
 
-        X__Z ->
+        Just X__Z ->
             "X__Z"
 
-        Y__Z ->
+        Just Y__Z ->
             "Y__Z"
 
-        InvalidBsmb1 ->
-            ""
+        Nothing ->
+            "None"
 
 
 isBsmb1FreeToBool : String -> Maybe Bool
