@@ -35,8 +35,7 @@ class UserCreate(UserBase):
 class User(UserBase):
     """
     Class for a user.
-    Inherits from UserBase.
-    @params:
+    Used when the database `id` (a globally unique id) is required.
     """
 
     id: int
