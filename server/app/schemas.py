@@ -23,7 +23,9 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     """
     Class to create a user.
-    Inherits from UserBase class.
+    When creating a user we also need the authorization issuer (`iss`),
+    and the unique identifier (subject, `sub`) on top of the data from
+    `UserBase`.
     """
 
     iss: str  # Issuer
