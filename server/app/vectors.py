@@ -45,13 +45,6 @@ def add_level0_construct(
 ) -> schemas.VectorOut:
     """Handles POST requests from the UI
 
-    Args:
-        new_vec (schemas.VectorToAdd):
-        A Vector object when posted from UI.
-        database (Session, optional): Database Session.
-        Defaults to Depends(deps.get_db).
-        current_user (schemas.User, optional): Current User.
-        Defaults to Depends(deps.get_current_user).
 
     Raises:
         HTTPException: If the function encounters an error,
