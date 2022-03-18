@@ -72,7 +72,7 @@ class Token(BaseModel):
 
 class Provider(BaseModel):
     """
-    Base Class for defining a provider.
+    Base Class for defining an OpenID Connect identity provider.
     """
 
     id: int
