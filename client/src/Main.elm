@@ -406,7 +406,7 @@ addLevel0View model =
 
 makeOverhangOptions : List Bsa1Overhang -> List (Input.Option Bsa1Overhang msg)
 makeOverhangOptions overHangList =
-    List.map (\ohang -> Input.option ohang (showBsa1Overhang (Just ohang) |> Element.text)) overHangList
+    List.map (\ohang -> Input.option ohang (showBsa1Overhang ohang |> Element.text)) overHangList
 
 
 addBackboneView : Model -> Element Msg
@@ -625,7 +625,7 @@ visualRepresentation model =
     let
         -- Note: The reversing is for making sure Level0 1 is at position 0. This way the destination vector is appended on the back of the list!
         insertOverhangs =
-            getInsertsFromLevel1 model.level1_construct |> List.map (.bsa1Overhang >> Just >> showBsa1Overhang)
+            getInsertsFromLevel1 model.level1_construct |> List.map (.bsa1Overhang >> showBsa1Overhang)
 
         insertNames =
             getInsertsFromLevel1 model.level1_construct |> List.map .name
@@ -726,7 +726,7 @@ overhangRadioRow model =
     let
         makeButton : Bsa1Overhang -> Input.Option Bsa1Overhang Msg
         makeButton bsa1_overhang =
-            showBsa1Overhang (Just bsa1_overhang)
+            showBsa1Overhang bsa1_overhang
                 |> option_
                 |> Input.optionWith bsa1_overhang
     in
@@ -831,7 +831,7 @@ level0Table model =
                       }
                     , { header = none
                       , width = fillPortion 1
-                      , view = .bsa1Overhang >> Just >> showBsa1Overhang >> Element.text
+                      , view = .bsa1Overhang >> showBsa1Overhang >> Element.text
                       }
                     ]
                 }
@@ -967,7 +967,7 @@ backboneTable model =
                       }
                     , { header = none
                       , width = fillPortion 3
-                      , view = .bsa1Overhang >> Just >> viewMaybe showBsa1Overhang
+                      , view = .bsa1Overhang >> viewMaybe showBsa1Overhang
                       }
                     , { header = none
                       , width = fillPortion 3

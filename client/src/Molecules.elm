@@ -434,9 +434,8 @@ backboneEncoder backbone =
         [ ( "name", Encode.string backbone.name )
         , ( "location", Encode.int backbone.location )
         , ( "bsa1_overhang"
-          , Encode.string <|
-                showBsa1Overhang <|
-                    backbone.bsa1Overhang
+          , Maybe.map (showBsa1Overhang >> Encode.string) backbone.bsa1Overhang
+                |> Maybe.withDefault Encode.null
           )
         , ( "bsmb1_overhang"
           , Encode.string <|
@@ -462,7 +461,7 @@ level0Encoder level0 =
     Encode.object
         [ ( "name", Encode.string level0.name )
         , ( "location", Encode.int level0.location )
-        , ( "bsa1_overhang", Encode.string <| showBsa1Overhang <| Just level0.bsa1Overhang )
+        , ( "bsa1_overhang", Encode.string <| showBsa1Overhang <| level0.bsa1Overhang )
         , ( "bacterial_strain", Encode.string <| Maybe.withDefault "" level0.bacterialStrain )
         , ( "responsible", Encode.string <| level0.responsible )
         , ( "group", Encode.string <| level0.group )
@@ -556,44 +555,41 @@ parseBsmb1Overhang str =
             Nothing
 
 
-showBsa1Overhang : Maybe Bsa1Overhang -> String
+showBsa1Overhang : Bsa1Overhang -> String
 showBsa1Overhang bsa1_overhang =
     case bsa1_overhang of
-        Just A__B ->
+        A__B ->
             "A__B"
 
-        Just A__C ->
+        A__C ->
             "A__C"
 
-        Just A__G ->
+        A__G ->
             "A__G"
 
-        Just B__C ->
+        B__C ->
             "B__C"
 
-        Just C__D ->
+        C__D ->
             "C__D"
 
-        Just C__G ->
+        C__G ->
             "C__G"
 
-        Just D__E ->
+        D__E ->
             "D__E"
 
-        Just D__G ->
+        D__G ->
             "D__G"
 
-        Just E__F ->
+        E__F ->
             "E__F"
 
-        Just E__G ->
+        E__G ->
             "E__G"
 
-        Just F__G ->
+        F__G ->
             "F__G"
-
-        Nothing ->
-            "None"
 
 
 showBsmb1Overhang : Maybe Bsmb1Overhang -> String
@@ -615,7 +611,7 @@ showBsmb1Overhang bsmb1 =
             "Y__Z"
 
         Nothing ->
-            "None"
+            "Not defined"
 
 
 isBsmb1FreeToBool : String -> Maybe Bool
