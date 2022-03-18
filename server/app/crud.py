@@ -76,7 +76,7 @@ def get_provider_by_id(
 
 
 def add_vector(
-    database: Session, vector: schemas.Vector, user: schemas.User
+    database: Session, vector: schemas.VectorInDB, user: schemas.User
 ) -> Optional[model.Vector]:
     new_vector = model.Vector(
         location=vector.location,
@@ -95,6 +95,7 @@ def add_vector(
         gateway_site=vector.gateway_site,
         vector_type=vector.vector_type,
         date=vector.date,
+        sequence=vector.sequence,
     )
     try:
         database.add(new_vector)

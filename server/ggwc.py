@@ -190,7 +190,7 @@ def import0(csv_path, gbk_path, user):
             vec.date = None
         vec.gateway_site = csv_content[i]["Gateway site"]
         vec.vector_type = csv_content[i]["Vector type (MP-G2-)"]
-        vec.children = []  # TODOD: implement make the script also store the children.
+        vec.children = []  # TODO: implement make the script also store the children.
 
         child_ids = (
             csv_content[i]["Children ID"].replace("[", "").replace("]", "").split(",")
@@ -199,6 +199,9 @@ def import0(csv_path, gbk_path, user):
         print("#" * 80)
         print(f"Child ID's: {child_ids}")
         print("#" * 80)
+
+        # Adding the admin-user 'ggw' list of users
+        vec.users = [db_user]
 
         # Reading the sequence from the genbank file
         gbk_file_path = Path(gbk_path) / Path(gbk_file)
@@ -249,7 +252,14 @@ def import0(csv_path, gbk_path, user):
 
     with SessionLocal() as database:
         for vec in vec_list:
-            if crud.add_vector(database=database, vector=vec, user=db_user) is not None:
+            # Convert to dict
+            new_vec = vars(vec)
+            # Make a VectorInDB object (also has the sequence!)
+            vec_in_db = schemas.VectorInDB(**new_vec)
+            if (
+                crud.add_vector(database=database, vector=vec_in_db, user=db_user)
+                is not None
+            ):
                 click.echo(f"Vector '{vec.name}' added.")
 
 
