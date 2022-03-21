@@ -2,8 +2,10 @@ module Auth exposing
     ( Auth(..)
     , AuthCode
     , Login
+    , User
     , authCode
     , authDecoder
+    , init
     )
 
 import Json.Decode as Decode
@@ -53,6 +55,11 @@ authDecoder =
         [ loginUrlsDecoder
         , authenticatedDecoder
         ]
+
+
+init : Auth
+init =
+    NotAuthenticated []
 
 
 authenticatedDecoder : Decode.Decoder Auth
