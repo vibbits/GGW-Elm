@@ -46,8 +46,8 @@ import List.Extra
 import Molecules exposing (..)
 import Path
 import Shape exposing (defaultPieConfig)
+import Storage
 import String
-import Task
 import TypedSvg exposing (g, svg, text_)
 import TypedSvg.Attributes exposing (dy, stroke, textAnchor, transform, viewBox, x)
 import TypedSvg.Core exposing (Svg)
@@ -94,18 +94,31 @@ type alias Model =
     }
 
 
-init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
-init _ url key =
+init : Decode.Value -> Url -> Nav.Key -> ( Model, Cmd Msg )
+init flags url key =
     let
+        auth : Auth
+        auth =
+            Storage.fromJson flags
+
+        page : DisplayPage
+        page =
+            case auth of
+                Authenticated _ ->
+                    Catalogue
+
+                _ ->
+                    LoginPage
+
         model : Model
         model =
-            { page = LoginPage
+            { page = page
             , currApp = Standard
             , currOverhang = A__B
             , level1_construct = initLevel1
 
             -- |
-            , auth = NotAuthenticated []
+            , auth = Storage.fromJson flags
             , notifications = Notify.init
             , key = key
             , backboneFilterString = Nothing
@@ -151,6 +164,7 @@ type Msg
       -- Login Msg
     | GotLoginUrls (Result Http.Error Auth)
     | GotAuthentication (Result Http.Error Auth)
+    | Logout
     | UrlChanged Url
     | LinkClicked Browser.UrlRequest
       -- Msg Switching pages
@@ -698,6 +712,7 @@ navLinks auth =
                 , buttonLink_ (Just (SwitchPage Catalogue)) "Vector Catalogue"
                 , buttonLink_ (Just (SwitchPage ConstructLevel1)) "New Level1 construct"
                 , buttonLink_ Nothing <| Maybe.withDefault "Unknown name" user.name
+                , buttonLink_ (Just Logout) "Logout"
                 ]
 
         _ ->
@@ -1170,7 +1185,7 @@ update msg model =
             case res of
                 Ok auth ->
                     ( { model | auth = auth, page = Catalogue }
-                    , Cmd.batch [ navToRoot, getVectors auth ]
+                    , Cmd.batch [ navToRoot, getVectors auth, Storage.toJson auth |> Storage.save ]
                     )
 
                 Err err ->
@@ -1179,6 +1194,11 @@ update msg model =
                       }
                     , navToRoot
                     )
+
+        Logout ->
+            ( { model | auth = Auth.init, page = LoginPage }
+            , Cmd.batch [ Nav.pushUrl model.key "/login", Storage.toJson Auth.init |> Storage.save ]
+            )
 
         SwitchPage page ->
             ( { model | page = page }, Cmd.none )
@@ -1406,7 +1426,7 @@ router url model =
 -- MAIN
 
 
-main : Program () Model Msg
+main : Program Decode.Value Model Msg
 main =
     Browser.application
         { init = init
