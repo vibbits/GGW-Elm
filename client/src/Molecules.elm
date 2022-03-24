@@ -69,7 +69,7 @@ type alias Backbone =
     , bsmb1Overhang : Maybe Bsmb1Overhang
     , sequenceLength : Int
     , bacterialStrain : Maybe String
-    , responsible : String -- Owner of the Level 0 element = User that adds the vector.
+    , responsible : String -- TODO: Owner of the Level 0 element = User that adds the vector.
     , group : String
     , selection : Maybe String
     , notes : Maybe String
