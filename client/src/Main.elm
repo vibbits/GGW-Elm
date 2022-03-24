@@ -163,18 +163,13 @@ type Msg
     | FilterBackboneTable String -- TODO: Unify
     | FilterLevel0Table String
     | FilterLevel1Table String
-      -- Msg for adding Backbones
-    | BackboneCreated (Result Http.Error Backbone)
     | AddBackbone Backbone
     | ChangeBackboneToAdd ChangeMol
-      -- Msg for adding Level 0
-    | Level0Created (Result Http.Error Level0)
     | AddLevel0 Level0
     | ChangeLevel0ToAdd ChangeMol
     | RequestGBLevel0
     | GBSelectedLevel0 File
-      -- Msg for adding Level 1
-    | Level1Created (Result Http.Error Level1)
+    | VectorCreated (Result Http.Error Vector)
       -- Msg for retrieving Vectors
     | VectorsReceived (Result Http.Error (List Vector))
       -- Notifications
@@ -1216,7 +1211,7 @@ update msg model =
             )
 
         AddBackbone newBB ->
-            ( model, postVectors model.auth (BackboneVec newBB) )
+            ( model, createVector model.auth (BackboneVec newBB) )
 
         ChangeBackboneToAdd change ->
             ( { model
@@ -1229,7 +1224,7 @@ update msg model =
             )
 
         AddLevel0 newIns ->
-            ( model, postVectors model.auth (Level0Vec newIns) )
+            ( model, createVector model.auth (Level0Vec newIns) )
 
         RequestGBLevel0 ->
             ( model, Select.file [ "text" ] GBSelectedLevel0 )
@@ -1260,39 +1255,16 @@ update msg model =
             , Cmd.none
             )
 
-        BackboneCreated (Ok backbone) ->
+        VectorCreated (Err err) ->
+            ( { model | notifications = Notify.makeError "Creating new vector failed" (showHttpError err) model.notifications }
+            , Cmd.none
+            )
+
+        VectorCreated (Ok vec) ->
             ( { model
-                | vectors = BackboneVec backbone :: model.vectors
+                | vectors = vec :: model.vectors
                 , page = Catalogue
               }
-            , Cmd.none
-            )
-
-        BackboneCreated (Err err) ->
-            ( { model | notifications = Notify.makeError "Creating new backbone failed" (showHttpError err) model.notifications }
-            , Cmd.none
-            )
-
-        Level0Created (Ok level0) ->
-            ( { model
-                | vectors = Level0Vec level0 :: model.vectors
-                , page = Catalogue
-              }
-            , Cmd.none
-            )
-
-        Level0Created (Err err) ->
-            ( { model | notifications = Notify.makeError "Creating new Level 0 vector failed" (showHttpError err) model.notifications }
-            , Cmd.none
-            )
-
-        Level1Created (Ok _) ->
-            ( model
-            , Cmd.none
-            )
-
-        Level1Created (Err _) ->
-            ( model
             , Cmd.none
             )
 
@@ -1342,6 +1314,19 @@ authenticatedGet token url msg decoder =
         }
 
 
+authenticatedPost : String -> String -> (Result Http.Error a -> Msg) -> Encode.Value -> Decode.Decoder a -> Cmd Msg
+authenticatedPost token url msg payload decoder =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
+        , url = url
+        , body = Http.jsonBody payload
+        , expect = Http.expectJson msg decoder
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
 getLoginUrls : Cmd Msg
 getLoginUrls =
     Http.get
@@ -1369,54 +1354,24 @@ getVectors : Auth -> Cmd Msg
 getVectors auth =
     case auth of
         Authenticated usr ->
-            authenticatedGet usr.token "http://localhost:8000/vectors/" VectorsReceived vectorDecoder
+            authenticatedGet usr.token
+                "http://localhost:8000/vectors/"
+                VectorsReceived
+                vectorDecoder
 
         _ ->
             Cmd.none
 
 
-createVector : String -> Vector -> Cmd Msg
-createVector token vector =
-    case vector of
-        Level0Vec vec ->
-            Http.request
-                { method = "POST"
-                , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
-                , url = "http://localhost:8000/vectors/"
-                , body = Http.jsonBody (level0Encoder vec)
-                , expect = Http.expectJson Level0Created level0Decoder
-                , timeout = Nothing
-                , tracker = Nothing
-                }
-
-        BackboneVec vec ->
-            Http.request
-                { method = "POST"
-                , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
-                , url = "http://localhost:8000/vectors/"
-                , body = Http.jsonBody (backboneEncoder vec)
-                , expect = Http.expectJson BackboneCreated backboneDecoder
-                , timeout = Nothing
-                , tracker = Nothing
-                }
-
-        LevelNVec vec ->
-            Http.request
-                { method = "POST"
-                , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
-                , url = "http://localhost:8000/vectors/"
-                , body = Http.jsonBody (levelNEncoder vec)
-                , expect = Http.expectJson Level1Created level1Decoder
-                , timeout = Nothing
-                , tracker = Nothing
-                }
-
-
-postVectors : Auth -> Vector -> Cmd Msg
-postVectors auth vector =
+createVector : Auth -> Vector -> Cmd Msg
+createVector auth vector =
     case auth of
         Authenticated usr ->
-            createVector usr.token vector
+            authenticatedPost usr.token
+                "http://localhost:8000/vectors/"
+                VectorCreated
+                (vectorEncoder vector)
+                vectorDecoder_
 
         _ ->
             Cmd.none

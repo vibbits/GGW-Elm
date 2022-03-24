@@ -7,21 +7,17 @@ module Molecules exposing
     , Level1
     , Vector(..)
     , allOverhangs
-    , backboneDecoder
-    , backboneEncoder
     , initBackbone
     , initLevel0
     , initLevel1
     , interpretBackboneChange
     , interpretLevel0Change
-    , level0Decoder
-    , level0Encoder
-    , level1Decoder
-    , levelNEncoder
     , overhangs
     , showBsa1Overhang
     , showBsmb1Overhang
     , vectorDecoder
+    , vectorDecoder_
+    , vectorEncoder
     )
 
 import Dict exposing (Dict)
@@ -395,12 +391,8 @@ level1Decoder =
         |> JDP.hardcoded Nothing
 
 
-
--- TODO: This should be properly decoded
-
-
-dispatchDecoder : Decode.Decoder Vector
-dispatchDecoder =
+vectorDecoder_ : Decode.Decoder Vector
+vectorDecoder_ =
     Decode.field "level" Decode.int
         |> Decode.andThen
             (\level ->
@@ -421,11 +413,24 @@ dispatchDecoder =
 
 vectorDecoder : Decode.Decoder (List Vector)
 vectorDecoder =
-    Decode.list dispatchDecoder
+    Decode.list vectorDecoder_
 
 
 
 -- Encoders
+
+
+vectorEncoder : Vector -> Encode.Value
+vectorEncoder vector =
+    case vector of
+        Level0Vec vec ->
+            level0Encoder vec
+
+        BackboneVec vec ->
+            backboneEncoder vec
+
+        LevelNVec vec ->
+            levelNEncoder vec
 
 
 backboneEncoder : Backbone -> Encode.Value
