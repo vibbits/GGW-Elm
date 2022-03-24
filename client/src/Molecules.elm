@@ -177,7 +177,7 @@ initBackbone =
     , bsmb1Overhang = Nothing
     , sequenceLength = 0
     , bacterialStrain = Nothing
-    , responsible = "" -- Owner of the Level 0 element = User that adds the vector.
+    , responsible = "" -- TODO: Owner of the Level 0 element = User that adds the vector.
     , group = ""
     , selection = Nothing
     , notes = Nothing
