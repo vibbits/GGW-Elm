@@ -48,6 +48,7 @@ import Path
 import Shape exposing (defaultPieConfig)
 import Storage
 import String
+import Task
 import TypedSvg exposing (g, svg, text_)
 import TypedSvg.Attributes exposing (dy, stroke, textAnchor, transform, viewBox, x)
 import TypedSvg.Core exposing (Svg)
