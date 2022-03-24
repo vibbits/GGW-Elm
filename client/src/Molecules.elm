@@ -88,7 +88,7 @@ type alias Level0 =
     , bsa1Overhang : Bsa1Overhang
     , sequenceLength : Int
     , bacterialStrain : Maybe String
-    , responsible : String -- Owner of the Level 0 element = User that adds the vector.
+    , responsible : String -- TODO: Owner of the Level 0 element = User that adds the vector.
     , group : String
     , selection : Maybe String
     , cloningTechnique : Maybe String
@@ -157,7 +157,7 @@ initLevel0 =
     , bsa1Overhang = A__B
     , sequenceLength = 0
     , bacterialStrain = Nothing
-    , responsible = "" -- Owner of the Level 0 element = User that adds the vector.
+    , responsible = "" -- TODO: Owner of the Level 0 element = User that adds the vector.
     , group = ""
     , selection = Nothing
     , cloningTechnique = Nothing
