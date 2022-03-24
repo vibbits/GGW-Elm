@@ -1,4 +1,5 @@
 " Database data model "
+# pylint: disable=too-few-public-methods
 
 from typing import Optional, List
 from datetime import datetime
@@ -111,7 +112,6 @@ class Vector(Base):
 
     # Extra fields for level 1
     level: VectorLevel = Column(Enum(VectorLevel), nullable=False)
-    BsmB1_site: str = Column(String, nullable=True)
     children: Mapped[List["Vector"]] = relationship(
         "Vector",
         secondary="vector_hierarchy",

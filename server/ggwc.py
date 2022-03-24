@@ -5,16 +5,14 @@ updating the database schema, adding an admin user,
 adding an identity provider, etc.
 """
 
-from typing import List, Tuple, Optional
+from typing import Tuple, Optional
 
-from pprint import pprint
 import sys
 from pathlib import Path
 from datetime import datetime
+import csv
 import click
 import httpx
-import csv
-import json
 from Bio import SeqIO
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -116,16 +114,17 @@ def login(iss):
             click.echo(oidc.login_url(config["authorization_endpoint"], provider))
 
 
-def vector_level(g: str) -> Optional[VectorLevel]:
+def vector_level(g_number: str) -> Optional[VectorLevel]:
     "Converts part of the MP-GX-name to a VectorLevel"
-    if g == "GB":
-        return VectorLevel.BACKBONE
-    elif g == "G0":
-        return VectorLevel.LEVEL0
-    elif g == "G1":
-        return VectorLevel.LEVEL1
+    if g_number == "GB":
+        vec_level = VectorLevel.BACKBONE
+    elif g_number == "G0":
+        vec_level = VectorLevel.LEVEL0
+    elif g_number == "G1":
+        vec_level = VectorLevel.LEVEL1
     else:
-        return None
+        vec_level = None
+    return vec_level
 
 
 def extract_loc(loc: str) -> Tuple[Optional[VectorLevel], int]:
@@ -156,7 +155,7 @@ def import0(csv_path, gbk_path, user):
     csv_content = []
 
     with open(csv_path) as csv_file:
-        csv_reader = csv.DictReader(csv_file, delimiter=";")
+        csv_reader = csv.DictReader(csv_file)
         for item in csv_reader:
             csv_content.append(item)
     csv_file.close()
@@ -170,7 +169,7 @@ def import0(csv_path, gbk_path, user):
     for i, gbk_file in files_to_read:
         # Create vector and fill in data from csv file
         vec = Vector()
-        loc = extract_loc(csv_content[i]["\ufeffMP-G- number"])
+        loc = extract_loc(csv_content[i]["MP-G- number"])
         vec.location = loc[1]
         vec.name = csv_content[i]["Plasmid name"]
         vec.bacterial_strain = csv_content[i]["Bacterial strain"]
@@ -191,7 +190,18 @@ def import0(csv_path, gbk_path, user):
             vec.date = None
         vec.gateway_site = csv_content[i]["Gateway site"]
         vec.vector_type = csv_content[i]["Vector type (MP-G2-)"]
-        vec.children = []  # TODOD: implement make the script also store the children.
+        vec.children = []  # TODO: implement make the script also store the children.
+
+        child_ids = (
+            csv_content[i]["Children ID"].replace("[", "").replace("]", "").split(",")
+        )
+
+        print("#" * 80)
+        print(f"Child ID's: {child_ids}")
+        print("#" * 80)
+
+        # Adding the admin-user 'ggw' list of users
+        vec.users = [db_user]
 
         # Reading the sequence from the genbank file
         gbk_file_path = Path(gbk_path) / Path(gbk_file)
@@ -201,16 +211,18 @@ def import0(csv_path, gbk_path, user):
         # Getting the annotations
         annotations = []
         references = []
-        for k, v in record.annotations.items():
-            # All annotations are strings, integers or list of them but references are a special case.
-            # References are objects that can be deconstructed to an author and a title, both strings.
-            if k == "references":
+        for key, value in record.annotations.items():
+            # All annotations are strings, integers or list of them
+            # but references are a special case.
+            # References are objects that can be deconstructed to
+            # an author and a title, both strings.
+            if key == "references":
                 for reference in record.annotations["references"]:
                     references.append(
                         Reference(authors=reference.authors, title=reference.title)
                     )
             else:
-                annotations.append(Annotation(key=k, value=str(v)))
+                annotations.append(Annotation(key=key, value=str(value)))
 
         vec.annotations = annotations
         vec.references = references
@@ -221,8 +233,8 @@ def import0(csv_path, gbk_path, user):
             # Getting the qualifiers of each feature
 
             new_qualifiers = []
-            for k, v in feature.qualifiers.items():
-                new_qualifiers.append(Qualifier(key=k, value=str(v)))
+            for key, value in feature.qualifiers.items():
+                new_qualifiers.append(Qualifier(key=key, value=str(value)))
             features.append(
                 Feature(
                     type=feature.type,
@@ -240,7 +252,14 @@ def import0(csv_path, gbk_path, user):
 
     with SessionLocal() as database:
         for vec in vec_list:
-            if crud.add_vector(database=database, vector=vec, user=db_user) is not None:
+            # Convert to dict
+            new_vec = vars(vec)
+            # Make a VectorInDB object (also has the sequence!)
+            vec_in_db = schemas.VectorInDB(**new_vec)
+            if (
+                crud.add_vector(database=database, vector=vec_in_db, user=db_user)
+                is not None
+            ):
                 click.echo(f"Vector '{vec.name}' added.")
 
 

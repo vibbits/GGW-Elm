@@ -1,10 +1,10 @@
 from Bio import SeqIO
 
-from app.schemas import Vector, Annotation, Feature, Reference, Qualifier
+from app.schemas import VectorFromGenbank, Annotation, Feature, Reference, Qualifier
 
 
 # Function that reads in a genbank file and converts it into a json
-def convert_gbk_to_vector(genbank_file) -> Vector:
+def convert_gbk_to_vector(genbank_file) -> VectorFromGenbank:
     # Reading the genbank file
     record = SeqIO.read(genbank_file, "genbank")
 
@@ -39,29 +39,8 @@ def convert_gbk_to_vector(genbank_file) -> Vector:
             )
         )
 
-    return Vector(
-        name="".join(str(record.name).split("_")[1:]),
-        mpg_number=str(record.name).split("_", maxsplit=1)[0],
-        # Not provided through a genbank file => Additional information
-        bacterial_strain="Not provided",
-        # Not provided through a genbank file => Additional information
-        responsible="Not provided",
-        # Not provided through a genbank file => Additional information
-        group="Not provided",
-        # Not provided through a genbank file => Additional information
-        bsa1_overhang="Not provided",
-        # Not provided through a genbank file => Additional information
-        selection="Not provided",
-        # Not provided through a genbank file => Additional information
-        cloning_technique="Not provided",
-        # Not provided through a genbank file => Additional information
-        is_BsmB1_free="Not provided",
-        # Not provided through a genbank file => Additional information
-        notes="Not provided",
-        # Not provided through a genbank file => Additional information
-        REase_digest="Not provided",
+    return VectorFromGenbank(
         sequence=str(record.seq),
-        sequence_length=len(record.seq),
         annotations=annotations,
         features=features,
         references=references,

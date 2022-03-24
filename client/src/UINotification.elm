@@ -2,8 +2,9 @@ module UINotification exposing
     ( Notifications
     , close
     , init
-    , makeError
-    , makeWarning
+    ,  makeError
+       -- , makeWarning
+
     , view
     )
 
@@ -52,9 +53,10 @@ import Tuple exposing (pair, second)
   - Error messages are unrecoverable errors that the user MUST attend to
 
 -}
-type NotificationLevel
-    = Warning
-    | Error
+type
+    NotificationLevel
+    -- | Warning
+    = Error
 
 
 {-| -}
@@ -85,16 +87,14 @@ makeError title msg =
         }
 
 
-makeWarning : String -> String -> Notifications -> Notifications
-makeWarning title msg =
-    push
-        { title = title
-        , level = Warning
-        , message = msg
-        }
 
-
-
+-- makeWarning : String -> String -> Notifications -> Notifications
+-- makeWarning title msg =
+--     push
+--         { title = title
+--         , level = Warning
+--         , message = msg
+--         }
 -- makeInfo : String -> String -> Notifications -> Notifications
 -- makeInfo title msg =
 --     push
@@ -130,9 +130,8 @@ viewNotification msgCtor index notification =
         color : Color
         color =
             case notification.level of
-                Warning ->
-                    yellow
-
+                -- Warning ->
+                --     yellow
                 Error ->
                     red
 
@@ -203,11 +202,6 @@ grey =
 -- blue : Color
 -- blue =
 --     rgb255 52 101 164
-
-
-yellow : Color
-yellow =
-    rgb255 237 212 0
 
 
 red : Color

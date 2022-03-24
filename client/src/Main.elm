@@ -21,6 +21,8 @@ import Element.Events as EE
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region
+import File exposing (File)
+import File.Select as Select
 import Html exposing (Html)
 import Html.Attributes as HA
 import Html.Events exposing (onClick)
@@ -82,9 +84,7 @@ type alias Model =
     , backboneAccordionStatus : Bool
     , level0AccordionStatus : Bool
     , level1AccordionStatus : Bool
-    , backboneList : List Backbone
-    , insertList : List Level0
-    , level1List : List Level1
+    , vectors : List Vector
 
     -- Attributes for adding backbones
     , backboneToAdd : Maybe Backbone
@@ -114,9 +114,7 @@ init _ url key =
             , backboneAccordionStatus = False
             , level0AccordionStatus = False
             , level1AccordionStatus = False
-            , backboneList = []
-            , insertList = []
-            , level1List = []
+            , vectors = []
 
             -- Backbone To Add attributes
             , backboneToAdd = Nothing
@@ -131,8 +129,11 @@ init _ url key =
 type Application
     = Standard
     | Five
+    | FiveAC
     | Four
+    | FourAC
     | Three
+    | ThreeAC
 
 
 type Msg
@@ -162,19 +163,15 @@ type Msg
     | FilterBackboneTable String -- TODO: Unify
     | FilterLevel0Table String
     | FilterLevel1Table String
-      -- Msg for adding Backbones
     | AddBackbone Backbone
     | ChangeBackboneToAdd ChangeMol
-      -- Msg for adding Level 0
     | AddLevel0 Level0
     | ChangeLevel0ToAdd ChangeMol
+    | RequestGBLevel0
+    | GBSelectedLevel0 File
+    | VectorCreated (Result Http.Error Vector)
       -- Msg for retrieving Vectors
-    | RequestAllLevel0
-    | Level0Received (Result Http.Error (List Level0))
-    | RequestAllBackbones
-    | BackbonesReceived (Result Http.Error (List Backbone))
-    | RequestAllLevel1
-    | Level1Received (Result Http.Error (List Level1))
+    | VectorsReceived (Result Http.Error (List Vector))
       -- Notifications
     | CloseNotification Int
 
@@ -235,9 +232,6 @@ catalogueView model =
         [ title "Vector Catalog"
         , row [ spacing 20 ]
             [ button_ (Just ToggleAll) "Toggle all"
-            , button_ (Just RequestAllLevel0) "Populate Level 0 table from DB"
-            , button_ (Just RequestAllBackbones) "Populate Backbone table from DB"
-            , button_ (Just RequestAllLevel1) "Populate Level 1 table from DB"
             ]
         , Accordion.accordion
             (Accordion.head
@@ -331,17 +325,76 @@ addLevel0View model =
             , placeholder = Nothing
             , text = Maybe.withDefault "" <| Maybe.map (.location >> String.fromInt) model.level0ToAdd
             }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Bacterial strain:"
+            , onChange = ChangeBacterialStrain >> ChangeLevel0ToAdd
+            , placeholder = Nothing
+            , text = Maybe.withDefault "" <| Maybe.map (.bacterialStrain >> Maybe.withDefault "") model.level0ToAdd
+            }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Responsible:"
+            , onChange = ChangeResponsible >> ChangeLevel0ToAdd
+            , placeholder = Nothing
+            , text = Maybe.withDefault "" <| Maybe.map .responsible model.level0ToAdd
+            }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Group:"
+            , onChange = ChangeGroup >> ChangeLevel0ToAdd
+            , placeholder = Nothing
+            , text = Maybe.withDefault "" <| Maybe.map .group model.level0ToAdd
+            }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Selection:"
+            , onChange = ChangeSelection >> ChangeLevel0ToAdd
+            , placeholder = Nothing
+            , text = Maybe.withDefault "" <| Maybe.map (.selection >> Maybe.withDefault "") model.level0ToAdd
+            }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Cloning Technique:"
+            , onChange = ChangeCloningTechnique >> ChangeLevel0ToAdd
+            , placeholder = Nothing
+            , text = Maybe.withDefault "" <| Maybe.map (.cloningTechnique >> Maybe.withDefault "") model.level0ToAdd
+            }
+        , Input.checkbox []
+            { onChange = ChangeIsBsmB1Free >> ChangeLevel0ToAdd
+            , icon = Input.defaultCheckbox
+            , checked = Maybe.withDefault False <| Maybe.map (.isBsmb1Free >> Maybe.withDefault False) model.level0ToAdd
+            , label = Input.labelLeft [] <| Element.text "Is the construct BsmbI free?"
+            }
         , Input.radioRow [ spacing 5, padding 10 ]
-            { label = Input.labelAbove [] <| Element.text "Overhang Type:\t"
+            { label = Input.labelAbove [] <| Element.text "BsaI Overhang Type:\t"
             , onChange = ChangeBsa1 >> ChangeLevel0ToAdd
             , options =
                 makeOverhangOptions allOverhangs
             , selected = Maybe.map .bsa1Overhang model.level0ToAdd
             }
+        , Input.multiline [ Element.height <| px 150 ]
+            { text = Maybe.withDefault "" <| Maybe.map (.notes >> Maybe.withDefault "") model.level0ToAdd
+            , onChange = ChangeNotes >> ChangeLevel0ToAdd
+            , label = Input.labelLeft [] <| Element.text "Notes: "
+            , spellcheck = True
+            , placeholder = Nothing
+            }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Restriction Site:"
+            , onChange = ChangeReaseDigest >> ChangeLevel0ToAdd
+            , placeholder = Nothing
+            , text = Maybe.withDefault "" <| Maybe.map (.reaseDigest >> Maybe.withDefault "") model.level0ToAdd
+            }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Date (YYYY-MM-DD): "
+            , onChange = ChangeDate >> ChangeLevel0ToAdd
+            , placeholder = Nothing
+            , text = Maybe.withDefault "" <| Maybe.map (.date >> Maybe.withDefault "") model.level0ToAdd
+            }
         , Element.html <|
             Html.button
-                [ HA.style "margin" "50px" ]
-                [ Html.text "Load Genbank file" ]
+                [ HA.style "margin" "50px"
+                , HA.style "font-size" "20px"
+                , onClick RequestGBLevel0
+                ]
+                [ Html.text "Load Genbank file"
+                ]
         , button_ (Maybe.map AddLevel0 model.level0ToAdd) "Add"
         ]
 
@@ -567,13 +620,13 @@ visualRepresentation model =
     let
         -- Note: The reversing is for making sure Level0 1 is at position 0. This way the destination vector is appended on the back of the list!
         insertOverhangs =
-            getInsertsFromLevel1 model.level1_construct |> List.map .bsa1Overhang >> List.map showBsa1Overhang
+            getInsertsFromLevel1 model.level1_construct |> List.map (.bsa1Overhang >> showBsa1Overhang)
 
         insertNames =
             getInsertsFromLevel1 model.level1_construct |> List.map .name
 
         insertLengths =
-            getInsertsFromLevel1 model.level1_construct |> List.map (String.length << .sequence)
+            getInsertsFromLevel1 model.level1_construct |> List.map .sequenceLength
 
         insertTuple =
             List.Extra.zip3 insertNames insertOverhangs insertLengths
@@ -588,7 +641,7 @@ visualRepresentation model =
             (Maybe.withDefault "" <| Maybe.map .name model.level1_construct.backbone) :: List.map .name sortedInsertRecordList
 
         chartLengths =
-            List.reverse (List.map toFloat <| String.length (model.level1_construct |> getBackboneFromLevel1 |> .sequence) :: List.reverse (List.map .length sortedInsertRecordList))
+            List.reverse (List.map toFloat <| (model.level1_construct |> getBackboneFromLevel1 |> .sequenceLength) :: List.reverse (List.map .length sortedInsertRecordList))
 
         data =
             List.map2 Tuple.pair chartLabels chartLengths
@@ -681,15 +734,16 @@ overhangRadioRow model =
                 [ paddingEach { bottom = 20, top = 0, left = 0, right = 0 } ]
             <|
                 Element.text "Choose Overhang type"
-        , options = List.map makeButton <| overhangShape model.currApp
+        , options = List.map makeButton <| allOverhangs
         }
 
 
 applicationRadioButton : Model -> Element Msg
 applicationRadioButton model =
-    Input.radioRow
+    Input.radio
         [ padding 10
         , spacing 20
+        , Element.width Element.fill
         ]
         { onChange = ChooseApplication
         , selected = Just model.currApp
@@ -697,8 +751,11 @@ applicationRadioButton model =
         , options =
             [ Input.option Standard <| Element.text "Standard application with 6 inserts"
             , Input.option Five <| Element.text "Custom - 5 inserts"
+            , Input.option FiveAC <| Element.text "Custom - 5 inserts with A__C"
             , Input.option Four <| Element.text "Custom - 4 inserts"
+            , Input.option FourAC <| Element.text "Custom - 4 inserts with A__C"
             , Input.option Three <| Element.text "Custom - 3 inserts"
+            , Input.option ThreeAC <| Element.text "Custom - 3 inserts with A__C"
             ]
         }
 
@@ -708,6 +765,19 @@ level0Table model =
     let
         headerAttrs =
             [ Font.bold ]
+
+        insertList : List Level0
+        insertList =
+            List.filterMap onlyLevel0 model.vectors
+
+        onlyLevel0 : Vector -> Maybe Level0
+        onlyLevel0 vec =
+            case vec of
+                Level0Vec level0 ->
+                    Just level0
+
+                _ ->
+                    Nothing
     in
     column
         [ Element.width Element.fill
@@ -737,7 +807,7 @@ level0Table model =
                 , padding 25
                 ]
                 { data =
-                    model.insertList
+                    insertList
                         |> List.filter (filterLevel0OnOverhang model.currOverhang)
                         |> List.filter (filterMolecule model.level0FilterString)
                 , columns =
@@ -752,11 +822,11 @@ level0Table model =
                       }
                     , { header = none
                       , width = fillPortion 1
-                      , view = .sequence >> String.length >> String.fromInt >> Element.text >> el [ centerY ]
+                      , view = .sequenceLength >> String.fromInt >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 1
-                      , view = .bsa1Overhang >> Just >> viewMaybe showBsa1Overhang
+                      , view = .bsa1Overhang >> showBsa1Overhang >> Element.text
                       }
                     ]
                 }
@@ -770,6 +840,19 @@ level1Table model =
             [ Font.bold
             , Border.widthEach { bottom = 2, top = 0, left = 0, right = 0 }
             ]
+
+        level1List : List Level1
+        level1List =
+            List.filterMap onlyLevel1 model.vectors
+
+        onlyLevel1 : Vector -> Maybe Level1
+        onlyLevel1 vec =
+            case vec of
+                LevelNVec level1 ->
+                    Just level1
+
+                _ ->
+                    Nothing
     in
     column
         [ Element.width Element.fill
@@ -797,7 +880,7 @@ level1Table model =
                 , spacing 20
                 , padding 25
                 ]
-                { data = List.filter (filterMolecule model.level1FilterString) model.level1List
+                { data = List.filter (filterMolecule model.level1FilterString) level1List
                 , columns =
                     [ { header = none
                       , width = fillPortion 3
@@ -809,7 +892,7 @@ level1Table model =
                       }
                     , { header = none
                       , width = fillPortion 1
-                      , view = .sequence >> String.length >> String.fromInt >> Element.text >> el [ centerY ]
+                      , view = .sequenceLength >> String.fromInt >> Element.text >> el [ centerY ]
                       }
                     ]
                 }
@@ -821,6 +904,19 @@ backboneTable model =
     let
         headerAttrs =
             [ Font.bold ]
+
+        backboneList : List Backbone
+        backboneList =
+            List.filterMap onlyBackbone model.vectors
+
+        onlyBackbone : Vector -> Maybe Backbone
+        onlyBackbone vec =
+            case vec of
+                BackboneVec backbone ->
+                    Just backbone
+
+                _ ->
+                    Nothing
     in
     column
         [ Element.width Element.fill
@@ -849,7 +945,7 @@ backboneTable model =
                 , spacing 20
                 , padding 15
                 ]
-                { data = List.filter (filterMolecule model.backboneFilterString) model.backboneList
+                { data = List.filter (filterMolecule model.backboneFilterString) backboneList
                 , columns =
                     [ { header = none
                       , width = fillPortion 3
@@ -862,7 +958,7 @@ backboneTable model =
                       }
                     , { header = none
                       , width = fillPortion 1
-                      , view = .sequence >> String.length >> String.fromInt >> Element.text >> el [ centerY ]
+                      , view = .sequenceLength >> String.fromInt >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 3
@@ -909,16 +1005,25 @@ overhangShape app =
     in
     (case app of
         Standard ->
-            Dict.get 6 overhangs
+            Dict.get "6" overhangs
 
         Five ->
-            Dict.get 5 overhangs
+            Dict.get "5" overhangs
+
+        FiveAC ->
+            Dict.get "5AC" overhangs
 
         Four ->
-            Dict.get 4 overhangs
+            Dict.get "4" overhangs
+
+        FourAC ->
+            Dict.get "4AC" overhangs
 
         Three ->
-            Dict.get 3 overhangs
+            Dict.get "3" overhangs
+
+        ThreeAC ->
+            Dict.get "3AC" overhangs
     )
         |> Maybe.withDefault default
 
@@ -1064,8 +1169,8 @@ update msg model =
             in
             case res of
                 Ok auth ->
-                    ( { model | auth = auth }
-                    , Cmd.batch [ navToRoot, Task.succeed Catalogue |> Task.perform SwitchPage ]
+                    ( { model | auth = auth, page = Catalogue }
+                    , Cmd.batch [ navToRoot, getVectors auth ]
                     )
 
                 Err err ->
@@ -1106,7 +1211,7 @@ update msg model =
             )
 
         AddBackbone newBB ->
-            ( { model | backboneList = newBB :: model.backboneList }, Cmd.none )
+            ( model, createVector model.auth (BackboneVec newBB) )
 
         ChangeBackboneToAdd change ->
             ( { model
@@ -1119,7 +1224,13 @@ update msg model =
             )
 
         AddLevel0 newIns ->
-            ( { model | insertList = newIns :: model.insertList }, Cmd.none )
+            ( model, createVector model.auth (Level0Vec newIns) )
+
+        RequestGBLevel0 ->
+            ( model, Select.file [ "text" ] GBSelectedLevel0 )
+
+        GBSelectedLevel0 file ->
+            ( model, Task.perform (ChangeLevel0ToAdd << ChangeGB) (File.toString file) )
 
         ChangeLevel0ToAdd change ->
             ( { model
@@ -1131,82 +1242,31 @@ update msg model =
             , Cmd.none
             )
 
-        Level0Received (Ok level0s) ->
-            ( { model | insertList = level0s }, Cmd.none )
-
-        Level0Received (Err _) ->
-            ( model, Cmd.none )
-
-        RequestAllLevel0 ->
-            case model.auth of
-                Authenticated user ->
-                    ( model
-                    , authenticatedGet user.token
-                        "http://localhost:8000/vectors/level0"
-                        Level0Received
-                        (Decode.list level0Decoder)
-                    )
-
-                _ ->
-                    ( { model
-                        | notifications =
-                            Notify.makeWarning "Not logged in" "" model.notifications
-                      }
-                    , Cmd.none
-                    )
-
         CloseNotification which ->
             ( { model | notifications = Notify.close which model.notifications }
             , Cmd.none
             )
 
-        BackbonesReceived (Ok backbones) ->
-            ( { model | backboneList = backbones }, Cmd.none )
+        VectorsReceived (Ok vectors) ->
+            ( { model | vectors = vectors }, Cmd.none )
 
-        BackbonesReceived (Err _) ->
-            ( model, Cmd.none )
+        VectorsReceived (Err err) ->
+            ( { model | notifications = Notify.makeError "Fetching vectors" (showHttpError err) model.notifications }
+            , Cmd.none
+            )
 
-        RequestAllBackbones ->
-            case model.auth of
-                Authenticated user ->
-                    ( model
-                    , authenticatedGet user.token
-                        "http://localhost:8000/vectors/backbones"
-                        BackbonesReceived
-                        (Decode.list backboneDecoder)
-                    )
+        VectorCreated (Err err) ->
+            ( { model | notifications = Notify.makeError "Creating new vector failed" (showHttpError err) model.notifications }
+            , Cmd.none
+            )
 
-                _ ->
-                    ( { model
-                        | notifications =
-                            Notify.makeWarning "Not logged in" "" model.notifications
-                      }
-                    , Cmd.none
-                    )
-
-        Level1Received (Ok level1s) ->
-            ( { model | level1List = level1s }, Cmd.none )
-
-        Level1Received (Err _) ->
-            ( model, Cmd.none )
-
-        RequestAllLevel1 ->
-            case model.auth of
-                Authenticated user ->
-                    ( model
-                    , authenticatedGet user.token
-                        "http://localhost:8000/vectors/level1"
-                        Level1Received
-                        (Decode.list level1Decoder)
-                    )
-
-                _ ->
-                    ( { model
-                        | notifications =
-                            Notify.makeWarning "Not logged in" "" model.notifications
-                      }
-                    , Cmd.none
-                    )
+        VectorCreated (Ok vec) ->
+            ( { model
+                | vectors = vec :: model.vectors
+                , page = Catalogue
+              }
+            , Cmd.none
+            )
 
 
 
@@ -1220,7 +1280,7 @@ filterMolecule needle val =
             True
 
         Just ndle ->
-            String.contains ndle val.name
+            String.contains (String.toLower ndle) (String.toLower val.name)
                 || String.contains ndle (String.fromInt val.location)
 
 
@@ -1232,8 +1292,8 @@ filterLevel0OnOverhang needle val =
 calculateLevel1Length : Level1 -> Int
 calculateLevel1Length l1 =
     List.sum
-        (String.length (Maybe.withDefault "" <| Maybe.map .sequence l1.backbone)
-            :: List.map (.sequence >> String.length) l1.inserts
+        ((Maybe.withDefault 0 <| Maybe.map .sequenceLength l1.backbone)
+            :: List.map .sequenceLength l1.inserts
         )
 
 
@@ -1248,6 +1308,19 @@ authenticatedGet token url msg decoder =
         , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
         , url = url
         , body = Http.emptyBody
+        , expect = Http.expectJson msg decoder
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+authenticatedPost : String -> String -> (Result Http.Error a -> Msg) -> Encode.Value -> Decode.Decoder a -> Cmd Msg
+authenticatedPost token url msg payload decoder =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
+        , url = url
+        , body = Http.jsonBody payload
         , expect = Http.expectJson msg decoder
         , timeout = Nothing
         , tracker = Nothing
@@ -1275,6 +1348,33 @@ getAuthentication auth =
                 )
         , expect = expectJson GotAuthentication authDecoder
         }
+
+
+getVectors : Auth -> Cmd Msg
+getVectors auth =
+    case auth of
+        Authenticated usr ->
+            authenticatedGet usr.token
+                "http://localhost:8000/vectors/"
+                VectorsReceived
+                vectorDecoder
+
+        _ ->
+            Cmd.none
+
+
+createVector : Auth -> Vector -> Cmd Msg
+createVector auth vector =
+    case auth of
+        Authenticated usr ->
+            authenticatedPost usr.token
+                "http://localhost:8000/vectors/"
+                VectorCreated
+                (vectorEncoder vector)
+                vectorDecoder_
+
+        _ ->
+            Cmd.none
 
 
 

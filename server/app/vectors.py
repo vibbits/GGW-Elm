@@ -1,33 +1,78 @@
-from typing import List
+from typing import List, Optional
+import io
+from datetime import datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app import deps, schemas, crud
-from app.model import Vector
+from app.level import VectorLevel
+from app.genbank import convert_gbk_to_vector
 
 router = APIRouter()
 
 
-@router.get("/vectors/level0", response_model=List[schemas.Vector])
+def vector_to_world(vector: schemas.VectorInDB) -> schemas.VectorOut:
+    """Returns a vector in the form sent over the wire:
+          - replace the sequence by its length
+
+    Args:
+        vector: Vector as stored in DB
+
+    Returns:
+        schemas.VectorOut: Vector sent over the wire.
+    """
+    return schemas.VectorOut(**vector.dict(), sequence_length=len(vector.sequence))
+
+
+@router.get("/vectors/", response_model=List[schemas.VectorOut])
 def get_vectors(
     database: Session = Depends(deps.get_db),
     current_user: schemas.User = Depends(deps.get_current_user),
-) -> List[Vector]:
-    return crud.get_level0_for_user(database=database, user=current_user)
+) -> List[schemas.VectorOut]:
+    """Returns all of the vectors accessible by this user."""
+    return [
+        vector_to_world(schemas.VectorInDB.from_orm(vec))
+        for vec in crud.get_vectors_for_user(database=database, user=current_user)
+    ]
 
 
-@router.get("/vectors/backbones", response_model=List[schemas.Vector])
-def get_backbones(
+@router.post("/vectors/", response_model=schemas.VectorOut)
+def add_level0_construct(
+    new_vec: schemas.VectorToAdd,
     database: Session = Depends(deps.get_db),
     current_user: schemas.User = Depends(deps.get_current_user),
-) -> List[Vector]:
-    return crud.get_backbones_for_user(database=database, user=current_user)
+) -> schemas.VectorOut:
+    """Handles POST requests from the UI
 
 
-@router.get("/vectors/level1", response_model=List[schemas.Vector])
-def get_level1_constructs(
-    database: Session = Depends(deps.get_db),
-    current_user: schemas.User = Depends(deps.get_current_user),
-) -> List[Vector]:
-    return crud.get_level1_constructs_for_user(database=database, user=current_user)
+    Raises:
+        HTTPException: If the function encounters an error,
+        it raises an HTTP Exception:
+        HTTP_400_BAD_REQUEST
+
+    Returns:
+        schemas.VectorOut: Returns the Vector posted by the UI.
+    """
+    gbk = io.StringIO(new_vec.genbank_content)
+    vec = new_vec.dict()
+    del vec["date"]
+    lvl0 = schemas.VectorInDB(
+        **vec,
+        **convert_gbk_to_vector(gbk).dict(),
+        children=[],
+        users=[],
+        level=VectorLevel.LEVEL0,
+        gateway_site="",
+        vector_type="",
+        bsmb1_overhang="",
+        date=datetime.strptime(new_vec.date, "%Y-%M-%d"),
+    )
+    if (
+        inserted := crud.add_vector(database=database, vector=lvl0, user=current_user)
+    ) is not None:
+        return vector_to_world(schemas.VectorInDB.from_orm(inserted))
+
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid vector"
+    )

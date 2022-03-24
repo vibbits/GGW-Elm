@@ -76,7 +76,7 @@ def get_provider_by_id(
 
 
 def add_vector(
-    database: Session, vector: schemas.Vector, user: schemas.User
+    database: Session, vector: schemas.VectorInDB, user: schemas.User
 ) -> Optional[model.Vector]:
     new_vector = model.Vector(
         location=vector.location,
@@ -90,13 +90,12 @@ def add_vector(
         is_BsmB1_free=vector.is_BsmB1_free,
         notes=vector.notes,
         REase_digest=vector.REase_digest,
-        sequence=vector.sequence,
         level=vector.level,
-        BsmB1_site=vector.BsmB1_site,
         bsmb1_overhang=vector.bsmb1_overhang,
         gateway_site=vector.gateway_site,
         vector_type=vector.vector_type,
         date=vector.date,
+        sequence=vector.sequence,
     )
     try:
         database.add(new_vector)
@@ -161,39 +160,6 @@ def add_vector(
         return new_vector
 
 
-def get_level0_for_user(database: Session, user: schemas.User) -> List[model.Vector]:
+def get_vectors_for_user(database: Session, user: schemas.User) -> List[model.Vector]:
     "Query all Level 0 from the database that a given user has access to."
-    return (
-        database.query(model.Vector)
-        .filter(
-            model.Vector.users.any(id=user.id),
-            model.Vector.level == VectorLevel.LEVEL0,
-        )
-        .all()
-    )
-
-
-def get_backbones_for_user(database: Session, user: schemas.User) -> List[model.Vector]:
-    "Query all backbones from the database that a user has access to."
-    return (
-        database.query(model.Vector)
-        .filter(
-            model.Vector.users.any(id=user.id),
-            model.Vector.level == VectorLevel.BACKBONE,
-        )
-        .all()
-    )
-
-
-def get_level1_constructs_for_user(
-    database: Session, user: schemas.User
-) -> List[model.Vector]:
-    "Query all Level1 constructs from the database that a user has access to."
-    return (
-        database.query(model.Vector)
-        .filter(
-            model.Vector.users.any(id=user.id),
-            model.Vector.level == VectorLevel.LEVEL1,
-        )
-        .all()
-    )
+    return database.query(model.Vector).filter(model.Vector.users.any(id=user.id)).all()
