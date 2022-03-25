@@ -38,7 +38,7 @@ def get_vectors(
 
 
 @router.post("/vectors/", response_model=schemas.VectorOut)
-def add_level0_construct(
+def add_vector(
     new_vec: schemas.VectorToAdd,
     database: Session = Depends(deps.get_db),
     current_user: schemas.User = Depends(deps.get_current_user),
@@ -56,20 +56,24 @@ def add_level0_construct(
     """
     gbk = io.StringIO(new_vec.genbank_content)
     vec = new_vec.dict()
+
+    print(f"New vec: {vec}")
+
     del vec["date"]
-    lvl0 = schemas.VectorInDB(
+    vec_in_db = schemas.VectorInDB(
         **vec,
         **convert_gbk_to_vector(gbk).dict(),
         children=[],
         users=[],
-        level=VectorLevel.LEVEL0,
         gateway_site="",
         vector_type="",
         bsmb1_overhang="",
         date=datetime.strptime(new_vec.date, "%Y-%M-%d"),
     )
     if (
-        inserted := crud.add_vector(database=database, vector=lvl0, user=current_user)
+        inserted := crud.add_vector(
+            database=database, vector=vec_in_db, user=current_user
+        )
     ) is not None:
         return vector_to_world(schemas.VectorInDB.from_orm(inserted))
 
