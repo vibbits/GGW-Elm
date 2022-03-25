@@ -6,7 +6,8 @@ module Molecules exposing
     , Level0
     , Level1
     , Vector(..)
-    , allOverhangs
+    , allBsa1Overhangs
+    , allBsmbs1Overhangs
     , initBackbone
     , initLevel0
     , initLevel1
@@ -72,6 +73,7 @@ type alias Backbone =
     , responsible : String -- TODO: Owner of the Level 0 element = User that adds the vector.
     , group : String
     , selection : Maybe String
+    , cloningTechnique : Maybe String
     , notes : Maybe String
     , reaseDigest : Maybe String
     , date : Maybe String
@@ -138,6 +140,7 @@ type ChangeMol
     = ChangeName String
     | ChangeMPG Int
     | ChangeBsa1 Bsa1Overhang
+    | ChangeBsmb1 Bsmb1Overhang
     | ChangeDate String
     | ChangeBacterialStrain String
     | ChangeResponsible String
@@ -146,6 +149,7 @@ type ChangeMol
     | ChangeCloningTechnique String
     | ChangeIsBsmB1Free Bool
     | ChangeNotes String
+    | ChangeVectorType String
     | ChangeReaseDigest String
     | ChangeGB String
 
@@ -180,6 +184,7 @@ initBackbone =
     , responsible = "" -- TODO: Owner of the Level 0 element = User that adds the vector.
     , group = ""
     , selection = Nothing
+    , cloningTechnique = Nothing
     , notes = Nothing
     , reaseDigest = Nothing
     , date = Nothing
@@ -200,6 +205,9 @@ interpretBackboneChange msg bb =
         ChangeBsa1 bsa1 ->
             { bb | bsa1Overhang = Just bsa1 }
 
+        ChangeBsmb1 bsmb1 ->
+            { bb | bsmb1Overhang = Just bsmb1 }
+
         ChangeResponsible resp ->
             { bb | responsible = resp }
 
@@ -208,6 +216,9 @@ interpretBackboneChange msg bb =
 
         ChangeSelection sel ->
             { bb | selection = Just sel }
+
+        ChangeCloningTechnique cloneTech ->
+            { bb | cloningTechnique = Just cloneTech }
 
         ChangeNotes nts ->
             { bb | notes = Just nts }
@@ -218,11 +229,11 @@ interpretBackboneChange msg bb =
         ChangeDate dte ->
             { bb | date = Just dte }
 
+        ChangeVectorType vt ->
+            { bb | vectorType = Just vt }
+
         ChangeBacterialStrain bactStrain ->
             { bb | bacterialStrain = Just bactStrain }
-
-        ChangeCloningTechnique _ ->
-            bb
 
         ChangeIsBsmB1Free _ ->
             bb
@@ -242,6 +253,9 @@ interpretLevel0Change msg l0 =
 
         ChangeBsa1 bsa1 ->
             { l0 | bsa1Overhang = bsa1 }
+
+        ChangeBsmb1 _ ->
+            l0
 
         ChangeBacterialStrain bactStrain ->
             { l0 | bacterialStrain = Just bactStrain }
@@ -263,6 +277,9 @@ interpretLevel0Change msg l0 =
 
         ChangeIsBsmB1Free answer ->
             { l0 | isBsmb1Free = Just answer }
+
+        ChangeVectorType _ ->
+            l0
 
         ChangeNotes nts ->
             { l0 | notes = Just nts }
@@ -289,8 +306,8 @@ overhangs =
         ]
 
 
-allOverhangs : List Bsa1Overhang
-allOverhangs =
+allBsa1Overhangs : List Bsa1Overhang
+allBsa1Overhangs =
     [ A__B
     , A__C
     , A__G
@@ -302,6 +319,16 @@ allOverhangs =
     , E__F
     , E__G
     , F__G
+    ]
+
+
+allBsmbs1Overhangs : List Bsmb1Overhang
+allBsmbs1Overhangs =
+    [ W__X
+    , W__Z
+    , X__Y
+    , X__Z
+    , Y__Z
     ]
 
 
@@ -365,6 +392,7 @@ backboneDecoder =
         |> JDP.required "responsible" Decode.string
         |> JDP.required "group" Decode.string
         |> JDP.optional "selection" (Decode.maybe Decode.string) Nothing
+        |> JDP.optional "cloning_technique" (Decode.maybe Decode.string) Nothing
         |> JDP.optional "notes" (Decode.maybe Decode.string) Nothing
         |> JDP.optional "reaseDigest" (Decode.maybe Decode.string) Nothing
         |> JDP.optional "date" (Decode.maybe Decode.string) Nothing
@@ -452,11 +480,40 @@ backboneEncoder backbone =
           )
         , ( "responsible", Encode.string <| backbone.responsible )
         , ( "group", Encode.string <| backbone.group )
-        , ( "selection", Encode.string <| Maybe.withDefault "" backbone.selection )
-        , ( "notes", Encode.string <| Maybe.withDefault "" backbone.notes )
-        , ( "REase_digest", Encode.string <| Maybe.withDefault "" backbone.reaseDigest )
-        , ( "date", Encode.string <| Maybe.withDefault "" backbone.date )
-        , ( "vector_type", Encode.string <| Maybe.withDefault "" backbone.vectorType )
+        , ( "selection"
+          , Encode.string <|
+                Maybe.withDefault "" backbone.selection
+          )
+        , ( "cloning_technique"
+          , Encode.string <|
+                Maybe.withDefault "" backbone.cloningTechnique
+          )
+        , ( "is_BsmB1_free"
+          , Encode.null
+          )
+        , ( "notes"
+          , Encode.string <|
+                Maybe.withDefault "" backbone.notes
+          )
+        , ( "REase_digest"
+          , Encode.string <|
+                Maybe.withDefault "" backbone.reaseDigest
+          )
+        , ( "date"
+          , Encode.string <|
+                Maybe.withDefault "" backbone.date
+          )
+        , ( "vector_type"
+          , Encode.string <|
+                Maybe.withDefault "" backbone.vectorType
+          )
+        , ( "genbank_content"
+          , Encode.string <|
+                Maybe.withDefault "" backbone.genbankContent
+          )
+        , ( "level"
+          , Encode.int 1
+          )
         ]
 
 
@@ -465,17 +522,48 @@ level0Encoder level0 =
     Encode.object
         [ ( "name", Encode.string level0.name )
         , ( "location", Encode.int level0.location )
-        , ( "bsa1_overhang", Encode.string <| showBsa1Overhang <| level0.bsa1Overhang )
-        , ( "bacterial_strain", Encode.string <| Maybe.withDefault "" level0.bacterialStrain )
+        , ( "bsa1_overhang"
+          , Encode.string <|
+                showBsa1Overhang <|
+                    level0.bsa1Overhang
+          )
+        , ( "bacterial_strain"
+          , Encode.string <|
+                Maybe.withDefault "" level0.bacterialStrain
+          )
         , ( "responsible", Encode.string <| level0.responsible )
         , ( "group", Encode.string <| level0.group )
-        , ( "selection", Encode.string <| Maybe.withDefault "" level0.selection )
-        , ( "cloning_technique", Encode.string <| Maybe.withDefault "" level0.cloningTechnique )
-        , ( "is_BsmB1_free", Encode.string <| isBsmb1FreeToString level0.isBsmb1Free )
-        , ( "notes", Encode.string <| Maybe.withDefault "" level0.notes )
-        , ( "REase_digest", Encode.string <| Maybe.withDefault "" level0.reaseDigest )
-        , ( "date", Encode.string <| Maybe.withDefault "" level0.date )
-        , ( "genbank_content", Encode.string <| Maybe.withDefault "" level0.genbankContent )
+        , ( "selection"
+          , Encode.string <|
+                Maybe.withDefault "" level0.selection
+          )
+        , ( "cloning_technique"
+          , Encode.string <|
+                Maybe.withDefault "" level0.cloningTechnique
+          )
+        , ( "is_BsmB1_free"
+          , Encode.string <|
+                isBsmb1FreeToString level0.isBsmb1Free
+          )
+        , ( "notes"
+          , Encode.string <|
+                Maybe.withDefault "" level0.notes
+          )
+        , ( "REase_digest"
+          , Encode.string <|
+                Maybe.withDefault "" level0.reaseDigest
+          )
+        , ( "date"
+          , Encode.string <|
+                Maybe.withDefault "" level0.date
+          )
+        , ( "genbank_content"
+          , Encode.string <|
+                Maybe.withDefault "" level0.genbankContent
+          )
+        , ( "level"
+          , Encode.int 2
+          )
         ]
 
 
@@ -493,6 +581,9 @@ levelNEncoder level1 =
         , ( "notes", Encode.string <| Maybe.withDefault "" level1.notes )
         , ( "sequenceLength", Encode.int level1.sequenceLength )
         , ( "genbank_content", Encode.string <| Maybe.withDefault "" level1.genbankContent )
+        , ( "level"
+          , Encode.int 3
+          )
         ]
 
 

@@ -180,6 +180,8 @@ type Msg
     | FilterLevel1Table String
     | AddBackbone Backbone
     | ChangeBackboneToAdd ChangeMol
+    | RequestGBBackbone
+    | GBSelectedBackbone File
     | AddLevel0 Level0
     | ChangeLevel0ToAdd ChangeMol
     | RequestGBLevel0
@@ -380,7 +382,7 @@ addLevel0View model =
             { label = Input.labelAbove [] <| Element.text "BsaI Overhang Type:\t"
             , onChange = ChangeBsa1 >> ChangeLevel0ToAdd
             , options =
-                makeOverhangOptions allOverhangs
+                makeBsa1OverhangOptions allBsa1Overhangs
             , selected = Maybe.map .bsa1Overhang model.level0ToAdd
             }
         , Input.multiline [ Element.height <| px 150 ]
@@ -414,9 +416,14 @@ addLevel0View model =
         ]
 
 
-makeOverhangOptions : List Bsa1Overhang -> List (Input.Option Bsa1Overhang msg)
-makeOverhangOptions overHangList =
+makeBsa1OverhangOptions : List Bsa1Overhang -> List (Input.Option Bsa1Overhang msg)
+makeBsa1OverhangOptions overHangList =
     List.map (\ohang -> Input.option ohang (showBsa1Overhang ohang |> Element.text)) overHangList
+
+
+makeBsmb1OverhangOptions : List Bsmb1Overhang -> List (Input.Option Bsmb1Overhang msg)
+makeBsmb1OverhangOptions overHangList =
+    List.map (\ohang -> Input.option ohang (showBsmb1Overhang ohang |> Element.text)) overHangList
 
 
 addBackboneView : Model -> Element Msg
@@ -439,9 +446,81 @@ addBackboneView model =
             , label = Input.labelLeft [] <| Element.text "MP-GB-number:\tMP-GB-"
             , placeholder = Nothing
             }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Bacterial strain:"
+            , onChange = ChangeBacterialStrain >> ChangeBackboneToAdd
+            , placeholder = Nothing
+            , text = Maybe.withDefault "" <| Maybe.map (.bacterialStrain >> Maybe.withDefault "") model.backboneToAdd
+            }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Responsible:"
+            , onChange = ChangeResponsible >> ChangeBackboneToAdd
+            , placeholder = Nothing
+            , text = Maybe.withDefault "" <| Maybe.map .responsible model.backboneToAdd
+            }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Group:"
+            , onChange = ChangeGroup >> ChangeBackboneToAdd
+            , placeholder = Nothing
+            , text = Maybe.withDefault "" <| Maybe.map .group model.backboneToAdd
+            }
+        , Input.radioRow [ spacing 5, padding 10 ]
+            { label = Input.labelAbove [] <| Element.text "BsaI Overhang Type:\t"
+            , onChange = ChangeBsa1 >> ChangeBackboneToAdd
+            , options =
+                makeBsa1OverhangOptions allBsa1Overhangs
+            , selected = Maybe.andThen .bsa1Overhang model.backboneToAdd
+            }
+        , Input.radioRow [ spacing 5, padding 10 ]
+            { label = Input.labelAbove [] <| Element.text "BsmBI Overhang Type:\t"
+            , onChange = ChangeBsmb1 >> ChangeBackboneToAdd
+            , options =
+                makeBsmb1OverhangOptions allBsmbs1Overhangs
+            , selected = Maybe.andThen .bsmb1Overhang model.backboneToAdd
+            }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Restriction Site:"
+            , onChange = ChangeReaseDigest >> ChangeBackboneToAdd
+            , placeholder = Nothing
+            , text = Maybe.withDefault "" <| Maybe.map (.reaseDigest >> Maybe.withDefault "") model.backboneToAdd
+            }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Cloning Technique:"
+            , onChange = ChangeCloningTechnique >> ChangeBackboneToAdd
+            , placeholder = Nothing
+            , text = Maybe.withDefault "" <| Maybe.map (.cloningTechnique >> Maybe.withDefault "") model.backboneToAdd
+            }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Selection:"
+            , onChange = ChangeSelection >> ChangeBackboneToAdd
+            , placeholder = Nothing
+            , text = Maybe.withDefault "" <| Maybe.map (.selection >> Maybe.withDefault "") model.backboneToAdd
+            }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Vector Type:"
+            , onChange = ChangeVectorType >> ChangeBackboneToAdd
+            , placeholder = Nothing
+            , text = Maybe.withDefault "" <| Maybe.map (.vectorType >> Maybe.withDefault "") model.backboneToAdd
+            }
+        , Input.multiline [ Element.height <| px 150 ]
+            { text = Maybe.withDefault "" <| Maybe.map (.notes >> Maybe.withDefault "") model.backboneToAdd
+            , onChange = ChangeNotes >> ChangeBackboneToAdd
+            , label = Input.labelLeft [] <| Element.text "Notes: "
+            , spellcheck = True
+            , placeholder = Nothing
+            }
+        , Input.text []
+            { label = Input.labelLeft [] <| Element.text "Date (YYYY-MM-DD): "
+            , onChange = ChangeDate >> ChangeBackboneToAdd
+            , placeholder = Nothing
+            , text = Maybe.withDefault "" <| Maybe.map (.date >> Maybe.withDefault "") model.backboneToAdd
+            }
         , Element.html <|
             Html.button
-                [ HA.style "margin" "50px" ]
+                [ HA.style "margin" "50px"
+                , HA.style "font-size" "20px"
+                , onClick RequestGBBackbone
+                ]
                 [ Html.text "Load Genbank file" ]
         , button_ (Maybe.map AddBackbone model.backboneToAdd) "Add"
         ]
@@ -750,7 +829,7 @@ overhangRadioRow model =
                 [ paddingEach { bottom = 20, top = 0, left = 0, right = 0 } ]
             <|
                 Element.text "Choose Overhang type"
-        , options = List.map makeButton <| allOverhangs
+        , options = List.map makeButton <| allBsa1Overhangs
         }
 
 
@@ -1233,6 +1312,12 @@ update msg model =
 
         AddBackbone newBB ->
             ( model, createVector model.auth (BackboneVec newBB) )
+
+        RequestGBBackbone ->
+            ( model, Select.file [ "text" ] GBSelectedBackbone )
+
+        GBSelectedBackbone file ->
+            ( model, Task.perform (ChangeBackboneToAdd << ChangeGB) (File.toString file) )
 
         ChangeBackboneToAdd change ->
             ( { model
