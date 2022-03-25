@@ -181,7 +181,7 @@ class VectorBase(BaseModel):
     group: str
     selection: str
     responsible: str
-    is_BsmB1_free: str
+    is_BsmB1_free: Optional[str]
     notes: str
     REase_digest: str
 
