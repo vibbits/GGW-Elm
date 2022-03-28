@@ -181,9 +181,10 @@ class VectorBase(BaseModel):
     group: str
     selection: str
     responsible: str
-    is_BsmB1_free: str
+    is_BsmB1_free: Optional[str]
     notes: str
     REase_digest: str
+    level: VectorLevel
 
 
 class VectorFromGenbank(BaseModel):
@@ -211,9 +212,8 @@ class Vector(VectorBase):
     annotations: List[Annotation]
     features: List[Feature]
     references: List[Reference]
-    bsmb1_overhang: str
+    bsmb1_overhang: Optional[str]
     users: List[User]
-    level: VectorLevel
     gateway_site: str
     vector_type: str
     date: Optional[datetime]
