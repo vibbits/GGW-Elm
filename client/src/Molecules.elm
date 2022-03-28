@@ -8,11 +8,14 @@ module Molecules exposing
     , Vector(..)
     , allBsa1Overhangs
     , allBsmbs1Overhangs
+    , getBackboneFromLevel1
+    , getInsertsFromLevel1
     , initBackbone
     , initLevel0
     , initLevel1
     , interpretBackboneChange
     , interpretLevel0Change
+    , interpretLevel1Change
     , overhangs
     , showBsa1Overhang
     , showBsmb1Overhang
@@ -108,13 +111,17 @@ a Backbone with one or multiple Level 0 verctors.
 type alias Level1 =
     { name : String
     , location : Int
+    , bacterialStrain : Maybe String
     , bsmb1Overhang : Maybe Bsmb1Overhang
     , responsible : String
     , group : String
+    , selection : Maybe String
     , notes : Maybe String
     , sequenceLength : Int
+    , reaseDigest : Maybe String
     , inserts : List Level0
     , backbone : Maybe Backbone
+    , date : Maybe String
     , genbankContent : Maybe String
     }
 
@@ -123,13 +130,17 @@ initLevel1 : Level1
 initLevel1 =
     { name = ""
     , location = 1
+    , bacterialStrain = Nothing
     , bsmb1Overhang = Nothing
     , responsible = ""
     , group = ""
+    , selection = Nothing
     , notes = Just ""
     , sequenceLength = 0
+    , reaseDigest = Nothing
     , inserts = []
     , backbone = Nothing
+    , date = Nothing
     , genbankContent = Nothing
     }
 
@@ -152,6 +163,10 @@ type ChangeMol
     | ChangeVectorType String
     | ChangeReaseDigest String
     | ChangeGB String
+    | AppendInsert Level0
+    | AppendBackbone Backbone
+    | ResetInsertList
+    | ResetAll
 
 
 initLevel0 : Level0
@@ -241,6 +256,18 @@ interpretBackboneChange msg bb =
         ChangeGB content ->
             { bb | genbankContent = Just content }
 
+        AppendInsert _ ->
+            bb
+
+        AppendBackbone _ ->
+            bb
+
+        ResetInsertList ->
+            bb
+
+        ResetAll ->
+            bb
+
 
 interpretLevel0Change : ChangeMol -> Level0 -> Level0
 interpretLevel0Change msg l0 =
@@ -290,6 +317,91 @@ interpretLevel0Change msg l0 =
         ChangeGB content ->
             { l0 | genbankContent = Just content }
 
+        AppendInsert _ ->
+            l0
+
+        AppendBackbone _ ->
+            l0
+
+        ResetInsertList ->
+            l0
+
+        ResetAll ->
+            l0
+
+
+interpretLevel1Change : ChangeMol -> Level1 -> Level1
+interpretLevel1Change msg l1 =
+    case msg of
+        ChangeName name ->
+            { l1 | name = name }
+
+        ChangeMPG loc ->
+            { l1 | location = loc }
+
+        ChangeBsa1 _ ->
+            l1
+
+        ChangeBsmb1 _ ->
+            l1
+
+        ChangeBacterialStrain bactStrain ->
+            { l1 | bacterialStrain = Just bactStrain }
+
+        ChangeDate date ->
+            { l1 | date = Just date }
+
+        ChangeResponsible resp ->
+            { l1 | responsible = resp }
+
+        ChangeGroup grp ->
+            { l1 | group = grp }
+
+        ChangeSelection sel ->
+            { l1 | selection = Just sel }
+
+        ChangeCloningTechnique _ ->
+            l1
+
+        ChangeIsBsmB1Free _ ->
+            l1
+
+        ChangeVectorType _ ->
+            l1
+
+        ChangeNotes nts ->
+            { l1 | notes = Just nts }
+
+        ChangeReaseDigest rease ->
+            { l1 | reaseDigest = Just rease }
+
+        ChangeGB content ->
+            { l1 | genbankContent = Just content }
+
+        AppendInsert newInsert ->
+            if not (List.member newInsert.bsa1Overhang (List.map .bsa1Overhang <| getInsertsFromLevel1 (Just l1))) then
+                { l1 | inserts = List.append l1.inserts [ newInsert ] }
+
+            else
+                { l1
+                    | inserts =
+                        newInsert
+                            :: List.filter
+                                (\l0 ->
+                                    l0.bsa1Overhang /= newInsert.bsa1Overhang
+                                )
+                                l1.inserts
+                }
+
+        AppendBackbone newBackbone ->
+            { l1 | backbone = Just newBackbone }
+
+        ResetInsertList ->
+            { l1 | inserts = [] }
+
+        ResetAll ->
+            { l1 | inserts = [], backbone = Nothing }
+
 
 overhangs : Dict String (List Bsa1Overhang)
 overhangs =
@@ -330,6 +442,26 @@ allBsmbs1Overhangs =
     , X__Z
     , Y__Z
     ]
+
+
+getInsertsFromLevel1 : Maybe Level1 -> List Level0
+getInsertsFromLevel1 level1 =
+    case level1 of
+        Just l1 ->
+            l1.inserts
+
+        Nothing ->
+            []
+
+
+getBackboneFromLevel1 : Maybe Level1 -> Backbone
+getBackboneFromLevel1 level1 =
+    case level1 of
+        Just l1 ->
+            Maybe.withDefault initBackbone l1.backbone
+
+        Nothing ->
+            initBackbone
 
 
 
@@ -405,6 +537,7 @@ level1Decoder =
     Decode.succeed Level1
         |> JDP.required "name" Decode.string
         |> JDP.required "location" Decode.int
+        |> JDP.optional "bacterial_strain" (Decode.maybe Decode.string) Nothing
         |> JDP.optional "bsmb1_overhang"
             (Decode.string
                 |> Decode.map (String.trim >> parseBsmb1Overhang)
@@ -412,10 +545,13 @@ level1Decoder =
             Nothing
         |> JDP.required "responsible" Decode.string
         |> JDP.required "group" Decode.string
+        |> JDP.optional "selection" (Decode.maybe Decode.string) Nothing
         |> JDP.optional "notes" (Decode.maybe Decode.string) Nothing
         |> JDP.required "sequence_length" Decode.int
+        |> JDP.optional "reaseDigest" (Decode.maybe Decode.string) Nothing
         |> JDP.required "children" (Decode.list level0Decoder)
         |> JDP.optional "backbone" (Decode.maybe backboneDecoder) Nothing
+        |> JDP.optional "date" (Decode.maybe Decode.string) Nothing
         |> JDP.hardcoded Nothing
 
 
@@ -580,6 +716,14 @@ levelNEncoder level1 =
         , ( "group", Encode.string <| level1.group )
         , ( "notes", Encode.string <| Maybe.withDefault "" level1.notes )
         , ( "sequenceLength", Encode.int level1.sequenceLength )
+        , ( "REase_digest"
+          , Encode.string <|
+                Maybe.withDefault "" level1.reaseDigest
+          )
+        , ( "date"
+          , Encode.string <|
+                Maybe.withDefault "" level1.date
+          )
         , ( "genbank_content", Encode.string <| Maybe.withDefault "" level1.genbankContent )
         , ( "level"
           , Encode.int 3

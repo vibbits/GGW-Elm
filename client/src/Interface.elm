@@ -224,7 +224,7 @@ navBar links =
         , htmlAttribute <| style "top" "0"
         , Background.color backgroundSecondary
         ]
-        (text "Golden Gateway v1.0.0"
+        (text "Golden Gate 2 v1.0.0"
             :: links
         )
 
