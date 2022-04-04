@@ -165,6 +165,7 @@ def import0(csv_path, gbk_path, user):
     ]
 
     vec_list = []
+    child_ids_list = []
 
     for i, gbk_file in files_to_read:
         # Create vector and fill in data from csv file
@@ -190,15 +191,17 @@ def import0(csv_path, gbk_path, user):
             vec.date = None
         vec.gateway_site = csv_content[i]["Gateway site"]
         vec.vector_type = csv_content[i]["Vector type (MP-G2-)"]
-        vec.children = []  # TODO: implement make the script also store the children.
+        vec.children = []
 
-        child_ids = (
-            csv_content[i]["Children ID"].replace("[", "").replace("]", "").split(",")
+        child_ids_list.append(
+            [
+                int(id) if id != "" else None
+                for id in csv_content[i]["Children ID"]
+                .replace("[", "")
+                .replace("]", "")
+                .split(",")
+            ]
         )
-
-        print("#" * 80)
-        print(f"Child ID's: {child_ids}")
-        print("#" * 80)
 
         # Adding the admin-user 'ggw' list of users
         vec.users = [db_user]
@@ -252,6 +255,9 @@ def import0(csv_path, gbk_path, user):
 
     with SessionLocal() as database:
         for vec in vec_list:
+            # Removing child items
+            vec.children = []
+
             # Convert to dict
             new_vec = vars(vec)
             # Make a VectorInDB object (also has the sequence!)
@@ -261,6 +267,20 @@ def import0(csv_path, gbk_path, user):
                 is not None
             ):
                 click.echo(f"Vector '{vec.name}' added.")
+
+    vec_list2 = []
+
+    with SessionLocal() as db:
+        vec_list2 = crud.get_all_vectors(database=db)
+
+    for i, vec in enumerate(vec_list2):
+        if vec.level == VectorLevel.LEVEL1:
+            with SessionLocal() as database:
+                for child_id in child_ids_list[i]:
+
+                    crud.add_vector_hierarchy(
+                        database=database, child_id=child_id, parent_id=vec.id
+                    )
 
 
 if __name__ == "__main__":

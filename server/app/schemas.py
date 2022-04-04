@@ -175,8 +175,8 @@ class VectorBase(BaseModel):
 
     location: int
     name: str
-    bsa1_overhang: str
-    cloning_technique: str
+    bsa1_overhang: Optional[str]
+    cloning_technique: Optional[str]
     bacterial_strain: str
     group: str
     selection: str
@@ -185,6 +185,11 @@ class VectorBase(BaseModel):
     notes: str
     REase_digest: str
     level: VectorLevel
+
+    class Config:
+        """Orm mode configuration"""
+
+        orm_mode = True
 
 
 class VectorFromGenbank(BaseModel):
@@ -226,11 +231,6 @@ class VectorInDB(Vector):
     """
 
     sequence: str
-
-    class Config:
-        """Orm mode configuration"""
-
-        orm_mode = True
 
 
 class VectorToAdd(VectorBase):

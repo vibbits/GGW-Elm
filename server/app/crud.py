@@ -141,15 +141,6 @@ def add_vector(
                 for ref in vector.references
             ]
         )
-
-        if vector.level not in [VectorLevel.BACKBONE, VectorLevel.LEVEL0]:
-            database.add_all(
-                [
-                    model.VectorHierarchy(child=child, parent=new_vector.id)
-                    for child in vector.children
-                ]
-            )
-
     except SQLAlchemyError as err:
         print(f"Error: {err}")
         database.rollback()
@@ -160,6 +151,21 @@ def add_vector(
         return new_vector
 
 
+def add_vector_hierarchy(database: Session, child_id: int, parent_id: int) -> None:
+    "Provides the relationship between children and parents"
+    database.add(model.VectorHierarchy(child=child_id, parent=parent_id))
+    database.flush()
+    database.commit()
+
+
 def get_vectors_for_user(database: Session, user: schemas.User) -> List[model.Vector]:
-    "Query all Level 0 from the database that a given user has access to."
+    "Query all Vector from the database that a given user has access to."
     return database.query(model.Vector).filter(model.Vector.users.any(id=user.id)).all()
+
+
+def get_all_vectors(database: Session) -> List[model.Vector]:
+    """
+    Returns every vector in the Vectors table (necessary for adding child-parent relations)
+    Should only be used for importing the Level 1 elements from genbank files and csv!
+    """
+    return database.query(model.Vector).all()
