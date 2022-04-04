@@ -22,7 +22,24 @@ def vector_to_world(vector: schemas.VectorInDB) -> schemas.VectorOut:
     Returns:
         schemas.VectorOut: Vector sent over the wire.
     """
-    return schemas.VectorOut(**vector.dict(), sequence_length=len(vector.sequence))
+    vec_in_db_dict = vector.dict()
+
+    if len(vector.children) > 0:
+        children_out = []
+        for child in vector.children:
+            children_out.append(
+                schemas.VectorOut(
+                    **child.dict(), sequence_length=len(child.sequence), children_out=[]
+                )
+            )
+    else:
+        children_out = []
+
+    return schemas.VectorOut(
+        **vec_in_db_dict,
+        sequence_length=len(vector.sequence),
+        children_out=children_out,
+    )
 
 
 @router.get("/vectors/", response_model=List[schemas.VectorOut])

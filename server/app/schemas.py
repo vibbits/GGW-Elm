@@ -213,7 +213,6 @@ class Vector(VectorBase):
     """
 
     id: int = 0
-    children: List["Vector"]
     annotations: List[Annotation]
     features: List[Feature]
     references: List[Reference]
@@ -230,6 +229,7 @@ class VectorInDB(Vector):
     a Vector object when it is stored in the database.
     """
 
+    children: List["VectorInDB"]
     sequence: str
 
 
@@ -256,4 +256,5 @@ class VectorOut(Vector):
     so we save bytes over the wire.
     """
 
+    children_out: List["VectorOut"]
     sequence_length: int
