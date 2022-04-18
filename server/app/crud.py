@@ -155,7 +155,7 @@ def add_vector(
         return new_vector
 
 
-def add_vector_hierarchy(database: Session, child_id: int, parent_id: int) -> None:
+def add_vector_hierarchy(database: Session, child_id: int, parent_id: int):
     "Provides the relationship between children and parents"
     database.add(model.VectorHierarchy(child=child_id, parent=parent_id))
     database.flush()

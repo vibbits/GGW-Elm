@@ -187,7 +187,7 @@ def add_leveln(
         sequences.append(child.sequence)
         total_sequence_length = total_sequence_length + len(child.sequence)
 
-    children_in_db: schemas.VectorInDB = [
+    children_in_db: List[schemas.VectorInDB] = [
         schemas.VectorInDB.from_orm(child) for child in children
     ]
 
