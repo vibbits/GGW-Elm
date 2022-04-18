@@ -97,7 +97,7 @@ class LoginUrl(BaseModel):
 # Adding data
 
 
-class Reference(BaseModel):
+class VectorReference(BaseModel):
     """
     Base Class for defining a Reference.
     This links the genbank file to the maker.
@@ -145,6 +145,8 @@ class Feature(BaseModel):
     strand: int
 
     class Config:
+        """Orm mode configuration"""
+
         orm_mode = True
 
 
@@ -179,11 +181,11 @@ class VectorBase(BaseModel):
     cloning_technique: Optional[str]
     bacterial_strain: str
     group: str
-    selection: str
+    selection: Optional[str]
     responsible: str
     is_BsmB1_free: Optional[str]
-    notes: str
-    REase_digest: str
+    notes: Optional[str]
+    REase_digest: Optional[str]
     level: VectorLevel
 
     class Config:
@@ -202,7 +204,7 @@ class VectorFromGenbank(BaseModel):
     sequence: str
     annotations: List[Annotation]
     features: List[Feature]
-    references: List[Reference]
+    references: List[VectorReference]
 
 
 class Vector(VectorBase):
@@ -212,10 +214,9 @@ class Vector(VectorBase):
     most Vector classes.
     """
 
-    id: int = 0
     annotations: List[Annotation]
     features: List[Feature]
-    references: List[Reference]
+    references: List[VectorReference]
     bsmb1_overhang: Optional[str]
     users: List[User]
     gateway_site: str
@@ -243,7 +244,8 @@ class VectorToAdd(VectorBase):
     """
 
     date: str
-    genbank_content: str
+    genbank_content: Optional[str]
+    bsmb1_overhang: Optional[str]
 
 
 class VectorOut(Vector):
@@ -256,5 +258,20 @@ class VectorOut(Vector):
     so we save bytes over the wire.
     """
 
-    children_out: List["VectorOut"]
+    inserts_out: List["VectorOut"]
+    backbone_out: Optional[
+        "VectorOut"
+    ]  # Should be optional because bacbones don't have a backbone
     sequence_length: int
+
+
+class LevelNToAdd(VectorBase):
+    """
+    This schema represents the information received from the UI when
+    making a level 1 construct.
+    """
+
+    bsmb1_overhang: Optional[str]
+    inserts: List["VectorToAdd"]
+    backbone: "VectorToAdd"
+    date: str
