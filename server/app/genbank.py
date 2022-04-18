@@ -1,6 +1,12 @@
 from Bio import SeqIO
 
-from app.schemas import VectorFromGenbank, Annotation, Feature, Reference, Qualifier
+from app.schemas import (
+    VectorFromGenbank,
+    Annotation,
+    Feature,
+    VectorReference,
+    Qualifier,
+)
 
 
 # Function that reads in a genbank file and converts it into a json
@@ -17,7 +23,7 @@ def convert_gbk_to_vector(genbank_file) -> VectorFromGenbank:
         if key == "references":
             for reference in record.annotations["references"]:
                 references.append(
-                    Reference(authors=reference.authors, title=reference.title)
+                    VectorReference(authors=reference.authors, title=reference.title)
                 )
         else:
             annotations.append(Annotation(key=key, value=str(val)))
