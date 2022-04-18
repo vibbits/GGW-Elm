@@ -549,8 +549,8 @@ level1Decoder =
         |> JDP.optional "notes" (Decode.maybe Decode.string) Nothing
         |> JDP.required "sequence_length" Decode.int
         |> JDP.optional "reaseDigest" (Decode.maybe Decode.string) Nothing
-        |> JDP.required "children" (Decode.list level0Decoder)
-        |> JDP.optional "backbone" (Decode.maybe backboneDecoder) Nothing
+        |> JDP.required "inserts_out" (Decode.list level0Decoder)
+        |> JDP.optional "backbone_out" (Decode.maybe backboneDecoder) Nothing
         |> JDP.optional "date" (Decode.maybe Decode.string) Nothing
         |> JDP.hardcoded Nothing
 
@@ -708,14 +708,17 @@ levelNEncoder level1 =
     Encode.object
         [ ( "name", Encode.string level1.name )
         , ( "location", Encode.int level1.location )
+        , ( "bsa1_overhang", Encode.null )
+        , ( "cloning_technique", Encode.null )
         , ( "bsmb1_overhang"
           , Maybe.map (showBsmb1Overhang >> Encode.string) level1.bsmb1Overhang
                 |> Maybe.withDefault Encode.null
           )
         , ( "responsible", Encode.string <| level1.responsible )
+        , ( "bacterial_strain", (Maybe.withDefault "" >> Encode.string) level1.bacterialStrain )
+        , ( "selection", (Maybe.withDefault "" >> Encode.string) level1.selection )
         , ( "group", Encode.string <| level1.group )
         , ( "notes", Encode.string <| Maybe.withDefault "" level1.notes )
-        , ( "sequenceLength", Encode.int level1.sequenceLength )
         , ( "REase_digest"
           , Encode.string <|
                 Maybe.withDefault "" level1.reaseDigest
@@ -724,10 +727,11 @@ levelNEncoder level1 =
           , Encode.string <|
                 Maybe.withDefault "" level1.date
           )
-        , ( "genbank_content", Encode.string <| Maybe.withDefault "" level1.genbankContent )
         , ( "level"
           , Encode.int 3
           )
+        , ( "inserts", Encode.list (\insert -> level0Encoder insert) level1.inserts )
+        , ( "backbone", backboneEncoder (Maybe.withDefault initBackbone level1.backbone) )
         ]
 
 

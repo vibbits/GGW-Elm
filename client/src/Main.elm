@@ -24,7 +24,7 @@ import Element.Region
 import File exposing (File)
 import File.Select as Select
 import Html exposing (Html)
-import Html.Attributes as HA
+import Html.Attributes as HA exposing (placeholder)
 import Html.Events exposing (onClick)
 import Http exposing (Error(..), expectJson, jsonBody)
 import Interface
@@ -179,6 +179,7 @@ type Msg
     | RequestGBLevel0
     | GBSelectedLevel0 File
     | ChangeLevel1ToAdd ChangeMol
+    | AddLevel1
       -- Msg for Adding vectors to the DB
     | VectorCreated (Result Http.Error Vector)
       -- Msg for retrieving Vectors
@@ -565,9 +566,7 @@ constructLevel1View model =
                             model.level1ToAdd
             ]
         , Input.multiline [ Element.height <| px 150 ]
-            { text =
-                (.notes >> Maybe.withDefault "") <|
-                    Maybe.withDefault initLevel1 model.level1ToAdd
+            { text = Maybe.withDefault "" <| Maybe.andThen .notes model.level1ToAdd
             , onChange = ChangeLevel1ToAdd << ChangeNotes
             , label = Input.labelLeft [] <| Element.text "Notes: "
             , spellcheck = True
@@ -577,6 +576,24 @@ constructLevel1View model =
             { onChange = ChangeLevel1ToAdd << ChangeResponsible
             , label = Input.labelLeft [] <| Element.text "Designer Name: "
             , text = .responsible <| Maybe.withDefault initLevel1 model.level1ToAdd
+            , placeholder = Nothing
+            }
+        , Input.text []
+            { onChange = ChangeLevel1ToAdd << ChangeBacterialStrain
+            , label = Input.labelLeft [] <| Element.text "Bacterial strain:"
+            , text = Maybe.withDefault "" <| Maybe.andThen .bacterialStrain model.level1ToAdd
+            , placeholder = Nothing
+            }
+        , Input.text []
+            { onChange = ChangeLevel1ToAdd << ChangeSelection
+            , label = Input.labelLeft [] <| Element.text "Selection:"
+            , text = Maybe.withDefault "" <| Maybe.andThen .selection model.level1ToAdd
+            , placeholder = Nothing
+            }
+        , Input.text []
+            { onChange = ChangeLevel1ToAdd << ChangeDate
+            , label = Input.labelLeft [] <| Element.text "Choose a date:"
+            , text = Maybe.withDefault "" <| Maybe.andThen .date model.level1ToAdd
             , placeholder = Nothing
             }
         , el
@@ -826,13 +843,13 @@ navLinks auth =
                 []
 
 
-downloadButtonBar : Element msg
+downloadButtonBar : Element Msg
 downloadButtonBar =
     row
         [ centerX
         , spacing 150
         ]
-        [ button_ Nothing "Save to database"
+        [ button_ (Just AddLevel1) "Save to database"
         , download_ "./Example_Data/Example_Genbank_format.gb" "" "Download GenBank"
         ]
 
@@ -1289,6 +1306,9 @@ update msg model =
             , Cmd.none
             )
 
+        AddLevel1 ->
+            ( model, createVector model.auth (LevelNVec <| Maybe.withDefault initLevel1 model.level1ToAdd) )
+
         ChangeLevel1ToAdd change ->
             ( { model
                 | level1ToAdd =
@@ -1429,11 +1449,20 @@ createVector : Auth -> Vector -> Cmd Msg
 createVector auth vector =
     case auth of
         Authenticated usr ->
-            authenticatedPost usr.token
-                "http://localhost:8000/vectors/"
-                VectorCreated
-                (vectorEncoder vector)
-                vectorDecoder_
+            case vector of
+                LevelNVec _ ->
+                    authenticatedPost usr.token
+                        "http://localhost:8000/leveln/"
+                        VectorCreated
+                        (vectorEncoder vector)
+                        vectorDecoder_
+
+                _ ->
+                    authenticatedPost usr.token
+                        "http://localhost:8000/vectors/"
+                        VectorCreated
+                        (vectorEncoder vector)
+                        vectorDecoder_
 
         _ ->
             Cmd.none
