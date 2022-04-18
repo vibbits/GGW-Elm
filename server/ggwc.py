@@ -16,7 +16,7 @@ import httpx
 from Bio import SeqIO
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.model import Vector, Annotation, Reference, Qualifier, Feature
+from app.model import Vector, Annotation, VectorReference, Qualifier, Feature
 
 from app.database import SessionLocal
 from app.level import VectorLevel
@@ -222,7 +222,9 @@ def import0(csv_path, gbk_path, user):
             if key == "references":
                 for reference in record.annotations["references"]:
                     references.append(
-                        Reference(authors=reference.authors, title=reference.title)
+                        VectorReference(
+                            authors=reference.authors, title=reference.title
+                        )
                     )
             else:
                 annotations.append(Annotation(key=key, value=str(value)))
