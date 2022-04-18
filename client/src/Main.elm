@@ -24,7 +24,7 @@ import Element.Region
 import File exposing (File)
 import File.Select as Select
 import Html exposing (Html)
-import Html.Attributes as HA exposing (placeholder)
+import Html.Attributes as HA
 import Html.Events exposing (onClick)
 import Http exposing (Error(..), expectJson, jsonBody)
 import Interface

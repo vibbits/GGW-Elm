@@ -8,8 +8,6 @@ module Molecules exposing
     , Vector(..)
     , allBsa1Overhangs
     , allBsmbs1Overhangs
-    , getBackboneFromLevel1
-    , getInsertsFromLevel1
     , initBackbone
     , initLevel0
     , initLevel1
@@ -452,16 +450,6 @@ getInsertsFromLevel1 level1 =
 
         Nothing ->
             []
-
-
-getBackboneFromLevel1 : Maybe Level1 -> Backbone
-getBackboneFromLevel1 level1 =
-    case level1 of
-        Just l1 ->
-            Maybe.withDefault initBackbone l1.backbone
-
-        Nothing ->
-            initBackbone
 
 
 
