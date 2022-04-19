@@ -230,7 +230,7 @@ def get_features_from_vector(database: Session, vector_id: int) -> List[model.Fe
 
 def get_qualifiers_from_feature(
     database: Session, feature_id: int
-) -> List[model.Feature]:
+) -> List[model.Qualifier]:
     return (
         database.query(model.Qualifier)
         .filter(model.Qualifier.feature == feature_id)
