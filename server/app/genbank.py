@@ -1,6 +1,13 @@
 from typing import Tuple, Callable, Any
+import datetime
 
 from Bio import SeqIO
+from Bio.GenBank import Record
+
+# from Bio.Alphabet import IUPAC
+from Bio.SeqFeature import SeqFeature, FeatureLocation
+
+# from Bio.SeqIO import InsdcIO
 
 from app.level import VectorLevel
 from app.schemas import (
@@ -10,6 +17,12 @@ from app.schemas import (
     VectorReference,
     Qualifier,
 )
+
+from app import model, deps, crud
+from typing import List
+
+from fastapi import Depends
+from sqlalchemy.orm import Session
 
 
 def digest_sequence(level: VectorLevel, sequence: str) -> Tuple[int, int, str]:
@@ -102,3 +115,87 @@ def convert_gbk_to_vector(genbank_file, level: VectorLevel) -> GenbankData:
         features=features,
         references=references,
     )
+
+
+# Converts a model.Vector to a Genbank output
+def convert_LevelN_to_genbank(
+    vector: model.Vector, database: Session = Depends(deps.get_db)
+) -> str:
+    vector_record = Record.Record()
+
+    # General construct information
+    vector_record.locus = "MP-G1-" + str(vector.location) + "_" + vector.name
+    vector_record.definition = "synthetic circular DNA"
+    vector_record.origin = ""
+    vector_record.sequence = vector.sequence
+    vector_record.size = len(vector.sequence)
+
+    # Annotations
+    vector_record.accession = []
+    vector_record.comment = ""
+    vector_record.data_file_division = ""  # E.g. 'PLN' stands for plants
+    vector_record.date = vector.date  # Is also present in annotations...
+    vector_record.keywords = []
+    vector_record.residue_type = "ds-DNA circular"
+    vector_record.organism = (
+        "synthetic DNA construct"  # To ask: Should this be bacterial_strain?
+    )
+    # To ask: molecule_type == residue_type?
+    # To ask: sequence_version == accesion version?
+    vector_record.source = []  # The source of material where the sequence came from.
+    vector_record.taxonomy = (
+        []
+    )  # A listing of the taxonomic classification of the organism, starting general and getting more specific.
+    vector_record.topology = ""
+
+    # References
+    vector_record.references = [
+        mod_Reference(authors=ref.authors, title=ref.title) for ref in vector.references
+    ]
+
+    # Features
+    vector_features = crud.get_features_from_vector(
+        database=database, vector_id=vector.id
+    )
+    for vector_feature in vector_features:
+        feature_qualifiers = crud.get_qualifiers_from_feature(
+            database=database, feature_id=vector_feature.id
+        )
+
+        feat = SeqFeature(
+            type=vector_feature.type,
+            location=FeatureLocation(
+                start=vector_feature.start_pos,
+                end=vector_feature.end_pos,
+                strand=vector_feature.strand,
+            ),
+        )
+
+        for qual in feature_qualifiers:
+            feat.qualifiers[qual.key] = qual.value
+
+        vector_record.features.append(feat)
+
+    # Return the Genbank Record Object
+    return vector_record.__str__()
+
+
+class mod_Reference(Record.Reference):
+    """
+    This class extends the existing Record.Reference class.
+    """
+
+    def __init__(self, authors: str, title: str):
+        """
+        Extra constructor to initialize a Record.Reference object
+        with these attributes:
+
+        - authors: str
+        - title: str
+        """
+        super().__init__()
+        self.authors = authors
+        self.title = title
+        self.journal = (
+            f"Generated {datetime.datetime.now().strftime('%a %d %b %Y')} by GG2"
+        )
