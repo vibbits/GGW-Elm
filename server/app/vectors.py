@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app import deps, schemas, crud
 from app.level import VectorLevel
-from app.genbank import convert_gbk_to_vector
+from app.genbank import convert_gbk_to_vector, convert_LevelN_to_genbank
 from app.model import Vector
 
 router = APIRouter()
@@ -162,3 +162,39 @@ def add_leveln(
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid vector"
     )
+
+
+@router.post("/level1/genbank/", response_model=str)
+def get_level1_genbank(
+    new_vec: schemas.LevelNToAdd,
+    database: Session = Depends(deps.get_db),
+    # current_user: schemas.User = Depends(deps.get_current_user),
+) -> str:
+    """
+    This function handles a POST request from the UI
+    for getting a genbank file of a submitted Level 1.
+
+    - Accepts schemas.LevelNToAdd as input
+    - Queries the database for the model.Vector object
+    - Parses the model.Vector object to a genbank file
+    - Returns a genbank file as a string
+    """
+
+    # Get the model.Vector object from the database
+    vec_from_db = crud.get_vector_by_name_level_location(
+        database=database,
+        name=new_vec.name,
+        level=new_vec.level,
+        location=new_vec.location,
+    )
+
+    # Parse the vector, using the genbank.convert_LevelN_to_genbank function
+    gbk_str = convert_LevelN_to_genbank(vector=vec_from_db, database=database)
+
+    if gbk_str is not None:
+        return gbk_str
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Could not generate genbank file!",
+        )

@@ -22,6 +22,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Element.Region
 import File exposing (File)
+import File.Download
 import File.Select as Select
 import Html exposing (Html)
 import Html.Attributes as HA
@@ -66,7 +67,9 @@ type alias Model =
     { router : Router
     , api : Api Msg
     , filterOverhang : Bsa1Overhang -- Used for filtering the overhangs depending on the application
-    , currLevel1App : Application -- Used for filtering the tables on overhang
+    , currApp : Application -- Used for filtering the tables on overhang
+    , level1ToAdd : Maybe Level1
+    , level1IsSaved : Bool
     , auth : Auth
     , notifications : Notify.Notifications
     , key : Nav.Key
@@ -167,8 +170,10 @@ init flags url key =
         model =
             { router = Router router
             , api = Result.withDefault dummyApi api
-            , currLevel1App = Standard
+            , currApp = Standard
             , filterOverhang = A__B
+            , level1ToAdd = Nothing
+            , level1IsSaved = False
             , auth = Storage.fromJson flags
             , notifications = notifications
             , key = key
@@ -189,7 +194,12 @@ init flags url key =
 
 
 type Msg
-    = GotLoginUrls (Result Http.Error Auth)
+    = -- Level 1 construction Msg
+      ChooseApplication Application
+    | ChangeOverhang Bsa1Overhang
+    | SelectLevel1 Level1
+      -- Login Msg
+    | GotLoginUrls (Result Http.Error Auth)
     | GotAuthentication (Result Http.Error Auth)
     | Logout
     | UrlChanged Url
@@ -213,7 +223,14 @@ type Msg
     | GBSelected File
     | GBLoaded String
     | AddLevel0 Level0
-    | AddLevel1 Level1
+    | ChangeLevel0ToAdd ChangeMol
+    | RequestGBLevel0
+    | GBSelectedLevel0 File
+    | ChangeLevel1ToAdd ChangeMol
+    | AddLevel1
+    | DownloadGenbankFile
+    | GenbankCreated (Result Http.Error String)
+      -- Msg for Adding vectors to the DB
     | VectorCreated (Result Http.Error Vector)
       -- Msg for retrieving Vectors
     | VectorsReceived (Result Http.Error (List Vector))
@@ -948,8 +965,8 @@ downloadButtonBar level1 =
         [ centerX
         , spacing 150
         ]
-        [ button_ (Just (AddLevel1 level1)) "Save to database"
-        , download_ "./core/Genbank Files/Example_Genbank_format.gb" "Example Genbank File" "Download GenBank"
+        [ button_ (Just AddLevel1) "Save to database"
+        , button_ (Just DownloadGenbankFile) "Download GenBank"
         ]
 
 
@@ -1142,7 +1159,9 @@ level1Table model =
                       }
                     , { header = none
                       , width = fillPortion 5
-                      , view = .name >> Element.text >> el [ centerY ]
+                      , view = \level1 -> buttonLink_ (Just <| SelectLevel1 level1) level1.name
+
+                      --   , view = .name >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 1
@@ -1421,6 +1440,32 @@ update msg model =
         AddLevel0 newIns ->
             ( model, model.api.save model.auth (Level0Vec newIns) )
 
+        AddLevel1 ->
+            ( { model | level1IsSaved = True }, createVector model.auth (LevelNVec <| Maybe.withDefault initLevel1 model.level1ToAdd) )
+
+        DownloadGenbankFile ->
+            ( model, createGenbank model.auth (LevelNVec <| Maybe.withDefault initLevel1 model.level1ToAdd) model.level1IsSaved )
+
+        GenbankCreated (Err err) ->
+            ( { model | notifications = Notify.makeError "Creating the genbank file failed" (showHttpError err) model.notifications }
+            , Cmd.none
+            )
+
+        GenbankCreated (Ok content) ->
+            ( model
+            , saveGenbank (.name <| Maybe.withDefault initLevel1 model.level1ToAdd) content
+            )
+
+        ChangeLevel1ToAdd change ->
+            ( { model
+                | level1ToAdd =
+                    Maybe.withDefault initLevel1 model.level1ToAdd
+                        |> interpretLevel1Change change
+                        |> Just
+              }
+            , Cmd.none
+            )
+
         CloseNotification which ->
             ( { model | notifications = Notify.close which model.notifications }
             , Cmd.none
@@ -1515,6 +1560,46 @@ appendInsertToLevel1 l0List newL0 =
                     l0.bsa1Overhang /= newL0.bsa1Overhang
                 )
                 l0List
+
+
+createGenbank : Auth -> Vector -> Bool -> Cmd Msg
+createGenbank auth vector lvl1IsSaved =
+    if lvl1IsSaved then
+        case auth of
+            Authenticated usr ->
+                case vector of
+                    LevelNVec _ ->
+                        Http.request
+                            { method = "POST"
+                            , headers = [ Http.header "Authorization" ("Bearer " ++ usr.token) ]
+                            , url = "http://localhost:8000/level1/genbank/"
+                            , body = Http.jsonBody (vectorEncoder vector)
+                            , expect = Http.expectString GenbankCreated
+                            , timeout = Nothing
+                            , tracker = Nothing
+                            }
+
+                    _ ->
+                        Cmd.none
+
+            _ ->
+                Cmd.none
+
+    else
+        Cmd.none
+
+
+
+-- To Do: Make a notification that says to fisrt save the vector to the database.
+
+
+saveGenbank : String -> String -> Cmd Msg
+saveGenbank vectorName content =
+    let
+        _ =
+            Debug.log "Genbank content: " content
+    in
+    File.Download.string (String.append vectorName ".gbk") "text/genbank" content
 
 
 
