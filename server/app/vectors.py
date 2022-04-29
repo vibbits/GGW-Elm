@@ -46,8 +46,6 @@ def vector_to_world(vector: schemas.VectorInDB) -> schemas.VectorOut:
                     inserts_out=[],
                     backbone_out=None,
                 )
-            else:
-                continue
 
     else:
         inserts_out = []
