@@ -24,9 +24,9 @@ import Url exposing (Protocol(..), Url)
 type Page
     = Login
     | Catalogue
-    | AddLevel1
-    | AddLevel0
-    | AddBackbone
+    | AddLevel1Page
+    | AddLevel0Page
+    | AddBackbonePage
     | Admin
 
 
@@ -41,13 +41,13 @@ pageToString page =
         Catalogue ->
             "catalogue"
 
-        AddLevel1 ->
+        AddLevel1Page ->
             "new/level1"
 
-        AddLevel0 ->
+        AddLevel0Page ->
             "new/level0"
 
-        AddBackbone ->
+        AddBackbonePage ->
             "new/backbone"
 
         Admin ->
@@ -69,13 +69,13 @@ urlToPage url =
             Just Admin
 
         "/new/level0" ->
-            Just AddLevel0
+            Just AddLevel0Page
 
         "/new/level1" ->
-            Just AddLevel1
+            Just AddLevel1Page
 
         "/new/backbone" ->
-            Just AddBackbone
+            Just AddBackbonePage
 
         _ ->
             Nothing

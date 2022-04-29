@@ -166,7 +166,7 @@ def add_leveln(
 
 @router.post("/level1/genbank/", response_model=str)
 def get_level1_genbank(
-    new_vec: schemas.LevelNToAdd,
+    new_vec: schemas.VectorIn,
     database: Session = Depends(deps.get_db),
     # current_user: schemas.User = Depends(deps.get_current_user),
 ) -> str:
@@ -192,6 +192,10 @@ def get_level1_genbank(
     gbk_str = convert_LevelN_to_genbank(vector=vec_from_db, database=database)
 
     if gbk_str is not None:
+        print("#" * 100)
+        print("Genbank content:")
+        print(gbk_str)
+        print("#" * 100)
         return gbk_str
     else:
         raise HTTPException(

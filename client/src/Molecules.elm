@@ -390,23 +390,28 @@ vectorDecoder =
 -- Encoders
 
 
-vectorEncoder : Vector -> Encode.Value
+vectorEncoder : Maybe Vector -> Encode.Value
 vectorEncoder vector =
     case vector of
-        Level0Vec vec ->
+        Just (Level0Vec vec) ->
             level0Encoder vec
 
-        BackboneVec vec ->
+        Just (BackboneVec vec) ->
             backboneEncoder vec
 
-        LevelNVec vec ->
+        Just (LevelNVec vec) ->
             levelNEncoder vec
+
+        _ ->
+            backboneEncoder initBackbone
 
 
 backboneEncoder : Backbone -> Encode.Value
 backboneEncoder backbone =
     Encode.object
-        [ ( "name", Encode.string backbone.name )
+        [ ( "id", Encode.int backbone.id )
+        , ( "sequence_length", Encode.int backbone.sequenceLength )
+        , ( "name", Encode.string backbone.name )
         , ( "location", Encode.int backbone.location )
         , ( "bsa1_overhang"
           , Maybe.map (showBsa1Overhang >> Encode.string) backbone.bsa1Overhang
@@ -475,7 +480,9 @@ backboneEncoder backbone =
 level0Encoder : Level0 -> Encode.Value
 level0Encoder level0 =
     Encode.object
-        [ ( "name", Encode.string level0.name )
+        [ ( "id", Encode.int level0.id )
+        , ( "sequence_length", Encode.int level0.sequenceLength )
+        , ( "name", Encode.string level0.name )
         , ( "location", Encode.int level0.location )
         , ( "bsa1_overhang"
           , Encode.string <|
@@ -540,7 +547,9 @@ level0Encoder level0 =
 levelNEncoder : Level1 -> Encode.Value
 levelNEncoder level1 =
     Encode.object
-        [ ( "name", Encode.string level1.name )
+        [ ( "id", Encode.int level1.id )
+        , ( "sequence_length", Encode.int level1.sequenceLength )
+        , ( "name", Encode.string level1.name )
         , ( "location", Encode.int level1.location )
         , ( "bsa1_overhang", Encode.null )
         , ( "cloning_technique", Encode.null )
@@ -564,8 +573,6 @@ levelNEncoder level1 =
         , ( "level"
           , Encode.int 3
           )
-        , ( "inserts", Encode.list (\insert -> level0Encoder insert) level1.inserts )
-        , ( "backbone", backboneEncoder (Maybe.withDefault initBackbone level1.backbone) )
         , ( "annotations"
           , Encode.list Encode.int []
           )
