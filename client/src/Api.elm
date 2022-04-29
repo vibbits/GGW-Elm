@@ -21,7 +21,7 @@ type alias Api msg =
     { login : Cmd msg
     , authorize : AuthCode -> Cmd msg
     , vectors : Auth -> Cmd msg
-    , save : Auth -> Vector -> Cmd msg
+    , save : Auth -> Maybe Vector -> Cmd msg
     , allUsers : Auth -> Cmd msg
     , allGroups : Auth -> Cmd msg
     , allConstructs : Auth -> Cmd msg
@@ -111,7 +111,7 @@ mkVectors url expect auth =
             Cmd.none
 
 
-mkSave : ApiUrl -> Expect msg -> Auth -> Vector -> Cmd msg
+mkSave : ApiUrl -> Expect msg -> Auth -> Maybe Vector -> Cmd msg
 mkSave url expect auth vec =
     case auth of
         Authenticated usr ->
@@ -119,7 +119,7 @@ mkSave url expect auth vec =
                 apiUrl : ApiUrl
                 apiUrl =
                     case vec of
-                        LevelNVec _ ->
+                        Just (LevelNVec _) ->
                             url ++ "/submit/vector/"
 
                         _ ->

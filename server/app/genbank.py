@@ -1,13 +1,10 @@
 from typing import Tuple, Callable, Any
 import datetime
-
+import os
+import tempfile
 from Bio import SeqIO
-from Bio.GenBank import Record
-
-# from Bio.Alphabet import IUPAC
-from Bio.SeqFeature import SeqFeature, FeatureLocation
-
-# from Bio.SeqIO import InsdcIO
+from Bio.Seq import Seq
+import Bio.SeqFeature
 
 from app.level import VectorLevel
 from app.schemas import (
@@ -18,7 +15,8 @@ from app.schemas import (
     Qualifier,
 )
 
-from app import model, deps, crud
+from app import model, deps
+from app.level import VectorLevel
 from typing import List
 
 from fastapi import Depends
@@ -121,16 +119,21 @@ def convert_gbk_to_vector(genbank_file, level: VectorLevel) -> GenbankData:
 def convert_LevelN_to_genbank(
     vector: model.Vector, database: Session = Depends(deps.get_db)
 ) -> str:
-    vector_record = Record.Record()
+    vector_record = SeqIO.SeqRecord(seq=Seq(vector.sequence))
 
     # General construct information
-    vector_record.locus = "MP-G1-" + str(vector.location) + "_" + vector.name
-    vector_record.definition = "synthetic circular DNA"
+    vector_record.name = (
+        "MP-G1-" + str(vector.location) + "_" + vector.name.replace(" ", "_")
+    )
+    vector_record.description = "synthetic circular DNA"
+
     vector_record.origin = ""
-    vector_record.sequence = vector.sequence
     vector_record.size = len(vector.sequence)
 
     # Annotations
+    for annotation in vector.annotations:
+        vector_record.annotations[annotation.key] = annotation.value
+
     vector_record.accession = []
     vector_record.comment = ""
     vector_record.data_file_division = ""  # E.g. 'PLN' stands for plants
@@ -142,29 +145,26 @@ def convert_LevelN_to_genbank(
     )
     # To ask: molecule_type == residue_type?
     # To ask: sequence_version == accesion version?
-    vector_record.source = []  # The source of material where the sequence came from.
+    # The source of material where the sequence came from.
+    vector_record.source = []
     vector_record.taxonomy = (
         []
     )  # A listing of the taxonomic classification of the organism, starting general and getting more specific.
     vector_record.topology = ""
 
     # References
-    vector_record.references = [
+    vector_record.annotations["references"] = [
         mod_Reference(authors=ref.authors, title=ref.title) for ref in vector.references
     ]
 
     # Features
-    vector_features = crud.get_features_from_vector(
-        database=database, vector_id=vector.id
-    )
-    for vector_feature in vector_features:
-        feature_qualifiers = crud.get_qualifiers_from_feature(
-            database=database, feature_id=vector_feature.id
-        )
+    feature_list = []
+    for vector_feature in vector.features:
+        feature_qualifiers = vector_feature.qualifiers
 
-        feat = SeqFeature(
+        feat = Bio.SeqFeature.SeqFeature(
             type=vector_feature.type,
-            location=FeatureLocation(
+            location=Bio.SeqFeature.FeatureLocation(
                 start=vector_feature.start_pos,
                 end=vector_feature.end_pos,
                 strand=vector_feature.strand,
@@ -174,13 +174,26 @@ def convert_LevelN_to_genbank(
         for qual in feature_qualifiers:
             feat.qualifiers[qual.key] = qual.value
 
-        vector_record.features.append(feat)
+        # vector_record.features.append(feat)
+        feature_list.append(feat)
 
-    # Return the Genbank Record Object
-    return vector_record.__str__()
+    vector_record.features = feature_list
+
+    # Writing record content to a temporary file
+    with tempfile.NamedTemporaryFile(delete=False, mode="w+", encoding="utf-8") as f:
+        SeqIO.write(vector_record, f.name, "genbank")
+        f.seek(0)
+        lines = f.readlines()
+
+    # Manually clean-up of the temporary file
+    os.remove(f.name)
+
+    content = "".join(lines)
+    print(content)
+    return content
 
 
-class mod_Reference(Record.Reference):
+class mod_Reference(Bio.SeqFeature.Reference):
     """
     This class extends the existing Record.Reference class.
     """

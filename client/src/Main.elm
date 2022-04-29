@@ -33,7 +33,6 @@ import Interface
         ( addButton
         , buttonLink_
         , button_
-        , download_
         , linkButton_
         , navBar
         , option_
@@ -45,7 +44,7 @@ import List
 import List.Extra
 import Molecules exposing (..)
 import Path
-import Router
+import Router exposing (Page(..))
 import Shape exposing (defaultPieConfig)
 import Storage
 import String
@@ -67,8 +66,7 @@ type alias Model =
     { router : Router
     , api : Api Msg
     , filterOverhang : Bsa1Overhang -- Used for filtering the overhangs depending on the application
-    , currApp : Application -- Used for filtering the tables on overhang
-    , level1ToAdd : Maybe Level1
+    , currLevel1App : Application -- Used for filtering the tables on overhang
     , level1IsSaved : Bool
     , auth : Auth
     , notifications : Notify.Notifications
@@ -116,6 +114,13 @@ changePage router url =
             Router (Router.changePage rtr url)
 
 
+getRouterPage : Router -> Page
+getRouterPage router =
+    case router of
+        Router rtr ->
+            rtr.page
+
+
 adminReceived : Result Http.Error AdminData -> Msg
 adminReceived result =
     case result of
@@ -161,18 +166,17 @@ init flags url key =
             Router.mkRouter key (Result.withDefault dummyApi api) auth
                 |> Router.withPageView "/login" Router.Login loginView
                 |> Router.withPageView "/" Router.Catalogue catalogueView
-                |> Router.withPageView "/new/level0" Router.AddLevel0 addLevel0View
-                |> Router.withPageView "/new/level1" Router.AddLevel1 constructLevel1View
-                |> Router.withPageView "/new/backbone" Router.AddBackbone addBackboneView
+                |> Router.withPageView "/new/level0" Router.AddLevel0Page addLevel0View
+                |> Router.withPageView "/new/level1" Router.AddLevel1Page constructLevel1View
+                |> Router.withPageView "/new/backbone" Router.AddBackbonePage addBackboneView
                 |> Router.withPageView "/admin" Router.Admin adminView
 
         model : Model
         model =
             { router = Router router
             , api = Result.withDefault dummyApi api
-            , currApp = Standard
+            , currLevel1App = Standard
             , filterOverhang = A__B
-            , level1ToAdd = Nothing
             , level1IsSaved = False
             , auth = Storage.fromJson flags
             , notifications = notifications
@@ -195,9 +199,7 @@ init flags url key =
 
 type Msg
     = -- Level 1 construction Msg
-      ChooseApplication Application
-    | ChangeOverhang Bsa1Overhang
-    | SelectLevel1 Level1
+      SelectVector Vector
       -- Login Msg
     | GotLoginUrls (Result Http.Error Auth)
     | GotAuthentication (Result Http.Error Auth)
@@ -223,12 +225,8 @@ type Msg
     | GBSelected File
     | GBLoaded String
     | AddLevel0 Level0
-    | ChangeLevel0ToAdd ChangeMol
-    | RequestGBLevel0
-    | GBSelectedLevel0 File
-    | ChangeLevel1ToAdd ChangeMol
-    | AddLevel1
-    | DownloadGenbankFile
+    | AddLevel1 Level1
+    | DownloadGenbankFile Level1
     | GenbankCreated (Result Http.Error String)
       -- Msg for Adding vectors to the DB
     | VectorCreated (Result Http.Error Vector)
@@ -304,7 +302,7 @@ catalogueView model =
                 , backboneTable model
                 , Element.row
                     [ centerX, spacing 50 ]
-                    [ addButton (SwitchPage Router.AddBackbone) ]
+                    [ addButton (SwitchPage Router.AddBackbonePage) ]
                 ]
             )
             model.backboneAccordionStatus
@@ -328,7 +326,7 @@ catalogueView model =
                     }
                 , overhangRadioRow model
                 , level0Table model
-                , Element.row [ centerX, spacing 50 ] [ addButton (SwitchPage Router.AddLevel0) ]
+                , Element.row [ centerX, spacing 50 ] [ addButton (SwitchPage Router.AddLevel0Page) ]
                 ]
             )
             model.level0AccordionStatus
@@ -729,7 +727,12 @@ constructLevel1View model =
         , applicationRadioButton model
         , overhangRadioRow model
         , level0Table model
-        , downloadButtonBar level1
+        , row
+            [ centerX
+            , spacing 150
+            ]
+            [ button_ (Just <| AddLevel1 level1) "Save to database"
+            ]
         , el
             [ Element.Region.heading 2
             , Font.size 25
@@ -942,7 +945,7 @@ navLinks auth =
             navBar
                 ([ buttonLink_ (Just (SwitchPage Router.Catalogue)) "Home"
                  , buttonLink_ (Just (SwitchPage Router.Catalogue)) "Vector Catalogue"
-                 , buttonLink_ (Just (SwitchPage Router.AddLevel1)) "New Level1 construct"
+                 , buttonLink_ (Just (SwitchPage Router.AddLevel1Page)) "New Level1 construct"
                  , buttonLink_ Nothing <| Maybe.withDefault "Unknown name" user.name
                  , buttonLink_ (Just Logout) "Logout"
                  ]
@@ -957,17 +960,6 @@ navLinks auth =
         _ ->
             navBar
                 []
-
-
-downloadButtonBar : Level1 -> Element Msg
-downloadButtonBar level1 =
-    row
-        [ centerX
-        , spacing 150
-        ]
-        [ button_ (Just AddLevel1) "Save to database"
-        , button_ (Just DownloadGenbankFile) "Download GenBank"
-        ]
 
 
 overhangRadioRow : Model -> Element Msg
@@ -1044,9 +1036,17 @@ level0Table model =
 
         viewName : Level0 -> Element Msg
         viewName level0 =
-            case model.vectorToAdd of
-                Just (LevelNVec level1) ->
-                    buttonLink_ (Just (UpdateVectorToAdd <| Just <| LevelNVec <| { level1 | inserts = appendInsertToLevel1 level1.inserts level0 })) level0.name
+            case getRouterPage model.router of
+                AddLevel1Page ->
+                    case model.vectorToAdd of
+                        Just (LevelNVec level1) ->
+                            buttonLink_ (Just (UpdateVectorToAdd <| Just <| LevelNVec <| { level1 | inserts = appendInsertToLevel1 level1.inserts level0 })) level0.name
+
+                        _ ->
+                            Element.text level0.name
+
+                Catalogue ->
+                    buttonLink_ (Just <| SelectVector <| Level0Vec level0) level0.name
 
                 _ ->
                     Element.text level0.name
@@ -1129,7 +1129,7 @@ level1Table model =
         [ Element.width Element.fill
         ]
         [ row
-            [ spacing 20
+            [ spacing 75
             , Element.width Element.fill
             , padding 30
             , clipY
@@ -1137,6 +1137,7 @@ level1Table model =
             [ el ((Element.width <| fillPortion 3) :: headerAttrs) <| Element.text "MP-G1-Number"
             , el ((Element.width <| fillPortion 5) :: headerAttrs) <| Element.text "Level1 Name"
             , el ((Element.width <| fillPortion 1) :: headerAttrs) <| Element.text "Length"
+            , el ((Element.width <| fillPortion 1) :: headerAttrs) <| Element.text "Download genbank file"
             ]
         , el
             [ Element.width Element.fill
@@ -1159,13 +1160,17 @@ level1Table model =
                       }
                     , { header = none
                       , width = fillPortion 5
-                      , view = \level1 -> buttonLink_ (Just <| SelectLevel1 level1) level1.name
+                      , view = \level1 -> buttonLink_ (Just <| SelectVector <| LevelNVec level1) level1.name
 
                       --   , view = .name >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 1
                       , view = .sequenceLength >> String.fromInt >> Element.text >> el [ centerY ]
+                      }
+                    , { header = none
+                      , width = fillPortion 1
+                      , view = \level1 -> button_ (Just <| DownloadGenbankFile level1) ("Download MP-G1-" ++ String.fromInt level1.location)
                       }
                     ]
                 }
@@ -1197,9 +1202,17 @@ backboneTable model =
 
         viewName : Backbone -> Element Msg
         viewName backbone =
-            case model.vectorToAdd of
-                Just (LevelNVec l1) ->
-                    buttonLink_ (Just <| UpdateVectorToAdd <| Just <| LevelNVec <| { l1 | backbone = Just backbone }) backbone.name
+            case getRouterPage model.router of
+                AddLevel1Page ->
+                    case model.vectorToAdd of
+                        Just (LevelNVec l1) ->
+                            buttonLink_ (Just <| UpdateVectorToAdd <| Just <| LevelNVec <| { l1 | backbone = Just backbone }) backbone.name
+
+                        _ ->
+                            Element.text backbone.name
+
+                Catalogue ->
+                    buttonLink_ (Just <| SelectVector <| BackboneVec backbone) backbone.name
 
                 _ ->
                     Element.text backbone.name
@@ -1407,7 +1420,7 @@ update msg model =
             )
 
         AddBackbone newBB ->
-            ( model, model.api.save model.auth (BackboneVec newBB) )
+            ( model, model.api.save model.auth <| Just <| BackboneVec newBB )
 
         RequestGB ->
             ( model, Select.file [ "text" ] GBSelected )
@@ -1438,13 +1451,13 @@ update msg model =
             ( { model | vectorToAdd = vector }, Cmd.none )
 
         AddLevel0 newIns ->
-            ( model, model.api.save model.auth (Level0Vec newIns) )
+            ( model, model.api.save model.auth <| Just <| Level0Vec newIns )
 
-        AddLevel1 ->
-            ( { model | level1IsSaved = True }, createVector model.auth (LevelNVec <| Maybe.withDefault initLevel1 model.level1ToAdd) )
+        AddLevel1 level1 ->
+            ( model, model.api.save model.auth <| Just <| LevelNVec level1 )
 
-        DownloadGenbankFile ->
-            ( model, createGenbank model.auth (LevelNVec <| Maybe.withDefault initLevel1 model.level1ToAdd) model.level1IsSaved )
+        DownloadGenbankFile level1 ->
+            ( { model | vectorToAdd = Just (LevelNVec level1) }, createGenbank model.auth <| Just <| LevelNVec level1 )
 
         GenbankCreated (Err err) ->
             ( { model | notifications = Notify.makeError "Creating the genbank file failed" (showHttpError err) model.notifications }
@@ -1452,19 +1465,24 @@ update msg model =
             )
 
         GenbankCreated (Ok content) ->
-            ( model
-            , saveGenbank (.name <| Maybe.withDefault initLevel1 model.level1ToAdd) content
-            )
+            case model.vectorToAdd of
+                Just (LevelNVec vector) ->
+                    ( model
+                    , saveGenbank vector.name content
+                    )
 
-        ChangeLevel1ToAdd change ->
-            ( { model
-                | level1ToAdd =
-                    Maybe.withDefault initLevel1 model.level1ToAdd
-                        |> interpretLevel1Change change
-                        |> Just
-              }
-            , Cmd.none
-            )
+                Just (Level0Vec vector) ->
+                    ( model
+                    , saveGenbank vector.name content
+                    )
+
+                Just (BackboneVec vector) ->
+                    ( model
+                    , saveGenbank vector.name content
+                    )
+
+                _ ->
+                    ( model, Cmd.none )
 
         CloseNotification which ->
             ( { model | notifications = Notify.close which model.notifications }
@@ -1493,11 +1511,34 @@ update msg model =
             ( { model
                 | vectors = vec :: model.vectors
               }
-            , gotoRoute model Router.Catalogue
+            , Cmd.none
             )
 
+        SelectVector vector ->
+            case vector of
+                LevelNVec _ ->
+                    ( { model
+                        | vectorToAdd = Just vector
+                      }
+                    , gotoRoute model Router.AddLevel1Page
+                    )
+
+                BackboneVec _ ->
+                    ( { model
+                        | vectorToAdd = Just vector
+                      }
+                    , gotoRoute model Router.AddBackbonePage
+                    )
+
+                Level0Vec _ ->
+                    ( { model
+                        | vectorToAdd = Just vector
+                      }
+                    , gotoRoute model Router.AddLevel0Page
+                    )
+
         AddLevel1 level1 ->
-            ( model, model.api.save model.auth (LevelNVec level1) )
+            ( model, model.api.save model.auth <| Just <| LevelNVec level1 )
 
         Admin data ->
             ( { model | admin = data }, Cmd.none )
@@ -1562,31 +1603,27 @@ appendInsertToLevel1 l0List newL0 =
                 l0List
 
 
-createGenbank : Auth -> Vector -> Bool -> Cmd Msg
-createGenbank auth vector lvl1IsSaved =
-    if lvl1IsSaved then
-        case auth of
-            Authenticated usr ->
-                case vector of
-                    LevelNVec _ ->
-                        Http.request
-                            { method = "POST"
-                            , headers = [ Http.header "Authorization" ("Bearer " ++ usr.token) ]
-                            , url = "http://localhost:8000/level1/genbank/"
-                            , body = Http.jsonBody (vectorEncoder vector)
-                            , expect = Http.expectString GenbankCreated
-                            , timeout = Nothing
-                            , tracker = Nothing
-                            }
+createGenbank : Auth -> Maybe Vector -> Cmd Msg
+createGenbank auth vector =
+    case auth of
+        Authenticated usr ->
+            case vector of
+                Just (LevelNVec _) ->
+                    Http.request
+                        { method = "POST"
+                        , headers = [ Http.header "Authorization" ("Bearer " ++ usr.token) ]
+                        , url = "http://localhost:8000/level1/genbank/"
+                        , body = Http.jsonBody (vectorEncoder vector)
+                        , expect = Http.expectString GenbankCreated
+                        , timeout = Nothing
+                        , tracker = Nothing
+                        }
 
-                    _ ->
-                        Cmd.none
+                _ ->
+                    Cmd.none
 
-            _ ->
-                Cmd.none
-
-    else
-        Cmd.none
+        _ ->
+            Cmd.none
 
 
 
