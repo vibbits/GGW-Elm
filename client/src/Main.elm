@@ -73,7 +73,7 @@ type alias Model =
     { page : DisplayPage
     , currApp : Application
     , currOverhang : Bsa1Overhang
-    , level1ToAdd : Maybe Level1
+    , level1_construct : Level1
     , auth : Auth
     , notifications : Notify.Notifications
     , key : Nav.Key
@@ -87,11 +87,8 @@ type alias Model =
     , level1AccordionStatus : Bool
     , vectors : List Vector
 
-    -- Attributes for adding backbones
-    , backboneToAdd : Maybe Backbone
-
-    -- Attributes for adding Level0
-    , level0ToAdd : Maybe Level0
+    -- Attributes for adding vectors
+    , vectorToAdd : Maybe Vector
     }
 
 
@@ -116,7 +113,7 @@ init flags url key =
             { page = page
             , currApp = Standard
             , currOverhang = A__B
-            , level1ToAdd = Nothing
+            , level1_construct = initLevel1
 
             -- |
             , auth = Storage.fromJson flags
@@ -130,11 +127,8 @@ init flags url key =
             , level1AccordionStatus = False
             , vectors = []
 
-            -- Backbone To Add attributes
-            , backboneToAdd = Nothing
-
-            -- Level0 To Add Attributes
-            , level0ToAdd = Nothing
+            -- Attributes for adding vectors
+            , vectorToAdd = Nothing
             }
     in
     ( model, router url model )
@@ -154,6 +148,14 @@ type Msg
     = -- Level 1 construction Msg
       ChooseApplication Application
     | ChangeOverhang Bsa1Overhang
+    | ChangeConstructName String
+    | ChangeConstructNumber Int
+    | ChangeApplicationNote String
+    | ChangeConstructDesignerName String
+    | AppendInsert Level0
+    | ChangeBackbone Backbone
+    | ResetInsertList
+    | ResetAll
       -- Login Msg
     | GotLoginUrls (Result Http.Error Auth)
     | GotAuthentication (Result Http.Error Auth)
@@ -171,16 +173,12 @@ type Msg
     | FilterLevel0Table String
     | FilterLevel1Table String
     | AddBackbone Backbone
-    | ChangeBackboneToAdd ChangeMol
+    | ChangeVectorToAdd ChangeMol
     | RequestGBBackbone
     | GBSelectedBackbone File
     | AddLevel0 Level0
-    | ChangeLevel0ToAdd ChangeMol
     | RequestGBLevel0
     | GBSelectedLevel0 File
-    | ChangeLevel1ToAdd ChangeMol
-    | AddLevel1
-      -- Msg for Adding vectors to the DB
     | VectorCreated (Result Http.Error Vector)
       -- Msg for retrieving Vectors
     | VectorsReceived (Result Http.Error (List Vector))
@@ -214,17 +212,32 @@ view model =
                         LoginPage ->
                             loginView model
 
-                        ConstructLevel1 ->
-                            constructLevel1View model
-
                         Catalogue ->
                             catalogueView model
 
+                        ConstructLevel1 ->
+                            case model.vectorToAdd of
+                                Just (LevelNVec vec) ->
+                                    constructLevel1View model vec
+
+                                _ ->
+                                    constructLevel1View model initLevel1
+
                         AddLevel0Page ->
-                            addLevel0View model
+                            case model.vectorToAdd of
+                                Just (Level0Vec vec) ->
+                                    addLevel0View vec
+
+                                _ ->
+                                    addLevel0View initLevel0
 
                         AddBackbonePage ->
-                            addBackboneView model
+                            case model.vectorToAdd of
+                                Just (BackboneVec vec) ->
+                                    addBackboneView vec
+
+                                _ ->
+                                    addBackboneView initBackbone
                     )
                 ]
             )
@@ -311,98 +324,109 @@ catalogueView model =
                     , placeholder = Nothing
                     }
                 , level1Table model
-                , Element.row
-                    [ centerX
-                    , spacing 50
-                    ]
-                    [ addButton (SwitchPage ConstructLevel1) ]
                 ]
             )
             model.level1AccordionStatus
         ]
 
 
-addLevel0View : Model -> Element Msg
-addLevel0View model =
+addLevel0View : Level0 -> Element Msg
+addLevel0View level0 =
     column [ Element.height Element.fill, padding 25, spacing 25 ]
         [ el [ Element.Region.heading 1, Font.size 50 ] <| Element.text "Add new Level 0 donor vector"
         , Input.text []
             { label = Input.labelLeft [] <| Element.text "Name:\t"
-            , onChange = ChangeName >> ChangeLevel0ToAdd
+            , onChange = ChangeName >> ChangeVectorToAdd
             , placeholder = Nothing
-            , text = Maybe.withDefault "" <| Maybe.map .name model.level0ToAdd
+            , text = level0.name
             }
         , Input.text []
             { label = Input.labelLeft [] <| Element.text "MP-G0-number:\tMP-G0- "
             , onChange =
                 \val ->
                     String.toInt val
-                        |> Maybe.map (ChangeMPG >> ChangeLevel0ToAdd)
-                        |> Maybe.withDefault (ChangeLevel0ToAdd (ChangeMPG 0))
+                        |> Maybe.map (ChangeMPG >> ChangeVectorToAdd)
+                        |> Maybe.withDefault (ChangeVectorToAdd (ChangeMPG 0))
             , placeholder = Nothing
-            , text = Maybe.withDefault "" <| Maybe.map (.location >> String.fromInt) model.level0ToAdd
+            , text = String.fromInt <| level0.location
+
+            -- , text = String.fromInt <| .location (Level0Vec <| Maybe.withDefault initLevel0 model.vectorToAdd)
             }
         , Input.text []
             { label = Input.labelLeft [] <| Element.text "Bacterial strain:"
-            , onChange = ChangeBacterialStrain >> ChangeLevel0ToAdd
+            , onChange = ChangeBacterialStrain >> ChangeVectorToAdd
             , placeholder = Nothing
-            , text = Maybe.withDefault "" <| Maybe.map (.bacterialStrain >> Maybe.withDefault "") model.level0ToAdd
+            , text = Maybe.withDefault "" level0.bacterialStrain
+
+            -- , text = .bacterialStrain (Level0Vec <| Maybe.withDefault initLevel0 model.vectorToAdd)
             }
         , Input.text []
             { label = Input.labelLeft [] <| Element.text "Responsible:"
-            , onChange = ChangeResponsible >> ChangeLevel0ToAdd
+            , onChange = ChangeResponsible >> ChangeVectorToAdd
             , placeholder = Nothing
-            , text = Maybe.withDefault "" <| Maybe.map .responsible model.level0ToAdd
+            , text = level0.responsible
+
+            -- , text = .responsible (Level0Vec <| Maybe.withDefault initLevel0 model.vectorToAdd)
             }
         , Input.text []
             { label = Input.labelLeft [] <| Element.text "Group:"
-            , onChange = ChangeGroup >> ChangeLevel0ToAdd
+            , onChange = ChangeGroup >> ChangeVectorToAdd
             , placeholder = Nothing
-            , text = Maybe.withDefault "" <| Maybe.map .group model.level0ToAdd
+            , text = level0.group
+
+            -- , text = .group (Level0Vec <| Maybe.withDefault initLevel0 model.vectorToAdd)
             }
         , Input.text []
             { label = Input.labelLeft [] <| Element.text "Selection:"
-            , onChange = ChangeSelection >> ChangeLevel0ToAdd
+            , onChange = ChangeSelection >> ChangeVectorToAdd
             , placeholder = Nothing
-            , text = Maybe.withDefault "" <| Maybe.map (.selection >> Maybe.withDefault "") model.level0ToAdd
+            , text = Maybe.withDefault "" level0.selection
+
+            -- , text = .selection (Level0Vec <| Maybe.withDefault initLevel0 model.vectorToAdd)
             }
         , Input.text []
             { label = Input.labelLeft [] <| Element.text "Cloning Technique:"
-            , onChange = ChangeCloningTechnique >> ChangeLevel0ToAdd
+            , onChange = ChangeCloningTechnique >> ChangeVectorToAdd
             , placeholder = Nothing
-            , text = Maybe.withDefault "" <| Maybe.map (.cloningTechnique >> Maybe.withDefault "") model.level0ToAdd
+            , text = Maybe.withDefault "" level0.cloningTechnique
+
+            -- , text = .cloningTechnique (Level0Vec <| Maybe.withDefault initLevel0 model.vectorToAdd)
             }
         , Input.checkbox []
-            { onChange = ChangeIsBsmB1Free >> ChangeLevel0ToAdd
+            { onChange = ChangeIsBsmB1Free >> ChangeVectorToAdd
             , icon = Input.defaultCheckbox
-            , checked = Maybe.withDefault False <| Maybe.map (.isBsmb1Free >> Maybe.withDefault False) model.level0ToAdd
+            , checked = Maybe.withDefault False level0.isBsmb1Free
+
+            -- , checked = .isBsmb1Free (Level0Vec <| Maybe.withDefault initLevel0 model.vectorToAdd)
             , label = Input.labelLeft [] <| Element.text "Is the construct BsmbI free?"
             }
         , Input.radioRow [ spacing 5, padding 10 ]
             { label = Input.labelAbove [] <| Element.text "BsaI Overhang Type:\t"
-            , onChange = ChangeBsa1 >> ChangeLevel0ToAdd
+            , onChange = ChangeBsa1 >> ChangeVectorToAdd
             , options =
                 makeBsa1OverhangOptions allBsa1Overhangs
-            , selected = Maybe.map .bsa1Overhang model.level0ToAdd
+            , selected = Just level0.bsa1Overhang
+
+            -- , selected = .bsa1Overhang (Level0Vec <| Maybe.withDefault initLevel0 model.vectorToAdd)
             }
         , Input.multiline [ Element.height <| px 150 ]
-            { text = Maybe.withDefault "" <| Maybe.map (.notes >> Maybe.withDefault "") model.level0ToAdd
-            , onChange = ChangeNotes >> ChangeLevel0ToAdd
+            { text = Maybe.withDefault "" level0.notes
+            , onChange = ChangeNotes >> ChangeVectorToAdd
             , label = Input.labelLeft [] <| Element.text "Notes: "
             , spellcheck = True
             , placeholder = Nothing
             }
         , Input.text []
             { label = Input.labelLeft [] <| Element.text "Restriction Site:"
-            , onChange = ChangeReaseDigest >> ChangeLevel0ToAdd
+            , onChange = ChangeReaseDigest >> ChangeVectorToAdd
             , placeholder = Nothing
-            , text = Maybe.withDefault "" <| Maybe.map (.reaseDigest >> Maybe.withDefault "") model.level0ToAdd
+            , text = Maybe.withDefault "" level0.reaseDigest
             }
         , Input.text []
             { label = Input.labelLeft [] <| Element.text "Date (YYYY-MM-DD): "
-            , onChange = ChangeDate >> ChangeLevel0ToAdd
+            , onChange = ChangeDate >> ChangeVectorToAdd
             , placeholder = Nothing
-            , text = Maybe.withDefault "" <| Maybe.map (.date >> Maybe.withDefault "") model.level0ToAdd
+            , text = Maybe.withDefault "" level0.date
             }
         , Element.html <|
             Html.button
@@ -412,7 +436,7 @@ addLevel0View model =
                 ]
                 [ Html.text "Load Genbank file"
                 ]
-        , button_ (Maybe.map AddLevel0 model.level0ToAdd) "Add"
+        , button_ (Maybe.map AddLevel0 (Just level0)) "Add"
         ]
 
 
@@ -426,13 +450,13 @@ makeBsmb1OverhangOptions overHangList =
     List.map (\ohang -> Input.option ohang (showBsmb1Overhang ohang |> Element.text)) overHangList
 
 
-addBackboneView : Model -> Element Msg
-addBackboneView model =
+addBackboneView : Backbone -> Element Msg
+addBackboneView bb =
     column [ Element.height Element.fill, centerX, Element.width Element.fill, spacing 25, padding 25 ]
         [ el [ Element.Region.heading 1, Font.size 50 ] <| Element.text "Add new Backbone"
         , Input.text []
-            { onChange = ChangeName >> ChangeBackboneToAdd
-            , text = Maybe.withDefault "" <| Maybe.map .name model.backboneToAdd
+            { onChange = ChangeName >> ChangeVectorToAdd
+            , text = bb.name
             , label = Input.labelLeft [] <| Element.text "Name:"
             , placeholder = Nothing
             }
@@ -440,80 +464,80 @@ addBackboneView model =
             { onChange =
                 \val ->
                     String.toInt val
-                        |> Maybe.map (ChangeMPG >> ChangeBackboneToAdd)
-                        |> Maybe.withDefault (ChangeBackboneToAdd (ChangeMPG 0))
-            , text = Maybe.withDefault "" <| Maybe.map (.location >> String.fromInt) model.backboneToAdd
+                        |> Maybe.map (ChangeMPG >> ChangeVectorToAdd)
+                        |> Maybe.withDefault (ChangeVectorToAdd (ChangeMPG 0))
+            , text = String.fromInt bb.location
             , label = Input.labelLeft [] <| Element.text "MP-GB-number:\tMP-GB-"
             , placeholder = Nothing
             }
         , Input.text []
             { label = Input.labelLeft [] <| Element.text "Bacterial strain:"
-            , onChange = ChangeBacterialStrain >> ChangeBackboneToAdd
+            , onChange = ChangeBacterialStrain >> ChangeVectorToAdd
             , placeholder = Nothing
-            , text = Maybe.withDefault "" <| Maybe.map (.bacterialStrain >> Maybe.withDefault "") model.backboneToAdd
+            , text = Maybe.withDefault "" bb.bacterialStrain
             }
         , Input.text []
             { label = Input.labelLeft [] <| Element.text "Responsible:"
-            , onChange = ChangeResponsible >> ChangeBackboneToAdd
+            , onChange = ChangeResponsible >> ChangeVectorToAdd
             , placeholder = Nothing
-            , text = Maybe.withDefault "" <| Maybe.map .responsible model.backboneToAdd
+            , text = bb.responsible
             }
         , Input.text []
             { label = Input.labelLeft [] <| Element.text "Group:"
-            , onChange = ChangeGroup >> ChangeBackboneToAdd
+            , onChange = ChangeGroup >> ChangeVectorToAdd
             , placeholder = Nothing
-            , text = Maybe.withDefault "" <| Maybe.map .group model.backboneToAdd
+            , text = bb.group
             }
         , Input.radioRow [ spacing 5, padding 10 ]
             { label = Input.labelAbove [] <| Element.text "BsaI Overhang Type:\t"
-            , onChange = ChangeBsa1 >> ChangeBackboneToAdd
+            , onChange = ChangeBsa1 >> ChangeVectorToAdd
             , options =
                 makeBsa1OverhangOptions allBsa1Overhangs
-            , selected = Maybe.andThen .bsa1Overhang model.backboneToAdd
+            , selected = bb.bsa1Overhang
             }
         , Input.radioRow [ spacing 5, padding 10 ]
             { label = Input.labelAbove [] <| Element.text "BsmBI Overhang Type:\t"
-            , onChange = ChangeBsmb1 >> ChangeBackboneToAdd
+            , onChange = ChangeBsmb1 >> ChangeVectorToAdd
             , options =
                 makeBsmb1OverhangOptions allBsmbs1Overhangs
-            , selected = Maybe.andThen .bsmb1Overhang model.backboneToAdd
+            , selected = bb.bsmb1Overhang
             }
         , Input.text []
             { label = Input.labelLeft [] <| Element.text "Restriction Site:"
-            , onChange = ChangeReaseDigest >> ChangeBackboneToAdd
+            , onChange = ChangeReaseDigest >> ChangeVectorToAdd
             , placeholder = Nothing
-            , text = Maybe.withDefault "" <| Maybe.map (.reaseDigest >> Maybe.withDefault "") model.backboneToAdd
+            , text = Maybe.withDefault "" bb.reaseDigest
             }
         , Input.text []
             { label = Input.labelLeft [] <| Element.text "Cloning Technique:"
-            , onChange = ChangeCloningTechnique >> ChangeBackboneToAdd
+            , onChange = ChangeCloningTechnique >> ChangeVectorToAdd
             , placeholder = Nothing
-            , text = Maybe.withDefault "" <| Maybe.map (.cloningTechnique >> Maybe.withDefault "") model.backboneToAdd
+            , text = Maybe.withDefault "" bb.cloningTechnique
             }
         , Input.text []
             { label = Input.labelLeft [] <| Element.text "Selection:"
-            , onChange = ChangeSelection >> ChangeBackboneToAdd
+            , onChange = ChangeSelection >> ChangeVectorToAdd
             , placeholder = Nothing
-            , text = Maybe.withDefault "" <| Maybe.map (.selection >> Maybe.withDefault "") model.backboneToAdd
+            , text = Maybe.withDefault "" bb.selection
             }
         , Input.text []
             { label = Input.labelLeft [] <| Element.text "Vector Type:"
-            , onChange = ChangeVectorType >> ChangeBackboneToAdd
+            , onChange = ChangeVectorType >> ChangeVectorToAdd
             , placeholder = Nothing
-            , text = Maybe.withDefault "" <| Maybe.map (.vectorType >> Maybe.withDefault "") model.backboneToAdd
+            , text = Maybe.withDefault "" bb.vectorType
             }
         , Input.multiline [ Element.height <| px 150 ]
-            { text = Maybe.withDefault "" <| Maybe.map (.notes >> Maybe.withDefault "") model.backboneToAdd
-            , onChange = ChangeNotes >> ChangeBackboneToAdd
+            { text = Maybe.withDefault "" bb.notes
+            , onChange = ChangeNotes >> ChangeVectorToAdd
             , label = Input.labelLeft [] <| Element.text "Notes: "
             , spellcheck = True
             , placeholder = Nothing
             }
         , Input.text []
             { label = Input.labelLeft [] <| Element.text "Date (YYYY-MM-DD): "
-            , onChange = ChangeDate >> ChangeBackboneToAdd
+            , onChange = ChangeDate >> ChangeVectorToAdd
             , placeholder = Nothing
-            , text = Maybe.withDefault "" <| Maybe.map (.date >> Maybe.withDefault "") model.backboneToAdd
+            , text = Maybe.withDefault "" bb.date
             }
         , Element.html <|
             Html.button
@@ -522,12 +546,12 @@ addBackboneView model =
                 , onClick RequestGBBackbone
                 ]
                 [ Html.text "Load Genbank file" ]
-        , button_ (Maybe.map AddBackbone model.backboneToAdd) "Add"
+        , button_ (Maybe.map AddBackbone <| Just bb) "Add"
         ]
 
 
-constructLevel1View : Model -> Element Msg
-constructLevel1View model =
+constructLevel1View : Model -> Level1 -> Element Msg
+constructLevel1View model level1 =
     column [ Element.height Element.fill, spacing 25, Element.width Element.fill, centerX, padding 50 ]
         [ el
             [ Element.Region.heading 1
@@ -542,58 +566,36 @@ constructLevel1View model =
           <|
             Element.text "Construct information"
         , Input.text []
-            { onChange = ChangeLevel1ToAdd << ChangeName
+            { onChange = ChangeConstructName
             , label = Input.labelLeft [] <| Element.text "Construct name: "
-            , text = .name (Maybe.withDefault initLevel1 model.level1ToAdd)
+            , text = level1.name
             , placeholder = Nothing
             }
         , Input.text []
             { onChange =
                 \val ->
                     String.toInt val
-                        |> Maybe.map (ChangeMPG >> ChangeLevel1ToAdd)
-                        |> Maybe.withDefault (ChangeLevel1ToAdd (ChangeMPG 0))
+                        |> Maybe.map ChangeConstructNumber
+                        |> Maybe.withDefault (ChangeConstructNumber 0)
             , label = Input.labelLeft [] <| Element.text "Construct number: "
-            , text = String.fromInt <| .location <| Maybe.withDefault initLevel1 model.level1ToAdd
+            , text = String.fromInt level1.location
             , placeholder = Nothing
             }
         , row [ spacing 50 ]
             [ el [] <| Element.text "Length (bp):"
-            , el [ padding 10 ] <|
-                Element.text <|
-                    String.fromInt <|
-                        calculateLevel1Length <|
-                            model.level1ToAdd
+            , el [ padding 10 ] <| Element.text <| String.fromInt <| calculateLevel1Length <| level1
             ]
         , Input.multiline [ Element.height <| px 150 ]
-            { text = Maybe.withDefault "" <| Maybe.andThen .notes model.level1ToAdd
-            , onChange = ChangeLevel1ToAdd << ChangeNotes
+            { text = (.notes >> Maybe.withDefault "") <| level1
+            , onChange = ChangeApplicationNote
             , label = Input.labelLeft [] <| Element.text "Notes: "
             , spellcheck = True
             , placeholder = Nothing
             }
         , Input.text []
-            { onChange = ChangeLevel1ToAdd << ChangeResponsible
+            { onChange = ChangeConstructDesignerName
             , label = Input.labelLeft [] <| Element.text "Designer Name: "
-            , text = .responsible <| Maybe.withDefault initLevel1 model.level1ToAdd
-            , placeholder = Nothing
-            }
-        , Input.text []
-            { onChange = ChangeLevel1ToAdd << ChangeBacterialStrain
-            , label = Input.labelLeft [] <| Element.text "Bacterial strain:"
-            , text = Maybe.withDefault "" <| Maybe.andThen .bacterialStrain model.level1ToAdd
-            , placeholder = Nothing
-            }
-        , Input.text []
-            { onChange = ChangeLevel1ToAdd << ChangeSelection
-            , label = Input.labelLeft [] <| Element.text "Selection:"
-            , text = Maybe.withDefault "" <| Maybe.andThen .selection model.level1ToAdd
-            , placeholder = Nothing
-            }
-        , Input.text []
-            { onChange = ChangeLevel1ToAdd << ChangeDate
-            , label = Input.labelLeft [] <| Element.text "Choose a date:"
-            , text = Maybe.withDefault "" <| Maybe.andThen .date model.level1ToAdd
+            , text = level1.responsible
             , placeholder = Nothing
             }
         , el
@@ -602,12 +604,6 @@ constructLevel1View model =
             ]
           <|
             Element.text "Destination vector selection"
-        , Input.text []
-            { onChange = FilterBackboneTable
-            , text = Maybe.withDefault "" model.backboneFilterString
-            , label = Input.labelLeft [] <| Element.text "Filter:"
-            , placeholder = Nothing
-            }
         , backboneTable model
         , el
             [ Element.Region.heading 2
@@ -617,12 +613,6 @@ constructLevel1View model =
             Element.text "Donor vector selection"
         , applicationRadioButton model
         , overhangRadioRow model
-        , Input.text []
-            { onChange = FilterLevel0Table
-            , text = Maybe.withDefault "" model.level0FilterString
-            , label = Input.labelLeft [] <| Element.text "Filter:"
-            , placeholder = Nothing
-            }
         , level0Table model
         , downloadButtonBar
         , el
@@ -733,24 +723,14 @@ tupleToRecord ( t_name, t_overhang, t_length ) =
     { name = t_name, bsa1_overhang = t_overhang, length = t_length }
 
 
-getInsertsFromLevel1 : Maybe Level1 -> List Level0
-getInsertsFromLevel1 level1 =
-    case level1 of
-        Just l1 ->
-            l1.inserts
-
-        Nothing ->
-            []
+getInsertsFromLevel1 : Level1 -> List Level0
+getInsertsFromLevel1 l1 =
+    l1.inserts
 
 
-getBackboneFromLevel1 : Maybe Level1 -> Backbone
-getBackboneFromLevel1 level1 =
-    case level1 of
-        Just l1 ->
-            Maybe.withDefault initBackbone l1.backbone
-
-        Nothing ->
-            initBackbone
+getBackboneFromLevel1 : Level1 -> Backbone
+getBackboneFromLevel1 l1 =
+    Maybe.withDefault initBackbone l1.backbone
 
 
 visualRepresentation : Model -> Html Msg
@@ -758,13 +738,13 @@ visualRepresentation model =
     let
         -- Note: The reversing is for making sure Level0 1 is at position 0. This way the destination vector is appended on the back of the list!
         insertOverhangs =
-            getInsertsFromLevel1 model.level1ToAdd |> List.map (.bsa1Overhang >> showBsa1Overhang)
+            getInsertsFromLevel1 model.level1_construct |> List.map (.bsa1Overhang >> showBsa1Overhang)
 
         insertNames =
-            getInsertsFromLevel1 model.level1ToAdd |> List.map .name
+            getInsertsFromLevel1 model.level1_construct |> List.map .name
 
         insertLengths =
-            getInsertsFromLevel1 model.level1ToAdd |> List.map .sequenceLength
+            getInsertsFromLevel1 model.level1_construct |> List.map .sequenceLength
 
         insertTuple =
             List.Extra.zip3 insertNames insertOverhangs insertLengths
@@ -776,10 +756,10 @@ visualRepresentation model =
             List.sortBy .bsa1_overhang insertRecordList
 
         chartLabels =
-            .name (getBackboneFromLevel1 model.level1ToAdd) :: List.map .name sortedInsertRecordList
+            (Maybe.withDefault "" <| Maybe.map .name model.level1_construct.backbone) :: List.map .name sortedInsertRecordList
 
         chartLengths =
-            List.reverse (List.map toFloat <| (model.level1ToAdd |> getBackboneFromLevel1 |> .sequenceLength) :: List.reverse (List.map .length sortedInsertRecordList))
+            List.reverse (List.map toFloat <| (model.level1_construct |> getBackboneFromLevel1 |> .sequenceLength) :: List.reverse (List.map .length sortedInsertRecordList))
 
         data =
             List.map2 Tuple.pair chartLabels chartLengths
@@ -802,7 +782,7 @@ visualRepresentation model =
             ]
         , Html.div [ HA.style "justify-content" "center", HA.style "align-items" "center", HA.style "display" "flex" ]
             [ Html.button
-                [ onClick (ChangeLevel1ToAdd ResetInsertList)
+                [ onClick ResetInsertList
                 , HA.style "margin-right" "75px"
                 , HA.style "padding" "10px"
                 , HA.style "background-color" "white"
@@ -811,7 +791,7 @@ visualRepresentation model =
                 ]
                 [ Html.text "Reset Level0 List" ]
             , Html.button
-                [ onClick (ChangeLevel1ToAdd ResetAll)
+                [ onClick ResetAll
                 , HA.style "margin-left" "75px"
                 , HA.style "padding" "10px"
                 , HA.style "background-color" "white"
@@ -834,6 +814,7 @@ navLinks auth =
             navBar
                 [ buttonLink_ (Just (SwitchPage Catalogue)) "Home"
                 , buttonLink_ (Just (SwitchPage Catalogue)) "Vector Catalogue"
+                , buttonLink_ (Just (SwitchPage ConstructLevel1)) "New Level1 construct"
                 , buttonLink_ Nothing <| Maybe.withDefault "Unknown name" user.name
                 , buttonLink_ (Just Logout) "Logout"
                 ]
@@ -843,13 +824,13 @@ navLinks auth =
                 []
 
 
-downloadButtonBar : Element Msg
+downloadButtonBar : Element msg
 downloadButtonBar =
     row
         [ centerX
         , spacing 150
         ]
-        [ button_ (Just AddLevel1) "Save to database"
+        [ button_ Nothing "Save to database"
         , download_ "./Example_Data/Example_Genbank_format.gb" "" "Download GenBank"
         ]
 
@@ -862,15 +843,6 @@ overhangRadioRow model =
             showBsa1Overhang bsa1_overhang
                 |> option_
                 |> Input.optionWith bsa1_overhang
-
-        getOverhangs : Model -> List Bsa1Overhang
-        getOverhangs mdl =
-            case mdl.page of
-                ConstructLevel1 ->
-                    overhangShape mdl.currApp
-
-                _ ->
-                    allBsa1Overhangs
     in
     Input.radioRow
         []
@@ -881,7 +853,7 @@ overhangRadioRow model =
                 [ paddingEach { bottom = 20, top = 0, left = 0, right = 0 } ]
             <|
                 Element.text "Choose Overhang type"
-        , options = List.map makeButton <| getOverhangs model
+        , options = List.map makeButton <| allBsa1Overhangs
         }
 
 
@@ -965,7 +937,7 @@ level0Table model =
                     , { header = none
                       , width = fillPortion 5
                       , view =
-                            \level0 -> buttonLink_ (Just ((ChangeLevel1ToAdd << AppendInsert) level0)) level0.name
+                            \level0 -> buttonLink_ (Just (AppendInsert level0)) level0.name
                       }
                     , { header = none
                       , width = fillPortion 1
@@ -1101,7 +1073,7 @@ backboneTable model =
                     , { header = none
                       , width = fillPortion 5
                       , view =
-                            \backbone -> buttonLink_ (Just ((ChangeLevel1ToAdd << AppendBackbone) backbone)) backbone.name
+                            \backbone -> buttonLink_ (Just (ChangeBackbone backbone)) backbone.name
                       }
                     , { header = none
                       , width = fillPortion 1
@@ -1184,6 +1156,107 @@ update msg model =
         ChooseApplication newApp ->
             ( { model | currApp = newApp }, Cmd.none )
 
+        ChangeConstructName newName ->
+            ( { model
+                | level1_construct =
+                    (\l1 -> { l1 | name = newName })
+                        model.level1_construct
+              }
+            , Cmd.none
+            )
+
+        ChangeConstructNumber newNumber ->
+            ( { model
+                | level1_construct =
+                    (\l1 -> { l1 | location = newNumber })
+                        model.level1_construct
+              }
+            , Cmd.none
+            )
+
+        ChangeApplicationNote newAN ->
+            ( { model
+                | level1_construct =
+                    (\l1 -> { l1 | notes = Just newAN })
+                        model.level1_construct
+              }
+            , Cmd.none
+            )
+
+        ChangeConstructDesignerName newDesignerName ->
+            ( { model
+                | level1_construct =
+                    (\l1 -> { l1 | responsible = newDesignerName })
+                        model.level1_construct
+              }
+            , Cmd.none
+            )
+
+        AppendInsert newInsert ->
+            if not (List.member newInsert.bsa1Overhang (List.map .bsa1Overhang <| getInsertsFromLevel1 model.level1_construct)) then
+                ( { model
+                    | level1_construct =
+                        (\l1 -> { l1 | inserts = List.append l1.inserts [ newInsert ] })
+                            model.level1_construct
+                  }
+                , Cmd.none
+                )
+
+            else
+                ( { model
+                    | level1_construct =
+                        (\l1 ->
+                            { l1
+                                | inserts =
+                                    newInsert
+                                        :: List.filter
+                                            (\l0 ->
+                                                l0.bsa1Overhang /= newInsert.bsa1Overhang
+                                            )
+                                            l1.inserts
+                            }
+                        )
+                            model.level1_construct
+                  }
+                , Cmd.none
+                )
+
+        ChangeBackbone newBackbone ->
+            ( { model
+                | level1_construct =
+                    (\l1 ->
+                        { l1 | backbone = Just newBackbone }
+                    )
+                        model.level1_construct
+              }
+            , Cmd.none
+            )
+
+        ResetInsertList ->
+            ( { model
+                | level1_construct =
+                    (\l1 ->
+                        { l1 | inserts = [] }
+                    )
+                        model.level1_construct
+              }
+            , Cmd.none
+            )
+
+        ResetAll ->
+            ( { model
+                | level1_construct =
+                    (\l1 ->
+                        { l1
+                            | inserts = []
+                            , backbone = Nothing
+                        }
+                    )
+                        model.level1_construct
+              }
+            , Cmd.none
+            )
+
         UrlChanged url ->
             ( model, router url model )
 
@@ -1232,14 +1305,7 @@ update msg model =
             )
 
         SwitchPage page ->
-            ( { model
-                | page = page
-                , backboneFilterString = Nothing
-                , level0FilterString = Nothing
-                , level1FilterString = Nothing
-              }
-            , Cmd.none
-            )
+            ( { model | page = page }, Cmd.none )
 
         FilterBackboneTable filter ->
             ( { model | backboneFilterString = Just filter }, Cmd.none )
@@ -1275,17 +1341,21 @@ update msg model =
             ( model, Select.file [ "text" ] GBSelectedBackbone )
 
         GBSelectedBackbone file ->
-            ( model, Task.perform (ChangeBackboneToAdd << ChangeGB) (File.toString file) )
+            ( model, Task.perform (ChangeVectorToAdd << ChangeGB) (File.toString file) )
 
-        ChangeBackboneToAdd change ->
-            ( { model
-                | backboneToAdd =
-                    Maybe.withDefault initBackbone model.backboneToAdd
-                        |> interpretBackboneChange change
-                        |> Just
-              }
-            , Cmd.none
-            )
+        ChangeVectorToAdd change ->
+            case model.vectorToAdd of
+                Just (BackboneVec vector) ->
+                    ( { model | vectorToAdd = Just <| BackboneVec <| interpretBackboneChange change vector }, Cmd.none )
+
+                Just (Level0Vec vector) ->
+                    ( { model | vectorToAdd = Just <| Level0Vec <| interpretLevel0Change change vector }, Cmd.none )
+
+                Just (LevelNVec vector) ->
+                    ( { model | vectorToAdd = Just <| LevelNVec <| interpretLevel1Change change vector }, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
 
         AddLevel0 newIns ->
             ( model, createVector model.auth (Level0Vec newIns) )
@@ -1294,30 +1364,7 @@ update msg model =
             ( model, Select.file [ "text" ] GBSelectedLevel0 )
 
         GBSelectedLevel0 file ->
-            ( model, Task.perform (ChangeLevel0ToAdd << ChangeGB) (File.toString file) )
-
-        ChangeLevel0ToAdd change ->
-            ( { model
-                | level0ToAdd =
-                    Maybe.withDefault initLevel0 model.level0ToAdd
-                        |> interpretLevel0Change change
-                        |> Just
-              }
-            , Cmd.none
-            )
-
-        AddLevel1 ->
-            ( model, createVector model.auth (LevelNVec <| Maybe.withDefault initLevel1 model.level1ToAdd) )
-
-        ChangeLevel1ToAdd change ->
-            ( { model
-                | level1ToAdd =
-                    Maybe.withDefault initLevel1 model.level1ToAdd
-                        |> interpretLevel1Change change
-                        |> Just
-              }
-            , Cmd.none
-            )
+            ( model, Task.perform (ChangeVectorToAdd << ChangeGB) (File.toString file) )
 
         CloseNotification which ->
             ( { model | notifications = Notify.close which model.notifications }
@@ -1366,17 +1413,12 @@ filterLevel0OnOverhang needle val =
     needle == val.bsa1Overhang
 
 
-calculateLevel1Length : Maybe Level1 -> Int
-calculateLevel1Length level1 =
-    case level1 of
-        Just l1 ->
-            List.sum
-                ((Maybe.withDefault 0 <| Maybe.map .sequenceLength l1.backbone)
-                    :: List.map .sequenceLength l1.inserts
-                )
-
-        Nothing ->
-            0
+calculateLevel1Length : Level1 -> Int
+calculateLevel1Length l1 =
+    List.sum
+        ((Maybe.withDefault 0 <| Maybe.map .sequenceLength l1.backbone)
+            :: List.map .sequenceLength l1.inserts
+        )
 
 
 
@@ -1449,20 +1491,11 @@ createVector : Auth -> Vector -> Cmd Msg
 createVector auth vector =
     case auth of
         Authenticated usr ->
-            case vector of
-                LevelNVec _ ->
-                    authenticatedPost usr.token
-                        "http://localhost:8000/leveln/"
-                        VectorCreated
-                        (vectorEncoder vector)
-                        vectorDecoder_
-
-                _ ->
-                    authenticatedPost usr.token
-                        "http://localhost:8000/vectors/"
-                        VectorCreated
-                        (vectorEncoder vector)
-                        vectorDecoder_
+            authenticatedPost usr.token
+                "http://localhost:8000/vectors/"
+                VectorCreated
+                (vectorEncoder vector)
+                vectorDecoder_
 
         _ ->
             Cmd.none
