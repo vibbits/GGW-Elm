@@ -25,31 +25,26 @@ def vector_to_world(vector: schemas.VectorInDB) -> schemas.VectorOut:
     """
     vec_in_db_dict = vector.dict()
 
-    if len(vector.children) > 0:
-        inserts_out = []
-        backbone_out = None
+    inserts_out = []
+    backbone_out = None
 
-        for child in vector.children:
-            if child.level == VectorLevel.LEVEL0:
-                inserts_out.append(
-                    schemas.VectorOut(
-                        **child.dict(),
-                        sequence_length=len(child.sequence),
-                        inserts_out=[],
-                        backbone_out=None,
-                    )
-                )
-            elif child.level == VectorLevel.BACKBONE:
-                backbone_out = schemas.VectorOut(
+    for child in vector.children:
+        if child.level == VectorLevel.LEVEL0:
+            inserts_out.append(
+                schemas.VectorOut(
                     **child.dict(),
                     sequence_length=len(child.sequence),
                     inserts_out=[],
                     backbone_out=None,
                 )
-
-    else:
-        inserts_out = []
-        backbone_out = None
+            )
+        elif child.level == VectorLevel.BACKBONE:
+            backbone_out = schemas.VectorOut(
+                **child.dict(),
+                sequence_length=len(child.sequence),
+                inserts_out=[],
+                backbone_out=None,
+            )
 
     return schemas.VectorOut(
         **vec_in_db_dict,
