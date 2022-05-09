@@ -71,7 +71,7 @@ def get_vectors(
     ]
 
 
-@router.post("/vectors/", response_model=schemas.VectorOut)
+@router.post("/submit/genbank/", response_model=schemas.VectorOut)
 def add_vector(
     new_vec: schemas.VectorToAdd,
     database: Session = Depends(deps.get_db),
@@ -116,7 +116,7 @@ def add_vector(
     )
 
 
-@router.post("/vectors/leveln/", response_model=schemas.VectorOut)
+@router.post("/submit/vector/", response_model=schemas.VectorOut)
 def add_leveln(
     new_vec: schemas.LevelNToAdd,
     database: Session = Depends(deps.get_db),

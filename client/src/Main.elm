@@ -1491,14 +1491,14 @@ createVector auth vector =
             case vector of
                 LevelNVec _ ->
                     authenticatedPost usr.token
-                        "http://localhost:8000/vectors/leveln/"
+                        "http://localhost:8000/submit/vector/"
                         VectorCreated
                         (vectorEncoder vector)
                         vectorDecoder_
 
                 _ ->
                     authenticatedPost usr.token
-                        "http://localhost:8000/vectors/"
+                        "http://localhost:8000/submit/genbank/"
                         VectorCreated
                         (vectorEncoder vector)
                         vectorDecoder_
