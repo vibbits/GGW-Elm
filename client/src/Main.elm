@@ -150,7 +150,6 @@ type Msg
     | FilterLevel1Table String
     | AddBackbone Backbone -- Adds a bacbone to the database
     | UpdateVectorToAdd (Maybe Vector)
-      -- | ChangeVectorToAdd ChangeMol --TODO: Delete this
     | RequestGB
     | GBSelected File
     | GBLoaded String
