@@ -1486,22 +1486,22 @@ getVectors auth =
 
 createVector : Auth -> Vector -> Cmd Msg
 createVector auth vector =
-    case auth of
-        Authenticated usr ->
+    let
+        postUrl =
             case vector of
                 LevelNVec _ ->
-                    authenticatedPost usr.token
-                        "http://localhost:8000/submit/vector/"
-                        VectorCreated
-                        (vectorEncoder vector)
-                        vectorDecoder_
+                    "http://localhost:8000/submit/vector/"
 
                 _ ->
-                    authenticatedPost usr.token
-                        "http://localhost:8000/submit/genbank/"
-                        VectorCreated
-                        (vectorEncoder vector)
-                        vectorDecoder_
+                    "http://localhost:8000/submit/genbank/"
+    in
+    case auth of
+        Authenticated usr ->
+            authenticatedPost usr.token
+                postUrl
+                VectorCreated
+                (vectorEncoder vector)
+                vectorDecoder_
 
         _ ->
             Cmd.none
