@@ -116,7 +116,7 @@ def add_vector(
     )
 
 
-@router.post("/leveln/", response_model=schemas.VectorOut)
+@router.post("/vectors/leveln/", response_model=schemas.VectorOut)
 def add_leveln(
     new_vec: schemas.LevelNToAdd,
     database: Session = Depends(deps.get_db),
