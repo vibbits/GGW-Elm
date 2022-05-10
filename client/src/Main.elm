@@ -1,6 +1,7 @@
 module Main exposing (..)
 
 import Accordion
+import Api exposing (Api, dummyApi, initApi)
 import Array exposing (Array)
 import Auth
     exposing
@@ -71,10 +72,9 @@ type DisplayPage
 
 type alias Model =
     { page : DisplayPage
+    , api : Api Msg
     , filterOverhang : Bsa1Overhang -- Used for filtering the overhangs depending on the application
     , currLevel1App : Application -- Used for filtering the tables on overhang
-
-    -- , level1_construct : Level1
     , auth : Auth
     , notifications : Notify.Notifications
     , key : Nav.Key
@@ -109,13 +109,33 @@ init flags url key =
                 _ ->
                     LoginPage
 
+        api : Result String (Api Msg)
+        api =
+            initApi
+                { loginExpect = expectJson GotLoginUrls authDecoder
+                , authorizeExpect = expectJson GotAuthentication authDecoder
+                , vectorsExpect = expectJson VectorsReceived vectorDecoder
+                , saveExpect = expectJson VectorCreated vectorDecoder_
+                }
+                flags
+
+        notifications : Notify.Notifications
+        notifications =
+            case api of
+                Err err ->
+                    Notify.makeError "Initialising app" err Notify.init
+
+                _ ->
+                    Notify.init
+
         model : Model
         model =
             { page = page
+            , api = Result.withDefault dummyApi api
             , currLevel1App = Standard
             , filterOverhang = A__B
             , auth = Storage.fromJson flags
-            , notifications = Notify.init
+            , notifications = notifications
             , key = key
             , backboneFilterString = Nothing
             , level0FilterString = Nothing
@@ -1253,7 +1273,7 @@ update msg model =
             case res of
                 Ok auth ->
                     ( { model | auth = auth, page = Catalogue }
-                    , Cmd.batch [ navToRoot, getVectors auth, Storage.toJson auth |> Storage.save ]
+                    , Cmd.batch [ navToRoot, model.api.vectors auth, Storage.toJson auth |> Storage.save ]
                     )
 
                 Err err ->
@@ -1299,7 +1319,7 @@ update msg model =
             )
 
         AddBackbone newBB ->
-            ( model, createVector model.auth (BackboneVec newBB) )
+            ( model, model.api.save model.auth (BackboneVec newBB) )
 
         RequestGB ->
             ( model, Select.file [ "text" ] GBSelected )
@@ -1330,7 +1350,7 @@ update msg model =
             ( { model | vectorToAdd = vector }, Cmd.none )
 
         AddLevel0 newIns ->
-            ( model, createVector model.auth (Level0Vec newIns) )
+            ( model, model.api.save model.auth (Level0Vec newIns) )
 
         CloseNotification which ->
             ( { model | notifications = Notify.close which model.notifications }
@@ -1359,7 +1379,7 @@ update msg model =
             )
 
         AddLevel1 level1 ->
-            ( model, createVector model.auth (LevelNVec level1) )
+            ( model, model.api.save model.auth (LevelNVec level1) )
 
 
 
@@ -1419,108 +1439,19 @@ appendInsertToLevel1 l0List newL0 =
 
 
 
--- HTTP API
-
-
-authenticatedGet : String -> String -> (Result Http.Error a -> Msg) -> Decode.Decoder a -> Cmd Msg
-authenticatedGet token url msg decoder =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
-        , url = url
-        , body = Http.emptyBody
-        , expect = Http.expectJson msg decoder
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
-authenticatedPost : String -> String -> (Result Http.Error a -> Msg) -> Encode.Value -> Decode.Decoder a -> Cmd Msg
-authenticatedPost token url msg payload decoder =
-    Http.request
-        { method = "POST"
-        , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
-        , url = url
-        , body = Http.jsonBody payload
-        , expect = Http.expectJson msg decoder
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
-getLoginUrls : Cmd Msg
-getLoginUrls =
-    Http.get
-        { url = "http://localhost:8000/login"
-        , expect = expectJson GotLoginUrls authDecoder
-        }
-
-
-getAuthentication : AuthCode -> Cmd Msg
-getAuthentication auth =
-    Http.post
-        { url = "http://localhost:8000/authorize"
-        , body =
-            jsonBody
-                (Encode.object
-                    [ ( "state", Encode.string auth.state )
-                    , ( "code", Encode.string auth.code )
-                    ]
-                )
-        , expect = expectJson GotAuthentication authDecoder
-        }
-
-
-getVectors : Auth -> Cmd Msg
-getVectors auth =
-    case auth of
-        Authenticated usr ->
-            authenticatedGet usr.token
-                "http://localhost:8000/vectors/"
-                VectorsReceived
-                vectorDecoder
-
-        _ ->
-            Cmd.none
-
-
-createVector : Auth -> Vector -> Cmd Msg
-createVector auth vector =
-    case auth of
-        Authenticated usr ->
-            let
-                postUrl =
-                    case vector of
-                        LevelNVec _ ->
-                            "http://localhost:8000/submit/vector/"
-
-                        _ ->
-                            "http://localhost:8000/submit/genbank/"
-            in
-            authenticatedPost usr.token
-                postUrl
-                VectorCreated
-                (vectorEncoder vector)
-                vectorDecoder_
-
-        _ ->
-            Cmd.none
-
-
-
 -- ROUTING
 
 
-router : Url -> { a | auth : Auth, key : Nav.Key } -> Cmd Msg
+router : Url -> { a | auth : Auth, key : Nav.Key, api : Api Msg } -> Cmd Msg
 router url model =
     case ( url.path, model.auth ) of
         ( "/oidc_login", _ ) ->
             authCode url
-                |> Maybe.map getAuthentication
+                |> Maybe.map model.api.authorize
                 |> Maybe.withDefault Cmd.none
 
         ( "/login", NotAuthenticated _ ) ->
-            getLoginUrls
+            model.api.login
 
         ( "/login", _ ) ->
             Nav.pushUrl model.key "/"
