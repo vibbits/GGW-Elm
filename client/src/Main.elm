@@ -6,7 +6,6 @@ import Array exposing (Array)
 import Auth
     exposing
         ( Auth(..)
-        , AuthCode
         , Login
         , authCode
         , authDecoder
@@ -27,7 +26,7 @@ import File.Select as Select
 import Html exposing (Html)
 import Html.Attributes as HA
 import Html.Events exposing (onClick)
-import Http exposing (Error(..), expectJson, jsonBody)
+import Http exposing (Error(..), expectJson)
 import Interface
     exposing
         ( addButton
@@ -41,7 +40,6 @@ import Interface
         , viewMaybe
         )
 import Json.Decode as Decode
-import Json.Encode as Encode
 import List
 import List.Extra
 import Molecules exposing (..)

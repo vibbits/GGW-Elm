@@ -101,18 +101,18 @@ mkVectors url expect auth =
 
 mkSave : ApiUrl -> Expect msg -> Auth -> Vector -> Cmd msg
 mkSave url expect auth vec =
-    let
-        apiUrl : ApiUrl
-        apiUrl =
-            case vec of
-                LevelNVec _ ->
-                    url ++ "/submit/vector/"
-
-                _ ->
-                    url ++ "/submit/genbank/"
-    in
     case auth of
         Authenticated usr ->
+            let
+                apiUrl : ApiUrl
+                apiUrl =
+                    case vec of
+                        LevelNVec _ ->
+                            url ++ "/submit/vector/"
+
+                        _ ->
+                            url ++ "/submit/genbank/"
+            in
             authenticatedPost usr.token apiUrl expect (vectorEncoder vec)
 
         _ ->
