@@ -117,7 +117,6 @@ a Backbone with one or multiple Level 0 verctors.
 -}
 type alias Level1 =
     { name : String
-    , application : Maybe Application
     , location : Int
     , bacterialStrain : Maybe String
     , bsmb1Overhang : Maybe Bsmb1Overhang
@@ -137,7 +136,6 @@ type alias Level1 =
 initLevel1 : Level1
 initLevel1 =
     { name = ""
-    , application = Nothing
     , location = 1
     , bacterialStrain = Nothing
     , bsmb1Overhang = Nothing
@@ -306,8 +304,6 @@ level1Decoder : Decode.Decoder Level1
 level1Decoder =
     Decode.succeed Level1
         |> JDP.required "name" Decode.string
-        |> JDP.hardcoded Nothing
-        -- The Application of a level1 is not stored in the database.
         |> JDP.required "location" Decode.int
         |> JDP.optional "bacterial_strain" (Decode.maybe Decode.string) Nothing
         |> JDP.optional "bsmb1_overhang"
