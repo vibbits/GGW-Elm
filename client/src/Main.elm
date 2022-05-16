@@ -71,7 +71,7 @@ type DisplayPage
 
 type alias Model =
     { page : DisplayPage
-    , currLevel1Overhang : Bsa1Overhang -- Used for filtering the overhangs depending on the application
+    , filterOverhang : Bsa1Overhang -- Used for filtering the overhangs depending on the application
     , currLevel1App : Application -- Used for filtering the tables on overhang
 
     -- , level1_construct : Level1
@@ -113,7 +113,7 @@ init flags url key =
         model =
             { page = page
             , currLevel1App = Standard
-            , currLevel1Overhang = A__B
+            , filterOverhang = A__B
             , auth = Storage.fromJson flags
             , notifications = Notify.init
             , key = key
@@ -880,8 +880,8 @@ overhangRadioRow model =
                 |> option_
                 |> Input.optionWith bsa1_overhang
 
-        getOverhangShape : List Bsa1Overhang
-        getOverhangShape =
+        theOverhangShape : List Bsa1Overhang
+        theOverhangShape =
             case model.page of
                 ConstructLevel1 ->
                     overhangShape model.currLevel1App
@@ -892,13 +892,13 @@ overhangRadioRow model =
     Input.radioRow
         []
         { onChange = ChangeCurrentLevel1Bsa1Overhang
-        , selected = Just model.currLevel1Overhang
+        , selected = Just model.filterOverhang
         , label =
             Input.labelAbove
                 [ paddingEach { bottom = 20, top = 0, left = 0, right = 0 } ]
             <|
                 Element.text "Choose Overhang type"
-        , options = List.map makeButton <| getOverhangShape
+        , options = List.map makeButton <| theOverhangShape
         }
 
 
@@ -981,7 +981,7 @@ level0Table model =
                 ]
                 { data =
                     insertList
-                        |> List.filter (filterLevel0OnOverhang model.currLevel1Overhang)
+                        |> List.filter (filterLevel0OnOverhang model.filterOverhang)
                         |> List.filter (filterMolecule model.level0FilterString)
                 , columns =
                     [ { header = none
@@ -1219,7 +1219,7 @@ update msg model =
             ( { model | currLevel1App = newCurrApp }, Cmd.none )
 
         ChangeCurrentLevel1Bsa1Overhang newCurrOverhang ->
-            ( { model | currLevel1Overhang = newCurrOverhang }, Cmd.none )
+            ( { model | filterOverhang = newCurrOverhang }, Cmd.none )
 
         UrlChanged url ->
             ( model, router url model )
