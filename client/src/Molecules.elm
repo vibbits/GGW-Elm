@@ -1,8 +1,8 @@
 module Molecules exposing
-    ( Backbone
+    ( Application(..)
+    , Backbone
     , Bsa1Overhang(..)
     , Bsmb1Overhang(..)
-    , ChangeMol(..)
     , Level0
     , Level1
     , Vector(..)
@@ -11,8 +11,6 @@ module Molecules exposing
     , initBackbone
     , initLevel0
     , initLevel1
-    , interpretBackboneChange
-    , interpretLevel0Change
     , overhangs
     , showBsa1Overhang
     , showBsmb1Overhang
@@ -25,6 +23,18 @@ import Dict exposing (Dict)
 import Json.Decode as Decode
 import Json.Decode.Pipeline as JDP
 import Json.Encode as Encode
+
+
+{-| All possible applications for a Level 1 construct
+-}
+type Application
+    = Standard
+    | Five
+    | FiveAC
+    | Four
+    | FourAC
+    | Three
+    | ThreeAC
 
 
 {-| All possible overhangs that are produced by a BsaI digest of a vector.
@@ -108,13 +118,17 @@ a Backbone with one or multiple Level 0 verctors.
 type alias Level1 =
     { name : String
     , location : Int
+    , bacterialStrain : Maybe String
     , bsmb1Overhang : Maybe Bsmb1Overhang
     , responsible : String
     , group : String
+    , selection : Maybe String
     , notes : Maybe String
     , sequenceLength : Int
+    , reaseDigest : Maybe String
     , inserts : List Level0
     , backbone : Maybe Backbone
+    , date : Maybe String
     , genbankContent : Maybe String
     }
 
@@ -123,35 +137,19 @@ initLevel1 : Level1
 initLevel1 =
     { name = ""
     , location = 1
+    , bacterialStrain = Nothing
     , bsmb1Overhang = Nothing
     , responsible = ""
     , group = ""
+    , selection = Nothing
     , notes = Just ""
     , sequenceLength = 0
+    , reaseDigest = Nothing
     , inserts = []
     , backbone = Nothing
+    , date = Nothing
     , genbankContent = Nothing
     }
-
-
-{-| Helper type to change Backbone or Level0 fields
--}
-type ChangeMol
-    = ChangeName String
-    | ChangeMPG Int
-    | ChangeBsa1 Bsa1Overhang
-    | ChangeBsmb1 Bsmb1Overhang
-    | ChangeDate String
-    | ChangeBacterialStrain String
-    | ChangeResponsible String
-    | ChangeGroup String
-    | ChangeSelection String
-    | ChangeCloningTechnique String
-    | ChangeIsBsmB1Free Bool
-    | ChangeNotes String
-    | ChangeVectorType String
-    | ChangeReaseDigest String
-    | ChangeGB String
 
 
 initLevel0 : Level0
@@ -191,104 +189,6 @@ initBackbone =
     , vectorType = Nothing
     , genbankContent = Nothing
     }
-
-
-interpretBackboneChange : ChangeMol -> Backbone -> Backbone
-interpretBackboneChange msg bb =
-    case msg of
-        ChangeName name ->
-            { bb | name = name }
-
-        ChangeMPG loc ->
-            { bb | location = loc }
-
-        ChangeBsa1 bsa1 ->
-            { bb | bsa1Overhang = Just bsa1 }
-
-        ChangeBsmb1 bsmb1 ->
-            { bb | bsmb1Overhang = Just bsmb1 }
-
-        ChangeResponsible resp ->
-            { bb | responsible = resp }
-
-        ChangeGroup grp ->
-            { bb | group = grp }
-
-        ChangeSelection sel ->
-            { bb | selection = Just sel }
-
-        ChangeCloningTechnique cloneTech ->
-            { bb | cloningTechnique = Just cloneTech }
-
-        ChangeNotes nts ->
-            { bb | notes = Just nts }
-
-        ChangeReaseDigest rease ->
-            { bb | reaseDigest = Just rease }
-
-        ChangeDate dte ->
-            { bb | date = Just dte }
-
-        ChangeVectorType vt ->
-            { bb | vectorType = Just vt }
-
-        ChangeBacterialStrain bactStrain ->
-            { bb | bacterialStrain = Just bactStrain }
-
-        ChangeIsBsmB1Free _ ->
-            bb
-
-        ChangeGB content ->
-            { bb | genbankContent = Just content }
-
-
-interpretLevel0Change : ChangeMol -> Level0 -> Level0
-interpretLevel0Change msg l0 =
-    case msg of
-        ChangeName name ->
-            { l0 | name = name }
-
-        ChangeMPG loc ->
-            { l0 | location = loc }
-
-        ChangeBsa1 bsa1 ->
-            { l0 | bsa1Overhang = bsa1 }
-
-        ChangeBsmb1 _ ->
-            l0
-
-        ChangeBacterialStrain bactStrain ->
-            { l0 | bacterialStrain = Just bactStrain }
-
-        ChangeDate date ->
-            { l0 | date = Just date }
-
-        ChangeResponsible resp ->
-            { l0 | responsible = resp }
-
-        ChangeGroup grp ->
-            { l0 | group = grp }
-
-        ChangeSelection sel ->
-            { l0 | selection = Just sel }
-
-        ChangeCloningTechnique cloneTech ->
-            { l0 | cloningTechnique = Just cloneTech }
-
-        ChangeIsBsmB1Free answer ->
-            { l0 | isBsmb1Free = Just answer }
-
-        ChangeVectorType _ ->
-            l0
-
-        ChangeNotes nts ->
-            { l0 | notes = Just nts }
-
-        ChangeReaseDigest rease ->
-            { l0 | reaseDigest = Just rease }
-
-        ChangeGB content ->
-            { l0 | genbankContent = Just content }
 
 
 overhangs : Dict String (List Bsa1Overhang)
@@ -405,6 +305,7 @@ level1Decoder =
     Decode.succeed Level1
         |> JDP.required "name" Decode.string
         |> JDP.required "location" Decode.int
+        |> JDP.optional "bacterial_strain" (Decode.maybe Decode.string) Nothing
         |> JDP.optional "bsmb1_overhang"
             (Decode.string
                 |> Decode.map (String.trim >> parseBsmb1Overhang)
@@ -412,10 +313,13 @@ level1Decoder =
             Nothing
         |> JDP.required "responsible" Decode.string
         |> JDP.required "group" Decode.string
+        |> JDP.optional "selection" (Decode.maybe Decode.string) Nothing
         |> JDP.optional "notes" (Decode.maybe Decode.string) Nothing
         |> JDP.required "sequence_length" Decode.int
-        |> JDP.required "children" (Decode.list level0Decoder)
-        |> JDP.optional "backbone" (Decode.maybe backboneDecoder) Nothing
+        |> JDP.optional "reaseDigest" (Decode.maybe Decode.string) Nothing
+        |> JDP.required "inserts_out" (Decode.list level0Decoder)
+        |> JDP.optional "backbone_out" (Decode.maybe backboneDecoder) Nothing
+        |> JDP.optional "date" (Decode.maybe Decode.string) Nothing
         |> JDP.hardcoded Nothing
 
 
@@ -572,18 +476,30 @@ levelNEncoder level1 =
     Encode.object
         [ ( "name", Encode.string level1.name )
         , ( "location", Encode.int level1.location )
+        , ( "bsa1_overhang", Encode.null )
+        , ( "cloning_technique", Encode.null )
         , ( "bsmb1_overhang"
           , Maybe.map (showBsmb1Overhang >> Encode.string) level1.bsmb1Overhang
                 |> Maybe.withDefault Encode.null
           )
         , ( "responsible", Encode.string <| level1.responsible )
+        , ( "bacterial_strain", (Maybe.withDefault "" >> Encode.string) level1.bacterialStrain )
+        , ( "selection", (Maybe.withDefault "" >> Encode.string) level1.selection )
         , ( "group", Encode.string <| level1.group )
         , ( "notes", Encode.string <| Maybe.withDefault "" level1.notes )
-        , ( "sequenceLength", Encode.int level1.sequenceLength )
-        , ( "genbank_content", Encode.string <| Maybe.withDefault "" level1.genbankContent )
+        , ( "REase_digest"
+          , Encode.string <|
+                Maybe.withDefault "" level1.reaseDigest
+          )
+        , ( "date"
+          , Encode.string <|
+                Maybe.withDefault "" level1.date
+          )
         , ( "level"
           , Encode.int 3
           )
+        , ( "inserts", Encode.list (\insert -> level0Encoder insert) level1.inserts )
+        , ( "backbone", backboneEncoder (Maybe.withDefault initBackbone level1.backbone) )
         ]
 
 

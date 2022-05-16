@@ -23,7 +23,7 @@ def upgrade():
         batch_op.drop_constraint("lvl_mpg", type_="unique")
         batch_op.create_unique_constraint("lvl_loc", ["level", "location"])
         batch_op.drop_column("mpg_number")
-
+        batch_op.drop_column("BsmB1_site")
     # ### end Alembic commands ###
 
 
@@ -34,5 +34,6 @@ def downgrade():
         batch_op.drop_constraint("lvl_loc", type_="unique")
         batch_op.create_unique_constraint("lvl_mpg", ["level", "mpg_number"])
         batch_op.drop_column("location")
+        batch_op.add_column(sa.Column("BsmB1_site", sa.VARCHAR(), nullable=True))
 
     # ### end Alembic commands ###

@@ -101,8 +101,11 @@ def add_vector(
         database.add(new_vector)
         database.flush()
         database.refresh(new_vector)
+
+        # Adding the User-Vector Mapping to the database
         database.add(model.UserVectorMapping(user=user.id, vector=new_vector.id))
 
+        # Adding the annotations to the database
         database.add_all(
             [
                 model.Annotation(key=ann.key, value=ann.value, vector=new_vector.id)
@@ -110,6 +113,7 @@ def add_vector(
             ]
         )
 
+        # Adding the features and qualifiers to the database
         for feat in vector.features:
             new_feature = model.Feature(
                 type=feat.type,
@@ -130,10 +134,10 @@ def add_vector(
                     for qual in feat.qualifiers
                 ]
             )
-
+        # Adding the references to the database
         database.add_all(
             [
-                model.Reference(
+                model.VectorReference(
                     authors=ref.authors,
                     title=ref.title,
                     vector=new_vector.id,
@@ -142,24 +146,93 @@ def add_vector(
             ]
         )
 
-        if vector.level not in [VectorLevel.BACKBONE, VectorLevel.LEVEL0]:
-            database.add_all(
-                [
-                    model.VectorHierarchy(child=child, parent=new_vector.id)
-                    for child in vector.children
-                ]
-            )
-
     except SQLAlchemyError as err:
         print(f"Error: {err}")
         database.rollback()
         return None
     else:
-        print(f"committed {new_vector}")
         database.commit()
         return new_vector
 
 
+def add_vector_hierarchy(database: Session, child_id: int, parent_id: int):
+    "Provides the relationship between children and parents"
+    database.add(model.VectorHierarchy(child=child_id, parent=parent_id))
+    database.flush()
+    database.commit()
+
+
 def get_vectors_for_user(database: Session, user: schemas.User) -> List[model.Vector]:
-    "Query all Level 0 from the database that a given user has access to."
+    "Query all Vector from the database that a given user has access to."
     return database.query(model.Vector).filter(model.Vector.users.any(id=user.id)).all()
+
+
+def get_all_vectors(database: Session) -> List[model.Vector]:
+    """
+    Returns every vector in the Vectors table (necessary for adding child-parent relations)
+    Should only be used for importing the Level 1 elements from genbank files and csv!
+    """
+    return database.query(model.Vector).all()
+
+
+def get_vector_by_id(database: Session, ids: List[int]) -> List[model.Vector]:
+    """
+    Retuns a list of vectors based on query on the vector ID's.
+    """
+    return database.query(model.Vector).filter(id in ids).all()
+
+
+def get_vector_by_name_level_location(
+    database: Session, name: str, level: VectorLevel, location: int
+) -> model.Vector:
+    """
+    Returns a model.Vector object based on a query on:
+    - name
+    - VectorLevel
+    - location
+
+    This should return a single unique Vector
+    """
+    return (
+        database.query(model.Vector)
+        .filter(
+            model.Vector.name == name,
+            model.Vector.level == level,
+            model.Vector.location == location,
+        )
+        .first()
+    )
+
+
+def get_annotations_from_vector(
+    database: Session, vector_id: int
+) -> List[model.Annotation]:
+    return (
+        database.query(model.Annotation)
+        .filter(model.Annotation.vector == vector_id)
+        .all()
+    )
+
+
+def get_references_from_vector(
+    database: Session, vector_id: int
+) -> List[model.VectorReference]:
+    return (
+        database.query(model.VectorReference)
+        .filter(model.VectorReference.vector == vector_id)
+        .all()
+    )
+
+
+def get_features_from_vector(database: Session, vector_id: int) -> List[model.Feature]:
+    return database.query(model.Feature).filter(model.Feature.vector == vector_id).all()
+
+
+def get_qualifiers_from_feature(
+    database: Session, feature_id: int
+) -> List[model.Qualifier]:
+    return (
+        database.query(model.Qualifier)
+        .filter(model.Qualifier.feature == feature_id)
+        .all()
+    )

@@ -73,7 +73,7 @@ def upgrade():
     )
     op.create_index(op.f("ix_features_id"), "features", ["id"], unique=False)
     op.create_table(
-        "references",
+        "vector_references",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("authors", sa.String(), nullable=True),
         sa.Column("title", sa.String(), nullable=True),
@@ -84,7 +84,7 @@ def upgrade():
         ),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(op.f("ix_references_id"), "references", ["id"], unique=False)
+    op.create_index(op.f("ix_references_id"), "vector_references", ["id"], unique=False)
 
     with op.batch_alter_table("features") as batch_op:
         batch_op.drop_column("qualifier")
@@ -97,8 +97,8 @@ def downgrade():
     op.drop_index(op.f("ix_qualifiers_id"), table_name="qualifiers")
     op.drop_table("qualifiers")
 
-    op.drop_index(op.f("ix_references_id"), table_name="references")
-    op.drop_table("references")
+    op.drop_index(op.f("ix_references_id"), table_name="vector_references")
+    op.drop_table("vector_references")
     op.drop_index(op.f("ix_features_id"), table_name="features")
     op.drop_table("features")
     op.drop_index(op.f("ix_annotations_id"), table_name="annotations")

@@ -41,7 +41,7 @@ class VectorHierarchy(Base):
 
     __tablename__ = "vector_hierarchy"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     parent = Column(Integer, ForeignKey("vectors.id"), primary_key=True)
     child = Column(Integer, ForeignKey("vectors.id"), primary_key=True)
 
@@ -103,8 +103,8 @@ class Vector(Base):
     features: Mapped[List["Feature"]] = relationship(
         "Feature", uselist=True, collection_class=list
     )
-    references: Mapped[List["Reference"]] = relationship(
-        "Reference", uselist=True, collection_class=list
+    references: Mapped[List["VectorReference"]] = relationship(
+        "VectorReference", uselist=True, collection_class=list
     )
     users: Mapped[List["User"]] = relationship(
         "User", secondary="user_vector_mapping", back_populates="vectors"
@@ -129,9 +129,8 @@ class Vector(Base):
     # Unique MP-GX-numbering constraint
     __table_args__ = (UniqueConstraint("level", "location", name="lvl_loc"),)
 
-    def __str__(self):
-        first_ann = str(self.annotations[0]) if len(self.annotations) > 0 else "null"
-        return f"Vector({self.name=}, {len(self.annotations)=} [{first_ann}])"
+    def __str__(self) -> str:
+        return f"Vector({vars(self)})"
 
 
 class Annotation(Base):
@@ -143,8 +142,8 @@ class Annotation(Base):
     value: str = Column(String)
     vector = Column(Integer, ForeignKey("vectors.id"), nullable=False)
 
-    def __str__(self):
-        return f"Annotation({self.id=}, {self.key=}, {self.value=}, {self.vector=}"
+    def __str__(self) -> str:
+        return f"Annotation({self.id=}, {self.key=}, {self.value=}, {self.vector=})"
 
 
 class Feature(Base):
@@ -161,15 +160,21 @@ class Feature(Base):
         "Qualifier", uselist=True, collection_class=list
     )
 
+    def __str__(self) -> str:
+        return f"Feature({self.id=}, {self.type=}, {self.start_pos=}, {self.end_pos=}, {self.strand=}, {self.vector=}, {self.qualifiers=})"
 
-class Reference(Base):
+
+class VectorReference(Base):
     "Reference relating to a vector."
-    __tablename__ = "references"
+    __tablename__ = "vector_references"
 
     id: int = Column(Integer, primary_key=True, index=True)
     authors: str = Column(String)
     title: str = Column(String)
     vector = Column(Integer, ForeignKey("vectors.id"), nullable=False)
+
+    def __str__(self) -> str:
+        return f"VectorReference({self.id=}, {self.authors=}, {self.title=}, {self.vector=})"
 
 
 class Qualifier(Base):
@@ -180,3 +185,6 @@ class Qualifier(Base):
     key: str = Column(String, nullable=False)
     value: str = Column(String)
     feature = Column(Integer, ForeignKey("features.id"), nullable=False)
+
+    def __str__(self) -> str:
+        return f"Qualifier({self.id=}, {self.key=}, {self.value=}, {self.feature=})"
