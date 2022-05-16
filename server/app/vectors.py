@@ -72,7 +72,9 @@ def add_vector(
     database: Session = Depends(deps.get_db),
     current_user: schemas.User = Depends(deps.get_current_user),
 ) -> schemas.VectorOut:
-    """Handles POST requests from the UI
+    """
+    Submission of building-block vector data (backbones and level 0's)
+    where a genbank file defines content (such as sequence).
 
 
     Raises:
@@ -91,12 +93,12 @@ def add_vector(
     del vec["date"]
     vec_in_db = schemas.VectorInDB(
         **vec,
-        **convert_gbk_to_vector(gbk).dict(),
+        **convert_gbk_to_vector(gbk, level=new_vec.level).dict(),
+        genbank=new_vec.genbank_content,
         children=[],
         users=[],
         gateway_site="",
         vector_type="",
-        bsmb1_overhang="",
         date=datetime.strptime(new_vec.date, "%Y-%M-%d"),
     )
     if (
@@ -118,7 +120,10 @@ def add_leveln(
     current_user: schemas.User = Depends(deps.get_current_user),
 ) -> schemas.VectorOut:
     """
-    Handles POST requests from the UI specific for Level 1 and higher.
+    Submission of vector data to save where the vector is defined in terms of
+    lower-order vectors (e.g. level 1 is defined in terms of a backbone + level0's).
+    In this case, the user _cannot_ submit a genbank representation so they
+    instead submit the building blocks.
 
 
     Raises:

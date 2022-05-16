@@ -96,6 +96,7 @@ def add_vector(
         vector_type=vector.vector_type,
         date=vector.date,
         sequence=vector.sequence,
+        genbank=vector.genbank,
     )
     try:
         database.add(new_vector)

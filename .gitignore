@@ -9,3 +9,4 @@ __pycache__/
 .python-version
 .vscode
 server/Test_data
+server/app/import

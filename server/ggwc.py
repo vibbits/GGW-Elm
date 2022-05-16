@@ -208,6 +208,7 @@ def import0(csv_path, gbk_path, user):
 
         # Reading the sequence from the genbank file
         gbk_file_path = Path(gbk_path) / Path(gbk_file)
+        vec.genbank = gbk_file_path.read_text()  # Raw Genbank content
         record = SeqIO.read(gbk_file_path, "genbank")
         vec.sequence = str(record.seq)
 
