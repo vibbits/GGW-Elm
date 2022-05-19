@@ -128,10 +128,6 @@ withPageView url page view router =
 
 mkGoto : Nav.Key -> Api msg -> Auth -> Url -> Cmd msg
 mkGoto key api auth url =
-    let
-        _ =
-            Debug.log "goto" url.path
-    in
     case ( url.path, auth ) of
         ( "/oidc_login", _ ) ->
             authCode url
@@ -148,10 +144,6 @@ mkGoto key api auth url =
                 ]
 
         ( _, Authenticated _ ) ->
-            let
-                _ =
-                    Debug.log "url" url.path
-            in
             Nav.pushUrl key url.path
 
 

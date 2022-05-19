@@ -54,16 +54,7 @@ import TypedSvg.Attributes exposing (dy, stroke, textAnchor, transform, viewBox,
 import TypedSvg.Core exposing (Svg)
 import TypedSvg.Types exposing (AnchorAlignment(..), Paint(..), Transform(..), em)
 import UINotification as Notify
-import Url exposing (Protocol(..), Url)
-
-
-type DisplayPage
-    = LoginPage
-    | Catalogue
-    | ConstructLevel1
-    | AddLevel0Page
-    | AddBackbonePage
-    | AdminApp
+import Url exposing (Url)
 
 
 
