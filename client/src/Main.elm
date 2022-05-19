@@ -95,8 +95,8 @@ gotoRoute model page =
             Router.changeRoute rtr model.auth page
 
 
-viewRoute : Model -> Element Msg
-viewRoute model =
+viewPage : Model -> Element Msg
+viewPage model =
     case model.router of
         Router rtr ->
             Router.viewRoute rtr model
@@ -223,7 +223,7 @@ view model =
                     , Element.height Element.fill
                     , Element.scrollbarY
                     ]
-                    (viewRoute model)
+                    (viewPage model)
                 ]
             )
         ]
