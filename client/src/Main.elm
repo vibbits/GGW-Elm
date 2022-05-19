@@ -175,7 +175,7 @@ type Msg
     | UrlChanged Url
     | LinkClicked Browser.UrlRequest
       -- Change client side route
-    | ChangePage Router.Page
+    | SwitchPage Router.Page
       -- Vector catalogue Msg
     | BackboneAccordionToggled -- TODO: Unify these 3
     | Level0AccordionToggled
@@ -263,7 +263,7 @@ catalogueView model =
                 , backboneTable model
                 , Element.row
                     [ centerX, spacing 50 ]
-                    [ addButton (ChangePage Router.AddBackbone) ]
+                    [ addButton (SwitchPage Router.AddBackbone) ]
                 ]
             )
             model.backboneAccordionStatus
@@ -287,7 +287,7 @@ catalogueView model =
                     }
                 , overhangRadioRow model
                 , level0Table model
-                , Element.row [ centerX, spacing 50 ] [ addButton (ChangePage Router.AddLevel0) ]
+                , Element.row [ centerX, spacing 50 ] [ addButton (SwitchPage Router.AddLevel0) ]
                 ]
             )
             model.level0AccordionStatus
@@ -884,14 +884,14 @@ navLinks auth =
     case auth of
         Authenticated user ->
             navBar
-                ([ buttonLink_ (Just (ChangePage Router.Catalogue)) "Home"
-                 , buttonLink_ (Just (ChangePage Router.Catalogue)) "Vector Catalogue"
-                 , buttonLink_ (Just (ChangePage Router.AddLevel1)) "New Level1 construct"
+                ([ buttonLink_ (Just (SwitchPage Router.Catalogue)) "Home"
+                 , buttonLink_ (Just (SwitchPage Router.Catalogue)) "Vector Catalogue"
+                 , buttonLink_ (Just (SwitchPage Router.AddLevel1)) "New Level1 construct"
                  , buttonLink_ Nothing <| Maybe.withDefault "Unknown name" user.name
                  , buttonLink_ (Just Logout) "Logout"
                  ]
                     ++ (if user.role == "admin" then
-                            [ buttonLink_ (Just (ChangePage Router.Admin)) "Admin" ]
+                            [ buttonLink_ (Just (SwitchPage Router.Admin)) "Admin" ]
 
                         else
                             []
@@ -1267,7 +1267,7 @@ update msg model =
         UrlChanged url ->
             ( { model | router = changePage model.router url }, Cmd.none )
 
-        ChangePage page ->
+        SwitchPage page ->
             ( model, gotoRoute model page )
 
         GotLoginUrls res ->
