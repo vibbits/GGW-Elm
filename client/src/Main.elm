@@ -7,7 +7,6 @@ import Auth
     exposing
         ( Auth(..)
         , Login
-        , authCode
         , authDecoder
         )
 import Browser exposing (Document)
@@ -44,10 +43,12 @@ import List
 import List.Extra
 import Molecules exposing (..)
 import Path
+import Router
 import Shape exposing (defaultPieConfig)
 import Storage
 import String
 import Task
+import Tuple
 import TypedSvg exposing (g, svg, text_)
 import TypedSvg.Attributes exposing (dy, stroke, textAnchor, transform, viewBox, x)
 import TypedSvg.Core exposing (Svg)
@@ -56,20 +57,12 @@ import UINotification as Notify
 import Url exposing (Url)
 
 
-type DisplayPage
-    = LoginPage
-    | Catalogue
-    | ConstructLevel1
-    | AddLevel0Page
-    | AddBackbonePage
-
-
 
 -- Model
 
 
 type alias Model =
-    { page : DisplayPage
+    { router : Router
     , api : Api Msg
     , filterOverhang : Bsa1Overhang -- Used for filtering the overhangs depending on the application
     , currLevel1App : Application -- Used for filtering the tables on overhang
@@ -91,21 +84,37 @@ type alias Model =
     }
 
 
+type Router
+    = Router (Router.Router Model Msg)
+
+
+gotoRoute : { a | auth : Auth, router : Router } -> Router.Page -> Cmd Msg
+gotoRoute model page =
+    case model.router of
+        Router rtr ->
+            Router.changeRoute rtr model.auth page
+
+
+viewPage : Model -> Element Msg
+viewPage model =
+    case model.router of
+        Router rtr ->
+            Router.viewRoute rtr model
+
+
+changePage : Router -> Url -> Router
+changePage router url =
+    case router of
+        Router rtr ->
+            Router (Router.changePage rtr url)
+
+
 init : Decode.Value -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
     let
         auth : Auth
         auth =
             Storage.fromJson flags
-
-        page : DisplayPage
-        page =
-            case auth of
-                Authenticated _ ->
-                    Catalogue
-
-                _ ->
-                    LoginPage
 
         api : Result String (Api Msg)
         api =
@@ -126,9 +135,18 @@ init flags url key =
                 _ ->
                     Notify.init
 
+        router : Router.Router Model Msg
+        router =
+            Router.mkRouter key (Result.withDefault dummyApi api) auth
+                |> Router.withPageView "/login" Router.Login loginView
+                |> Router.withPageView "/" Router.Catalogue catalogueView
+                |> Router.withPageView "/new/level0" Router.AddLevel0 addLevel0View
+                |> Router.withPageView "/new/level1" Router.AddLevel1 constructLevel1View
+                |> Router.withPageView "/new/backbone" Router.AddBackbone addBackboneView
+
         model : Model
         model =
-            { page = page
+            { router = Router router
             , api = Result.withDefault dummyApi api
             , currLevel1App = Standard
             , filterOverhang = A__B
@@ -147,7 +165,7 @@ init flags url key =
             , vectorToAdd = Nothing
             }
     in
-    ( model, router url model )
+    ( model, router.goto auth url )
 
 
 type Msg
@@ -156,8 +174,8 @@ type Msg
     | Logout
     | UrlChanged Url
     | LinkClicked Browser.UrlRequest
-      -- Msg Switching pages
-    | SwitchPage DisplayPage
+      -- Change client side route
+    | SwitchPage Router.Page
       -- Vector catalogue Msg
     | BackboneAccordionToggled -- TODO: Unify these 3
     | Level0AccordionToggled
@@ -205,37 +223,7 @@ view model =
                     , Element.height Element.fill
                     , Element.scrollbarY
                     ]
-                    (case model.page of
-                        LoginPage ->
-                            loginView model
-
-                        Catalogue ->
-                            catalogueView model
-
-                        ConstructLevel1 ->
-                            case model.vectorToAdd of
-                                Just (LevelNVec vec) ->
-                                    constructLevel1View model vec
-
-                                _ ->
-                                    constructLevel1View model initLevel1
-
-                        AddLevel0Page ->
-                            case model.vectorToAdd of
-                                Just (Level0Vec vec) ->
-                                    addLevel0View vec
-
-                                _ ->
-                                    addLevel0View initLevel0
-
-                        AddBackbonePage ->
-                            case model.vectorToAdd of
-                                Just (BackboneVec vec) ->
-                                    addBackboneView vec
-
-                                _ ->
-                                    addBackboneView initBackbone
-                    )
+                    (viewPage model)
                 ]
             )
         ]
@@ -275,7 +263,7 @@ catalogueView model =
                 , backboneTable model
                 , Element.row
                     [ centerX, spacing 50 ]
-                    [ addButton (SwitchPage AddBackbonePage) ]
+                    [ addButton (SwitchPage Router.AddBackbone) ]
                 ]
             )
             model.backboneAccordionStatus
@@ -299,7 +287,7 @@ catalogueView model =
                     }
                 , overhangRadioRow model
                 , level0Table model
-                , Element.row [ centerX, spacing 50 ] [ addButton (SwitchPage AddLevel0Page) ]
+                , Element.row [ centerX, spacing 50 ] [ addButton (SwitchPage Router.AddLevel0) ]
                 ]
             )
             model.level0AccordionStatus
@@ -327,8 +315,18 @@ catalogueView model =
         ]
 
 
-addLevel0View : Level0 -> Element Msg
-addLevel0View level0 =
+addLevel0View : Model -> Element Msg
+addLevel0View model =
+    let
+        level0 : Level0
+        level0 =
+            case model.vectorToAdd of
+                Just (Level0Vec vec) ->
+                    vec
+
+                _ ->
+                    initLevel0
+    in
     column [ Element.height Element.fill, padding 25, spacing 25 ]
         [ el [ Element.Region.heading 1, Font.size 50 ] <| Element.text "Add new Level 0 donor vector"
         , Input.text []
@@ -437,8 +435,18 @@ makeBsmb1OverhangOptions overHangList =
     List.map (\ohang -> Input.option ohang (showBsmb1Overhang ohang |> Element.text)) overHangList
 
 
-addBackboneView : Backbone -> Element Msg
-addBackboneView bb =
+addBackboneView : Model -> Element Msg
+addBackboneView model =
+    let
+        bb : Backbone
+        bb =
+            case model.vectorToAdd of
+                Just (BackboneVec vec) ->
+                    vec
+
+                _ ->
+                    initBackbone
+    in
     column [ Element.height Element.fill, centerX, Element.width Element.fill, spacing 25, padding 25 ]
         [ el [ Element.Region.heading 1, Font.size 50 ] <| Element.text "Add new Backbone"
         , Input.text []
@@ -583,8 +591,18 @@ addBackboneView bb =
         ]
 
 
-constructLevel1View : Model -> Level1 -> Element Msg
-constructLevel1View model level1 =
+constructLevel1View : Model -> Element Msg
+constructLevel1View model =
+    let
+        level1 : Level1
+        level1 =
+            case model.vectorToAdd of
+                Just (LevelNVec vec) ->
+                    vec
+
+                _ ->
+                    initLevel1
+    in
     column [ Element.height Element.fill, spacing 25, Element.width Element.fill, centerX, padding 50 ]
         [ el
             [ Element.Region.heading 1
@@ -866,12 +884,19 @@ navLinks auth =
     case auth of
         Authenticated user ->
             navBar
-                [ buttonLink_ (Just (SwitchPage Catalogue)) "Home"
-                , buttonLink_ (Just (SwitchPage Catalogue)) "Vector Catalogue"
-                , buttonLink_ (Just (SwitchPage ConstructLevel1)) "New Level1 construct"
-                , buttonLink_ Nothing <| Maybe.withDefault "Unknown name" user.name
-                , buttonLink_ (Just Logout) "Logout"
-                ]
+                ([ buttonLink_ (Just (SwitchPage Router.Catalogue)) "Home"
+                 , buttonLink_ (Just (SwitchPage Router.Catalogue)) "Vector Catalogue"
+                 , buttonLink_ (Just (SwitchPage Router.AddLevel1)) "New Level1 construct"
+                 , buttonLink_ Nothing <| Maybe.withDefault "Unknown name" user.name
+                 , buttonLink_ (Just Logout) "Logout"
+                 ]
+                    ++ (if user.role == "admin" then
+                            [ buttonLink_ (Just (SwitchPage Router.Admin)) "Admin" ]
+
+                        else
+                            []
+                       )
+                )
 
         _ ->
             navBar
@@ -900,8 +925,8 @@ overhangRadioRow model =
 
         theOverhangShape : List Bsa1Overhang
         theOverhangShape =
-            case model.page of
-                ConstructLevel1 ->
+            case model.vectorToAdd of
+                Just (LevelNVec _) ->
                     overhangShape model.currLevel1App
 
                 _ ->
@@ -1240,7 +1265,10 @@ update msg model =
             ( { model | filterOverhang = newCurrOverhang }, Cmd.none )
 
         UrlChanged url ->
-            ( model, router url model )
+            ( { model | router = changePage model.router url }, Cmd.none )
+
+        SwitchPage page ->
+            ( model, gotoRoute model page )
 
         GotLoginUrls res ->
             case res of
@@ -1263,31 +1291,35 @@ update msg model =
                     ( model, Nav.load href )
 
         GotAuthentication res ->
-            let
-                navToRoot : Cmd Msg
-                navToRoot =
-                    Nav.pushUrl model.key "/"
-            in
             case res of
                 Ok auth ->
-                    ( { model | auth = auth, page = Catalogue }
-                    , Cmd.batch [ navToRoot, model.api.vectors auth, Storage.toJson auth |> Storage.save ]
+                    let
+                        gotoRoot =
+                            gotoRoute { auth = auth, router = model.router } Router.Catalogue
+                    in
+                    ( { model | auth = auth }
+                    , Cmd.batch
+                        [ gotoRoot
+                        , model.api.vectors auth
+                        , Storage.toJson auth |> Storage.save
+                        ]
                     )
 
                 Err err ->
                     ( { model
                         | notifications = Notify.makeError "Logging in" (showHttpError err) model.notifications
                       }
-                    , navToRoot
+                    , gotoRoute model Router.Login
                     )
 
         Logout ->
-            ( { model | auth = Auth.init, page = LoginPage }
-            , Cmd.batch [ Nav.pushUrl model.key "/login", Storage.toJson Auth.init |> Storage.save ]
+            let
+                gotoLogin =
+                    gotoRoute { auth = Auth.init, router = model.router } Router.Login
+            in
+            ( { model | auth = Auth.init }
+            , Cmd.batch [ gotoLogin, Storage.toJson Auth.init |> Storage.save ]
             )
-
-        SwitchPage page ->
-            ( { model | page = page }, Cmd.none )
 
         FilterBackboneTable filter ->
             ( { model | backboneFilterString = Just filter }, Cmd.none )
@@ -1371,9 +1403,8 @@ update msg model =
         VectorCreated (Ok vec) ->
             ( { model
                 | vectors = vec :: model.vectors
-                , page = Catalogue
               }
-            , Cmd.none
+            , gotoRoute model Router.Catalogue
             )
 
         AddLevel1 level1 ->
@@ -1434,31 +1465,6 @@ appendInsertToLevel1 l0List newL0 =
                     l0.bsa1Overhang /= newL0.bsa1Overhang
                 )
                 l0List
-
-
-
--- ROUTING
-
-
-router : Url -> { a | auth : Auth, key : Nav.Key, api : Api Msg } -> Cmd Msg
-router url model =
-    case ( url.path, model.auth ) of
-        ( "/oidc_login", _ ) ->
-            authCode url
-                |> Maybe.map model.api.authorize
-                |> Maybe.withDefault Cmd.none
-
-        ( "/login", NotAuthenticated _ ) ->
-            model.api.login
-
-        ( "/login", _ ) ->
-            Nav.pushUrl model.key "/"
-
-        ( _, NotAuthenticated _ ) ->
-            Nav.pushUrl model.key "login"
-
-        _ ->
-            Cmd.none
 
 
 
