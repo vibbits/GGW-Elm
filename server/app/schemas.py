@@ -1,8 +1,8 @@
 "Data schemas for HTTP interface"
 # pylint: disable=too-few-public-methods
+from typing import List, Optional, Literal
 from datetime import datetime
 import enum
-from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -92,6 +92,15 @@ class LoginUrl(BaseModel):
 
     name: str
     url: str
+
+
+# Administration
+
+
+class AllUsers(BaseModel):
+    "Listing of all users"
+    label: Literal["users"]
+    data: List[User]
 
 
 # Adding data

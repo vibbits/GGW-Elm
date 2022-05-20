@@ -1,4 +1,4 @@
-module Api exposing (Api, ApiExpect, dummyApi, initApi)
+module Api exposing (Api, ApiExpect, RemoteRequest(..), dummyApi, initApi, request)
 
 {-| Remote API interface. Handles the following complexities of a distributed
 system:
@@ -22,6 +22,9 @@ type alias Api msg =
     , authorize : AuthCode -> Cmd msg
     , vectors : Auth -> Cmd msg
     , save : Auth -> Vector -> Cmd msg
+    , allUsers : Auth -> Cmd msg
+    , allGroups : Auth -> Cmd msg
+    , allConstructs : Auth -> Cmd msg
     }
 
 
@@ -33,11 +36,22 @@ type alias ApiExpect msg =
     , authorizeExpect : Expect msg
     , vectorsExpect : Expect msg
     , saveExpect : Expect msg
+    , allUsersExpect : Expect msg
+    , allGroupsExpect : Expect msg
+    , allConstructsExpect : Expect msg
     }
 
 
 type alias ApiUrl =
     String
+
+
+type RemoteRequest
+    = LoginUrls
+    | AuthToken
+    | Vectors
+    | Save
+    | AllUsers
 
 
 authenticatedGet : String -> ApiUrl -> Expect msg -> Cmd msg
@@ -119,6 +133,48 @@ mkSave url expect auth vec =
             Cmd.none
 
 
+mkAllUsers : ApiUrl -> Expect msg -> Auth -> Cmd msg
+mkAllUsers url expect auth =
+    case auth of
+        Authenticated usr ->
+            if usr.role == "admin" then
+                authenticatedGet usr.token (url ++ "/admin/users") expect
+
+            else
+                Cmd.none
+
+        _ ->
+            Cmd.none
+
+
+mkAllGroups : ApiUrl -> Expect msg -> Auth -> Cmd msg
+mkAllGroups url expect auth =
+    case auth of
+        Authenticated usr ->
+            if usr.role == "admin" then
+                authenticatedGet usr.token (url ++ "/admin/groups") expect
+
+            else
+                Cmd.none
+
+        _ ->
+            Cmd.none
+
+
+mkAllConstructs : ApiUrl -> Expect msg -> Auth -> Cmd msg
+mkAllConstructs url expect auth =
+    case auth of
+        Authenticated usr ->
+            if usr.role == "admin" then
+                authenticatedGet usr.token (url ++ "/admin/constructs") expect
+
+            else
+                Cmd.none
+
+        _ ->
+            Cmd.none
+
+
 {-| Initialise API functions given some configuration
 -}
 initApi : ApiExpect msg -> Decode.Value -> Result String (Api msg)
@@ -136,6 +192,9 @@ initApi expect val =
                 , authorize = mkAuthorize baseUrl expect.authorizeExpect
                 , vectors = mkVectors baseUrl expect.vectorsExpect
                 , save = mkSave baseUrl expect.saveExpect
+                , allUsers = mkAllUsers baseUrl expect.allUsersExpect
+                , allGroups = mkAllGroups baseUrl expect.allGroupsExpect
+                , allConstructs = mkAllConstructs baseUrl expect.allConstructsExpect
                 }
             )
 
@@ -148,4 +207,26 @@ dummyApi =
     , authorize = always Cmd.none
     , vectors = always Cmd.none
     , save = \_ _ -> Cmd.none
+    , allUsers = always Cmd.none
+    , allGroups = always Cmd.none
+    , allConstructs = always Cmd.none
     }
+
+
+request : Api msg -> Auth -> RemoteRequest -> Cmd msg
+request api auth req =
+    case req of
+        LoginUrls ->
+            api.login
+
+        AuthToken ->
+            Cmd.none
+
+        Vectors ->
+            Cmd.none
+
+        Save ->
+            Cmd.none
+
+        AllUsers ->
+            api.allUsers auth

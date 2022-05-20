@@ -18,6 +18,11 @@ def get_user(database: Session, user_id: int) -> Optional[model.User]:
     return database.query(model.User).filter(model.User.id == user_id).first()
 
 
+def get_users(database: Session, offset: int = 0, limit: int = 10) -> List[model.User]:
+    "Get all users with pagination"
+    return database.query(model.User).offset(offset).limit(limit).all()
+
+
 def is_admin(user: model.User) -> bool:
     "Check if a user is an admin."
     return user.role == "admin"
