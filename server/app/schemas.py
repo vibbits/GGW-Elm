@@ -232,6 +232,7 @@ class VectorInDB(Vector):
 
     children: List["VectorInDB"]
     sequence: str
+    genbank: str
 
 
 class VectorToAdd(VectorBase):

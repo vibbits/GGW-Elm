@@ -2,6 +2,7 @@
 
 export DATABASE_URL="sqlite:///ggw.sqlite?check_same_thread=false"
 export AUTH_REDIRECT_URI="http://localhost:49999/oidc_login"
+export API_SECRET="THIS IS NOT SECRET"
 
 # Initialise the database
 poetry run alembic upgrade head

@@ -94,7 +94,12 @@ class Vector(Base):
     REase_digest: str = Column(String, nullable=True)  # TODO: Might be removed...
 
     # Genbank information
+    # "Digested" sequence (where this applies)
     sequence: str = Column(String, nullable=False)
+
+    # Raw content of a genbank file
+    # user-submitted for backbone+level0, generated for level(1+)
+    genbank: str = Column(String, nullable=True)
 
     # Annotations are stored in another table
     annotations: Mapped[List["Annotation"]] = relationship(
