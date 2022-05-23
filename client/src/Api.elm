@@ -214,18 +214,6 @@ dummyApi =
 request : Api msg -> Auth -> RemoteRequest -> Cmd msg
 request api auth req =
     case req of
-        LoginUrls ->
-            api.login
-
-        AuthToken ->
-            Cmd.none
-
-        Vectors ->
-            Cmd.none
-
-        Save ->
-            Cmd.none
-
         AllUsers ->
             api.allUsers auth
 
