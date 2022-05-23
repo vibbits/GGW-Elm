@@ -6,7 +6,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Interface exposing (columnTitle)
 import Json.Decode as Decode
-import Molecules exposing (Backbone, Level0, Level1, Vector(..), vectorDecoder)
+import Molecules exposing (Vector(..), vectorDecoder)
 
 
 type alias Group =

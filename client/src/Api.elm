@@ -47,11 +47,7 @@ type alias ApiUrl =
 
 
 type RemoteRequest
-    = LoginUrls
-    | AuthToken
-    | Vectors
-    | Save
-    | AllUsers
+    = AllUsers
     | AllGroups
     | AllConstructs
 
