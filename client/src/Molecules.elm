@@ -74,7 +74,8 @@ type Vector
 {-| Vector that accept one or more donorvector. Also called a destination vector.
 -}
 type alias Backbone =
-    { name : String
+    { id : Int
+    , name : String
     , location : Int
     , bsa1Overhang : Maybe Bsa1Overhang
     , bsmb1Overhang : Maybe Bsmb1Overhang
@@ -95,7 +96,8 @@ type alias Backbone =
 {-| Type of donor vector which are used to construct a Level 1 Vector.
 -}
 type alias Level0 =
-    { name : String
+    { id : Int
+    , name : String
     , location : Int
     , bsa1Overhang : Bsa1Overhang
     , sequenceLength : Int
@@ -116,7 +118,8 @@ type alias Level0 =
 a Backbone with one or multiple Level 0 verctors.
 -}
 type alias Level1 =
-    { name : String
+    { id : Int
+    , name : String
     , location : Int
     , bacterialStrain : Maybe String
     , bsmb1Overhang : Maybe Bsmb1Overhang
@@ -135,7 +138,8 @@ type alias Level1 =
 
 initLevel1 : Level1
 initLevel1 =
-    { name = ""
+    { id = 0
+    , name = ""
     , location = 1
     , bacterialStrain = Nothing
     , bsmb1Overhang = Nothing
@@ -154,7 +158,8 @@ initLevel1 =
 
 initLevel0 : Level0
 initLevel0 =
-    { name = ""
+    { id = 0
+    , name = ""
     , location = 0
     , bsa1Overhang = A__B
     , sequenceLength = 0
@@ -173,7 +178,8 @@ initLevel0 =
 
 initBackbone : Backbone
 initBackbone =
-    { name = ""
+    { id = 0
+    , name = ""
     , location = 0
     , bsa1Overhang = Nothing
     , bsmb1Overhang = Nothing
@@ -249,6 +255,7 @@ decodeOverhang str =
 level0Decoder : Decode.Decoder Level0
 level0Decoder =
     Decode.succeed Level0
+        |> JDP.required "id" Decode.int
         |> JDP.required "name" Decode.string
         |> JDP.required "location" Decode.int
         |> JDP.required "bsa1_overhang"
@@ -275,6 +282,7 @@ level0Decoder =
 backboneDecoder : Decode.Decoder Backbone
 backboneDecoder =
     Decode.succeed Backbone
+        |> JDP.required "id" Decode.int
         |> JDP.required "name" Decode.string
         |> JDP.required "location" Decode.int
         |> JDP.optional "bsa1_overhang"
@@ -303,6 +311,7 @@ backboneDecoder =
 level1Decoder : Decode.Decoder Level1
 level1Decoder =
     Decode.succeed Level1
+        |> JDP.required "id" Decode.int
         |> JDP.required "name" Decode.string
         |> JDP.required "location" Decode.int
         |> JDP.optional "bacterial_strain" (Decode.maybe Decode.string) Nothing

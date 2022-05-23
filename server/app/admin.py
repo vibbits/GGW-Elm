@@ -17,3 +17,23 @@ def get_all_users(
 ):
     users = crud.get_users(db)
     return schemas.AllUsers(label="users", data=users)
+
+
+@router.get("/admin/groups", response_model=schemas.AllGroups)
+def get_all_groups(
+    db: Session = Depends(deps.get_db),
+    admin_user: schemas.User = Depends(deps.get_current_admin),
+):
+    groups = crud.get_groups(db)
+    return schemas.AllGroups(label="groups", data=groups)
+
+
+@router.get("/admin/constructs", response_model=schemas.AllConstructs)
+def get_all_constructs(
+    db: Session = Depends(deps.get_db),
+    admin_user: schemas.User = Depends(deps.get_current_admin),
+):
+    cons = crud.get_all_vectors(db)
+    result = schemas.AllConstructs(label="constructs", data=cons)
+    result.update_forward_refs()
+    return result

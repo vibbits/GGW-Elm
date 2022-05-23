@@ -771,8 +771,8 @@ adminView model =
         ]
         [ row [ centerX, padding 10, spacing 50 ]
             [ button_ (Just (ApiRequest AllUsers)) "Users"
-            , button_ Nothing "Groups"
-            , button_ Nothing "Constructs"
+            , button_ (Just (ApiRequest AllGroups)) "Groups"
+            , button_ (Just (ApiRequest AllConstructs)) "Constructs"
             ]
         , Admin.view model.admin
         ]

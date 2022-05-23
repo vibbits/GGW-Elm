@@ -52,6 +52,8 @@ type RemoteRequest
     | Vectors
     | Save
     | AllUsers
+    | AllGroups
+    | AllConstructs
 
 
 authenticatedGet : String -> ApiUrl -> Expect msg -> Cmd msg
@@ -230,3 +232,9 @@ request api auth req =
 
         AllUsers ->
             api.allUsers auth
+
+        AllGroups ->
+            api.allGroups auth
+
+        AllConstructs ->
+            api.allConstructs auth

@@ -1,5 +1,6 @@
 "Data schemas for HTTP interface"
 # pylint: disable=too-few-public-methods
+from __future__ import annotations
 from typing import List, Optional, Literal
 from datetime import datetime
 import enum
@@ -103,6 +104,18 @@ class AllUsers(BaseModel):
     data: List[User]
 
 
+class AllGroups(BaseModel):
+    "Listing of all groups"
+    label: Literal["groups"]
+    data: List[str]
+
+
+class AllConstructs(BaseModel):
+    "Listing of all constructs"
+    label: Literal["constructs"]
+    data: List[VectorBase]
+
+
 # Adding data
 
 
@@ -184,6 +197,7 @@ class VectorBase(BaseModel):
     is being sent to the client.
     """
 
+    id: int
     location: int
     name: str
     bsa1_overhang: Optional[str]
@@ -239,7 +253,7 @@ class VectorInDB(Vector):
     a Vector object when it is stored in the database.
     """
 
-    children: List["VectorInDB"]
+    children: List[VectorInDB]
     sequence: str
     genbank: str
 
@@ -268,9 +282,9 @@ class VectorOut(Vector):
     so we save bytes over the wire.
     """
 
-    inserts_out: List["VectorOut"]
+    inserts_out: List[VectorOut]
     backbone_out: Optional[
-        "VectorOut"
+        VectorOut
     ]  # Should be optional because bacbones don't have a backbone
     sequence_length: int
 
@@ -282,6 +296,9 @@ class LevelNToAdd(VectorBase):
     """
 
     bsmb1_overhang: Optional[str]
-    inserts: List["VectorToAdd"]
-    backbone: "VectorToAdd"
+    inserts: List[VectorToAdd]
+    backbone: VectorToAdd
     date: str
+
+
+AllConstructs.update_forward_refs()

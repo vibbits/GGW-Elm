@@ -55,6 +55,12 @@ def create_user(database: Session, user: schemas.UserCreate) -> model.User:
     return new_user
 
 
+def get_groups(database: Session, offset: int = 0, limit: int = 10):
+    return (
+        database.query(model.Vector.group).distinct().offset(offset).limit(limit).all()
+    )
+
+
 # Auth
 
 
@@ -173,12 +179,14 @@ def get_vectors_for_user(database: Session, user: schemas.User) -> List[model.Ve
     return database.query(model.Vector).filter(model.Vector.users.any(id=user.id)).all()
 
 
-def get_all_vectors(database: Session) -> List[model.Vector]:
+def get_all_vectors(
+    database: Session, offset: int = 0, limit: int = 0
+) -> List[model.Vector]:
     """
     Returns every vector in the Vectors table (necessary for adding child-parent relations)
     Should only be used for importing the Level 1 elements from genbank files and csv!
     """
-    return database.query(model.Vector).all()
+    return database.query(model.Vector).offset(offset).limit(limit).all()
 
 
 def get_vector_by_id(database: Session, ids: List[int]) -> List[model.Vector]:

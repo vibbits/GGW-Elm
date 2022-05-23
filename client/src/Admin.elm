@@ -6,21 +6,19 @@ import Element.Border as Border
 import Element.Font as Font
 import Interface exposing (columnTitle)
 import Json.Decode as Decode
+import Molecules exposing (Backbone, Level0, Level1, Vector(..), vectorDecoder)
 
 
 type alias Group =
-    {}
-
-
-type alias Construct =
-    {}
+    { name : String
+    }
 
 
 type AdminData
     = NoData
     | Users (List User)
     | Groups (List Group)
-    | Constructs (List Construct)
+    | Constructs (List Vector)
 
 
 view : AdminData -> Element msg
@@ -33,10 +31,10 @@ view data =
             usersTable users
 
         Groups groups ->
-            text "Groups"
+            groupsTable groups
 
         Constructs constructs ->
-            text "Constructs"
+            vectorsTable constructs
 
 
 usersTable : List User -> Element msg
@@ -80,6 +78,123 @@ usersTable users =
         )
 
 
+groupsTable : List Group -> Element msg
+groupsTable groups =
+    let
+        viewData : String -> Element msg
+        viewData d =
+            el
+                [ Border.width 1
+                , padding 10
+                ]
+                (text d)
+    in
+    el
+        [ padding 10
+        , width fill
+        , height fill
+        ]
+        (table
+            [ width fill
+            , height fill
+            , Border.width 1
+            , Font.size 15
+            ]
+            { data = groups
+            , columns =
+                [ { header = columnTitle "Name"
+                  , width = fill
+                  , view = viewData << .name
+                  }
+                ]
+            }
+        )
+
+
+vectorsTable : List Vector -> Element msg
+vectorsTable vectors =
+    let
+        viewData : String -> Element msg
+        viewData d =
+            el
+                [ Border.width 1
+                , padding 10
+                ]
+                (text d)
+
+        vecData :
+            Vector
+            ->
+                { id : Int
+                , name : String
+                , location : Int
+                , responsible : String
+                , group : String
+                }
+        vecData vec =
+            case vec of
+                BackboneVec c ->
+                    { id = c.id
+                    , name = c.name
+                    , location = c.location
+                    , responsible = c.responsible
+                    , group = c.group
+                    }
+
+                Level0Vec c ->
+                    { id = c.id
+                    , name = c.name
+                    , location = c.location
+                    , responsible = c.responsible
+                    , group = c.group
+                    }
+
+                LevelNVec c ->
+                    { id = c.id
+                    , name = c.name
+                    , location = c.location
+                    , responsible = c.responsible
+                    , group = c.group
+                    }
+    in
+    el
+        [ padding 10
+        , width fill
+        , height fill
+        ]
+        (table
+            [ width fill
+            , height fill
+            , Border.width 1
+            , Font.size 15
+            ]
+            { data = vectors
+            , columns =
+                [ { header = columnTitle "id"
+                  , width = fill
+                  , view = viewData << String.fromInt << .id << vecData
+                  }
+                , { header = columnTitle "Name"
+                  , width = fill
+                  , view = viewData << .name << vecData
+                  }
+                , { header = columnTitle "Location"
+                  , width = fill
+                  , view = viewData << String.fromInt << .location << vecData
+                  }
+                , { header = columnTitle "Responsible"
+                  , width = fill
+                  , view = viewData << .responsible << vecData
+                  }
+                , { header = columnTitle "Group"
+                  , width = fill
+                  , view = viewData << .group << vecData
+                  }
+                ]
+            }
+        )
+
+
 
 -- { "label": "users", "data": [] }
 -- { "label": "groups", "data": [] }
@@ -101,7 +216,7 @@ decoder =
                             |> Decode.map Groups
 
                     "constructs" ->
-                        Decode.field "data" (Decode.list constructDecoder)
+                        Decode.field "data" vectorDecoder
                             |> Decode.map Constructs
 
                     _ ->
@@ -119,9 +234,4 @@ userDecoder =
 
 groupDecoder : Decode.Decoder Group
 groupDecoder =
-    Decode.succeed {}
-
-
-constructDecoder : Decode.Decoder Construct
-constructDecoder =
-    Decode.succeed {}
+    Decode.map Group Decode.string
