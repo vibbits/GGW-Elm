@@ -1,6 +1,5 @@
 " Provides low-level Create, Read, Update, and Delete functions for API resources. "
 
-from statistics import mode
 from typing import List, Optional
 from datetime import datetime
 
@@ -56,6 +55,7 @@ def create_user(database: Session, user: schemas.UserCreate) -> model.User:
 
 
 def get_groups(database: Session, offset: int = 0, limit: int = 10):
+    "Get all groups with pagination"
     return (
         database.query(model.Vector.group).distinct().offset(offset).limit(limit).all()
     )
@@ -89,6 +89,7 @@ def get_provider_by_id(
 def add_vector(
     database: Session, vector: schemas.VectorInDB, user: schemas.User
 ) -> Optional[model.Vector]:
+    "Add a vector to the database"
     new_vector = model.Vector(
         location=vector.location,
         name=vector.name,

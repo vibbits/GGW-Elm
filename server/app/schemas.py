@@ -3,7 +3,6 @@
 from __future__ import annotations
 from typing import List, Optional, Literal
 from datetime import datetime
-import enum
 
 from pydantic import BaseModel
 
@@ -83,6 +82,7 @@ class Provider(BaseModel):
     secret: str
 
     class Config:
+        "pydantic configuration"
         orm_mode = True
 
 
