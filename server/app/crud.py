@@ -181,11 +181,12 @@ def get_vectors_for_user(database: Session, user: schemas.User) -> List[model.Ve
 
 
 def get_all_vectors(
-    database: Session, offset: int = 0, limit: int = 0
+    database: Session, offset: int = 0, limit: int = 10
 ) -> List[model.Vector]:
     """
-    Returns every vector in the Vectors table (necessary for adding child-parent relations)
-    Should only be used for importing the Level 1 elements from genbank files and csv!
+    Returns every vector in the Vectors table.
+    When importing data (e.g. from CSV or GenBankk), this is necessary for
+    adding child-parent relations.
     """
     return database.query(model.Vector).offset(offset).limit(limit).all()
 
