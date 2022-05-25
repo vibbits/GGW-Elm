@@ -18,7 +18,11 @@ def get_user(database: Session, user_id: int) -> Optional[model.User]:
 
 
 def get_users(database: Session, offset: int = 0, limit: int = 10) -> List[model.User]:
-    "Get all users with pagination"
+    """
+    Get all users with pagination.
+    Set limit=None to fetch _all_ users (Warning: this can be a lot of data)
+    https://docs.sqlalchemy.org/en/14/core/selectable.html#sqlalchemy.sql.expression.GenerativeSelect.limit
+    """
     return database.query(model.User).offset(offset).limit(limit).all()
 
 
@@ -55,7 +59,11 @@ def create_user(database: Session, user: schemas.UserCreate) -> model.User:
 
 
 def get_groups(database: Session, offset: int = 0, limit: int = 10):
-    "Get all groups with pagination"
+    """
+    Get all groups with pagination.
+    Set limit=None to fetch _all_ groups (Warning: this can be a lot of data)
+    https://docs.sqlalchemy.org/en/14/core/selectable.html#sqlalchemy.sql.expression.GenerativeSelect.limit
+    """
     return (
         database.query(model.Vector.group).distinct().offset(offset).limit(limit).all()
     )
@@ -187,6 +195,9 @@ def get_all_vectors(
     Returns every vector in the Vectors table.
     When importing data (e.g. from CSV or GenBankk), this is necessary for
     adding child-parent relations.
+
+    Set limit=None to fetch _all_ vectors (Warning: this can be a lot of data)
+    https://docs.sqlalchemy.org/en/14/core/selectable.html#sqlalchemy.sql.expression.GenerativeSelect.limit
     """
     return database.query(model.Vector).offset(offset).limit(limit).all()
 

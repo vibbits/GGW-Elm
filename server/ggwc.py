@@ -274,7 +274,7 @@ def import0(csv_path, gbk_path, user):
     vec_list2 = []
 
     with SessionLocal() as db:
-        vec_list2 = crud.get_all_vectors(database=db)
+        vec_list2 = crud.get_all_vectors(database=db, limit=None)
 
     for i, vec in enumerate(vec_list2):
         if vec.level == VectorLevel.LEVEL1:
