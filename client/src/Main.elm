@@ -1,7 +1,8 @@
 module Main exposing (..)
 
 import Accordion
-import Api exposing (Api, dummyApi, initApi)
+import Admin exposing (AdminData)
+import Api exposing (Api, RemoteRequest(..), dummyApi, initApi)
 import Array exposing (Array)
 import Auth
     exposing
@@ -70,6 +71,9 @@ type alias Model =
     , notifications : Notify.Notifications
     , key : Nav.Key
 
+    -- Admin
+    , admin : AdminData
+
     -- Attributes for the vector catalog
     , backboneFilterString : Maybe String
     , level0FilterString : Maybe String
@@ -109,6 +113,17 @@ changePage router url =
             Router (Router.changePage rtr url)
 
 
+adminReceived : Result Http.Error AdminData -> Msg
+adminReceived result =
+    case result of
+        Ok adminData ->
+            Admin adminData
+
+        Err err ->
+            showHttpError err
+                |> WarningNotification "Getting admin data"
+
+
 init : Decode.Value -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
     let
@@ -123,6 +138,9 @@ init flags url key =
                 , authorizeExpect = expectJson GotAuthentication authDecoder
                 , vectorsExpect = expectJson VectorsReceived vectorDecoder
                 , saveExpect = expectJson VectorCreated vectorDecoder_
+                , allUsersExpect = expectJson adminReceived Admin.decoder
+                , allGroupsExpect = expectJson adminReceived Admin.decoder
+                , allConstructsExpect = expectJson adminReceived Admin.decoder
                 }
                 flags
 
@@ -143,6 +161,7 @@ init flags url key =
                 |> Router.withPageView "/new/level0" Router.AddLevel0 addLevel0View
                 |> Router.withPageView "/new/level1" Router.AddLevel1 constructLevel1View
                 |> Router.withPageView "/new/backbone" Router.AddBackbone addBackboneView
+                |> Router.withPageView "/admin" Router.Admin adminView
 
         model : Model
         model =
@@ -153,6 +172,7 @@ init flags url key =
             , auth = Storage.fromJson flags
             , notifications = notifications
             , key = key
+            , admin = Admin.NoData
             , backboneFilterString = Nothing
             , level0FilterString = Nothing
             , level1FilterString = Nothing
@@ -176,6 +196,9 @@ type Msg
     | LinkClicked Browser.UrlRequest
       -- Change client side route
     | SwitchPage Router.Page
+      -- Admin messages
+    | Admin AdminData
+    | ApiRequest RemoteRequest
       -- Vector catalogue Msg
     | BackboneAccordionToggled -- TODO: Unify these 3
     | Level0AccordionToggled
@@ -196,6 +219,7 @@ type Msg
     | VectorsReceived (Result Http.Error (List Vector))
       -- Notifications
     | CloseNotification Int
+    | WarningNotification String String
       -- Constructing Level 1
     | ChangeCurrentLevel1Application Application
     | ChangeCurrentLevel1Bsa1Overhang Bsa1Overhang
@@ -737,6 +761,21 @@ viewLoginForm loginUrls =
                     (Element.text "Login with:")
                     :: List.map (\lgn -> linkButton_ lgn.url lgn.name) loginUrls
             ]
+
+
+adminView : Model -> Element Msg
+adminView model =
+    column
+        [ Element.width fill
+        , Element.height fill
+        ]
+        [ row [ centerX, padding 10, spacing 50 ]
+            [ button_ (Just (ApiRequest AllUsers)) "Users"
+            , button_ (Just (ApiRequest AllGroups)) "Groups"
+            , button_ (Just (ApiRequest AllConstructs)) "Constructs"
+            ]
+        , Admin.view model.admin
+        ]
 
 
 
@@ -1387,6 +1426,11 @@ update msg model =
             , Cmd.none
             )
 
+        WarningNotification title body ->
+            ( { model | notifications = Notify.makeWarning title body model.notifications }
+            , Cmd.none
+            )
+
         VectorsReceived (Ok vectors) ->
             ( { model | vectors = vectors }, Cmd.none )
 
@@ -1409,6 +1453,12 @@ update msg model =
 
         AddLevel1 level1 ->
             ( model, model.api.save model.auth (LevelNVec level1) )
+
+        Admin data ->
+            ( { model | admin = data }, Cmd.none )
+
+        ApiRequest req ->
+            ( model, Api.request model.api model.auth req )
 
 
 

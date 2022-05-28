@@ -11,7 +11,7 @@ SQLAlchemy = "^1.4.26"
 alembic = "^1.7.4"
 python-jose = {version = "^3.3.0", extras = ["cryptography"]}
 httpx = "^0.22.0"
-fastapi = "^0.75.0"
+fastapi = "^0.78.0"
 biopython = "^1.79"
 python-multipart = "^0.0.5"
 
@@ -19,7 +19,7 @@ python-multipart = "^0.0.5"
 pytest = "^7"
 pylint = "^2.11.1"
 black = "^22"
-mypy = "^0.941"
+mypy = "^0.950"
 
 [tool.poetry.scripts]
 ggwc = 'ggwc:cli'

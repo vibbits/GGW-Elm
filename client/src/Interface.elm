@@ -2,6 +2,7 @@ module Interface exposing
     ( addButton
     , buttonLink_
     , button_
+    , columnTitle
     , download_
     , linkButton_
     , navBar
@@ -237,5 +238,19 @@ title t =
         [ heading 1
         , Font.size 50
         , Font.color foregroundPrimary
+        ]
+        (text t)
+
+
+{-| A column title heading
+-}
+columnTitle : String -> Element msg
+columnTitle t =
+    el
+        [ heading 3
+        , Font.size 20
+        , Font.bold
+        , Border.width 1
+        , padding 10
         ]
         (text t)

@@ -166,7 +166,11 @@ class Feature(Base):
     )
 
     def __str__(self) -> str:
-        return f"Feature({self.id=}, {self.type=}, {self.start_pos=}, {self.end_pos=}, {self.strand=}, {self.vector=}, {self.qualifiers=})"
+        return (
+            f"Feature({self.id=}, {self.type=}, {self.start_pos=}, "
+            f"{self.end_pos=}, {self.strand=}, {self.vector=}, "
+            f"{self.qualifiers=})"
+        )
 
 
 class VectorReference(Base):

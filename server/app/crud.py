@@ -1,6 +1,5 @@
 " Provides low-level Create, Read, Update, and Delete functions for API resources. "
 
-from statistics import mode
 from typing import List, Optional
 from datetime import datetime
 
@@ -16,6 +15,15 @@ from app.level import VectorLevel
 def get_user(database: Session, user_id: int) -> Optional[model.User]:
     "Read a user from the database."
     return database.query(model.User).filter(model.User.id == user_id).first()
+
+
+def get_users(database: Session, offset: int = 0, limit: int = 10) -> List[model.User]:
+    """
+    Get all users with pagination.
+    Set limit=None to fetch _all_ users (Warning: this can be a lot of data)
+    https://docs.sqlalchemy.org/en/14/core/selectable.html#sqlalchemy.sql.expression.GenerativeSelect.limit
+    """
+    return database.query(model.User).offset(offset).limit(limit).all()
 
 
 def is_admin(user: model.User) -> bool:
@@ -50,6 +58,17 @@ def create_user(database: Session, user: schemas.UserCreate) -> model.User:
     return new_user
 
 
+def get_groups(database: Session, offset: int = 0, limit: int = 10):
+    """
+    Get all groups with pagination.
+    Set limit=None to fetch _all_ groups (Warning: this can be a lot of data)
+    https://docs.sqlalchemy.org/en/14/core/selectable.html#sqlalchemy.sql.expression.GenerativeSelect.limit
+    """
+    return (
+        database.query(model.Vector.group).distinct().offset(offset).limit(limit).all()
+    )
+
+
 # Auth
 
 
@@ -78,6 +97,7 @@ def get_provider_by_id(
 def add_vector(
     database: Session, vector: schemas.VectorInDB, user: schemas.User
 ) -> Optional[model.Vector]:
+    "Add a vector to the database"
     new_vector = model.Vector(
         location=vector.location,
         name=vector.name,
@@ -168,12 +188,18 @@ def get_vectors_for_user(database: Session, user: schemas.User) -> List[model.Ve
     return database.query(model.Vector).filter(model.Vector.users.any(id=user.id)).all()
 
 
-def get_all_vectors(database: Session) -> List[model.Vector]:
+def get_all_vectors(
+    database: Session, offset: int = 0, limit: int = 10
+) -> List[model.Vector]:
     """
-    Returns every vector in the Vectors table (necessary for adding child-parent relations)
-    Should only be used for importing the Level 1 elements from genbank files and csv!
+    Returns every vector in the Vectors table.
+    When importing data (e.g. from CSV or GenBankk), this is necessary for
+    adding child-parent relations.
+
+    Set limit=None to fetch _all_ vectors (Warning: this can be a lot of data)
+    https://docs.sqlalchemy.org/en/14/core/selectable.html#sqlalchemy.sql.expression.GenerativeSelect.limit
     """
-    return database.query(model.Vector).all()
+    return database.query(model.Vector).offset(offset).limit(limit).all()
 
 
 def get_vector_by_id(database: Session, ids: List[int]) -> List[model.Vector]:
