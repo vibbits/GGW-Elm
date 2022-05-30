@@ -522,18 +522,44 @@ level0Encoder level0 =
           , Encode.string <|
                 Maybe.withDefault "" level0.date
           )
-        , ( "genbank_content"
+        , ( "genbank"
           , Encode.string <|
                 Maybe.withDefault "" level0.genbankContent
           )
         , ( "level"
           , Encode.int 2
           )
+        , ( "annotations"
+          , Encode.list Encode.int []
+          )
+        , ( "references"
+          , Encode.list Encode.int []
+          )
+        , ( "gateway_site"
+          , Encode.string ""
+          )
+        , ( "children"
+          , Encode.list Encode.int []
+          )
+        , ( "experiment"
+          , Encode.string ""
+          )
         ]
 
 
 levelNEncoder : Level1 -> Encode.Value
 levelNEncoder level1 =
+    let
+        getBackboneId : Maybe Backbone -> Int
+        getBackboneId bb =
+            bb
+                |> Maybe.map .id
+                |> Maybe.withDefault initBackbone.id
+
+        getInsertIds : List Level0 -> List Int
+        getInsertIds l0s =
+            List.map .id l0s
+    in
     Encode.object
         [ ( "name", Encode.string level1.name )
         , ( "location", Encode.int level1.location )
@@ -561,6 +587,21 @@ levelNEncoder level1 =
           )
         , ( "inserts", Encode.list (\insert -> level0Encoder insert) level1.inserts )
         , ( "backbone", backboneEncoder (Maybe.withDefault initBackbone level1.backbone) )
+        , ( "annotations"
+          , Encode.list Encode.int []
+          )
+        , ( "references"
+          , Encode.list Encode.int []
+          )
+        , ( "gateway_site"
+          , Encode.string ""
+          )
+        , ( "children"
+          , Encode.list Encode.int (getBackboneId level1.backbone :: getInsertIds level1.inserts)
+          )
+        , ( "experiment"
+          , Encode.string ""
+          )
         ]
 
 
