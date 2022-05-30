@@ -113,7 +113,7 @@ class AllGroups(BaseModel):
 class AllConstructs(BaseModel):
     "Listing of all constructs"
     label: Literal["constructs"]
-    data: List[VectorBase]
+    data: List[VectorBaseAdmin]
 
 
 # Adding data
@@ -197,7 +197,6 @@ class VectorBase(BaseModel):
     is being sent to the client.
     """
 
-    id: int
     location: int
     name: str
     bsa1_overhang: Optional[str]
@@ -210,6 +209,20 @@ class VectorBase(BaseModel):
     notes: Optional[str]
     REase_digest: Optional[str]
     level: VectorLevel
+
+    class Config:
+        """Orm mode configuration"""
+
+        orm_mode = True
+
+
+class VectorBaseAdmin(VectorBase):
+    """
+    This class extends the VectorBase class with the id field.
+    This model is necessary for the admin page on the client side.
+    """
+
+    id: int
 
     class Config:
         """Orm mode configuration"""
