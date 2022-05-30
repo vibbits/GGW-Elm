@@ -74,6 +74,9 @@ urlToPage url =
         "/new/level1" ->
             Just AddLevel1
 
+        "/new/backbone" ->
+            Just AddBackbone
+
         _ ->
             Nothing
 

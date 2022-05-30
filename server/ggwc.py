@@ -5,7 +5,7 @@ updating the database schema, adding an admin user,
 adding an identity provider, etc.
 """
 
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
 import sys
 from pathlib import Path
@@ -15,8 +15,6 @@ import click
 import httpx
 from Bio import SeqIO
 from sqlalchemy.exc import SQLAlchemyError
-
-from app.model import Vector, Annotation, VectorReference, Qualifier, Feature
 
 from app.database import SessionLocal
 from app.level import VectorLevel
@@ -133,14 +131,14 @@ def extract_loc(loc: str) -> Tuple[Optional[VectorLevel], int]:
     return (vector_level(split[1]), int(split[2]))
 
 
-@cli.command()
+@cli.command(name="import")
 @click.argument("csv_path")
 @click.argument("gbk_path")
 @click.argument("user")
-def import0(csv_path, gbk_path, user):
+def import_data(csv_path, gbk_path, user):
     """
     Extracts the vector information from a csv file and seperate genbank files
-    and adds them to an sqlite database.
+    and adds them to the database.
     """
     with SessionLocal() as database:
         # Lookup user
@@ -154,7 +152,7 @@ def import0(csv_path, gbk_path, user):
     # read the cvs-file
     csv_content = []
 
-    with open(csv_path) as csv_file:
+    with open(csv_path, encoding="utf8") as csv_file:
         csv_reader = csv.DictReader(csv_file)
         for item in csv_reader:
             csv_content.append(item)
@@ -164,54 +162,26 @@ def import0(csv_path, gbk_path, user):
         (i, entry["Name Genbank file"]) for i, entry in enumerate(csv_content)
     ]
 
-    vec_list = []
-    child_ids_list = []
+    vecs_to_add: List[Tuple[schemas.VectorIn, schemas.GenbankData]] = []
 
     for i, gbk_file in files_to_read:
         # Create vector and fill in data from csv file
-        vec = Vector()
         loc = extract_loc(csv_content[i]["MP-G- number"])
-        vec.location = loc[1]
-        vec.name = csv_content[i]["Plasmid name"]
-        vec.bacterial_strain = csv_content[i]["Bacterial strain"]
-        vec.responsible = csv_content[i]["Responsible"]
-        vec.group = csv_content[i]["Group"]
-        vec.level = loc[0]
-        vec.bsa1_overhang = csv_content[i]["BsaI overhang"]
-        vec.selection = csv_content[i]["Selection"]
-        vec.cloning_technique = csv_content[i]["DNA synthesis or PCR?"]
-        vec.bsmb1_overhang = csv_content[i]["BsmBI overhang"]
-        vec.is_BsmB1_free = csv_content[i]["BsmBI free? (Yes/No)"]
-        vec.notes = csv_content[i]["Notes"]
-        vec.REase_digest = csv_content[i]["REase digest"]
-        try:
-            vec.date = datetime.strptime(csv_content[i]["Date (extra)"], "%d/%m/%Y")
-        except ValueError as err:
-            print(f"While extracing {gbk_file}, error parsing date: {err}")
-            vec.date = None
-        vec.gateway_site = csv_content[i]["Gateway site"]
-        vec.vector_type = csv_content[i]["Vector type (MP-G2-)"]
-        vec.children = []
-
-        child_ids_list.append(
-            [
-                int(id) if id != "" else None
-                for id in csv_content[i]["Children ID"]
-                .replace("[", "")
-                .replace("]", "")
-                .split(",")
-            ]
-        )
-
-        # Adding the admin-user 'ggw' list of users
-        vec.users = [db_user]
-
+        date = datetime.strftime(datetime.now(), "%Y-%m-%d")
+        if csv_content[i]["Date (extra)"] != "":
+            date = csv_content[i]["Date (extra)"]
+        children = [
+            int(id)
+            for id in csv_content[i]["Children ID"]
+            .replace("[", "")
+            .replace("]", "")
+            .split(",")
+            if id != ""
+        ]
         # Reading the sequence from the genbank file
         gbk_file_path = Path(gbk_path) / Path(gbk_file)
-        vec.genbank = gbk_file_path.read_text()  # Raw Genbank content
+        genbank = gbk_file_path.read_text()  # Raw Genbank content
         record = SeqIO.read(gbk_file_path, "genbank")
-        vec.sequence = str(record.seq)
-
         # Getting the annotations
         annotations = []
         references = []
@@ -223,26 +193,45 @@ def import0(csv_path, gbk_path, user):
             if key == "references":
                 for reference in record.annotations["references"]:
                     references.append(
-                        VectorReference(
+                        schemas.VectorReference(
                             authors=reference.authors, title=reference.title
                         )
                     )
             else:
-                annotations.append(Annotation(key=key, value=str(value)))
+                annotations.append(schemas.Annotation(key=key, value=str(value)))
 
-        vec.annotations = annotations
-        vec.references = references
+        vec = schemas.VectorIn(
+            location=loc[1],
+            name=csv_content[i]["Plasmid name"],
+            bacterial_strain=csv_content[i]["Bacterial strain"],
+            responsible=csv_content[i]["Responsible"],
+            group=csv_content[i]["Group"],
+            level=loc[0],
+            bsa1_overhang=csv_content[i]["BsaI overhang"],
+            selection=csv_content[i]["Selection"],
+            cloning_technique=csv_content[i]["DNA synthesis or PCR?"],
+            bsmb1_overhang=csv_content[i]["BsmBI overhang"],
+            is_BsmB1_free=csv_content[i]["BsmBI free? (Yes/No)"],
+            notes=csv_content[i]["Notes"],
+            REase_digest=csv_content[i]["REase digest"],
+            date=date,
+            gateway_site=csv_content[i]["Gateway site"],
+            experiment=csv_content[i]["Vector type (MP-G2-)"],
+            children=children,
+            genbank=genbank,
+            annotations=annotations,
+            references=references,
+        )
 
         # Getting the features:
         features = []
         for feature in record.features:
             # Getting the qualifiers of each feature
-
             new_qualifiers = []
             for key, value in feature.qualifiers.items():
-                new_qualifiers.append(Qualifier(key=key, value=str(value)))
+                new_qualifiers.append(schemas.Qualifier(key=key, value=str(value)))
             features.append(
-                Feature(
+                schemas.Feature(
                     type=feature.type,
                     qualifiers=new_qualifiers,
                     start_pos=feature.location.nofuzzy_start,
@@ -251,39 +240,24 @@ def import0(csv_path, gbk_path, user):
                 )
             )
 
-        vec.features = features
+        genbank = schemas.GenbankData(
+            sequence=str(record.seq),
+            annotations=annotations,
+            features=features,
+            references=references,
+        )
 
-        # Append to vec_list
-        vec_list.append(vec)
+        vecs_to_add.append((vec, genbank))
 
     with SessionLocal() as database:
-        for vec in vec_list:
-            # Removing child items
-            vec.children = []
-
-            # Convert to dict
-            new_vec = vars(vec)
-            # Make a VectorInDB object (also has the sequence!)
-            vec_in_db = schemas.VectorInDB(**new_vec)
+        for (vec, genbank) in vecs_to_add:
             if (
-                crud.add_vector(database=database, vector=vec_in_db, user=db_user)
+                crud.add_vector(
+                    database=database, vector=vec, genbank=genbank, user=db_user
+                )
                 is not None
             ):
                 click.echo(f"Vector '{vec.name}' added.")
-
-    vec_list2 = []
-
-    with SessionLocal() as db:
-        vec_list2 = crud.get_all_vectors(database=db, limit=None)
-
-    for i, vec in enumerate(vec_list2):
-        if vec.level == VectorLevel.LEVEL1:
-            with SessionLocal() as database:
-                for child_id in child_ids_list[i]:
-
-                    crud.add_vector_hierarchy(
-                        database=database, child_id=child_id, parent_id=vec.id
-                    )
 
 
 if __name__ == "__main__":

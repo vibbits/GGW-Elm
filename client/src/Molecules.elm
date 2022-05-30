@@ -310,7 +310,48 @@ backboneDecoder =
 
 level1Decoder : Decode.Decoder Level1
 level1Decoder =
-    Decode.succeed Level1
+    let
+        mkLevel1 : Int -> String -> Int -> Maybe String -> Maybe Bsmb1Overhang -> String -> String -> Maybe String -> Maybe String -> Int -> Maybe String -> List Vector -> Maybe String -> Level1
+        mkLevel1 id name loc bs bsmb1 resp grp sel nts len rd cs dt =
+            Level1
+                id
+                name
+                loc
+                bs
+                bsmb1
+                resp
+                grp
+                sel
+                nts
+                len
+                rd
+                (cs
+                    |> List.filterMap
+                        (\v ->
+                            case v of
+                                Level0Vec vec ->
+                                    Just vec
+
+                                _ ->
+                                    Nothing
+                        )
+                )
+                (cs
+                    |> List.filterMap
+                        (\v ->
+                            case v of
+                                BackboneVec vec ->
+                                    Just vec
+
+                                _ ->
+                                    Nothing
+                        )
+                    |> List.head
+                )
+                dt
+                Nothing
+    in
+    Decode.succeed mkLevel1
         |> JDP.required "id" Decode.int
         |> JDP.required "name" Decode.string
         |> JDP.required "location" Decode.int
@@ -325,11 +366,9 @@ level1Decoder =
         |> JDP.optional "selection" (Decode.maybe Decode.string) Nothing
         |> JDP.optional "notes" (Decode.maybe Decode.string) Nothing
         |> JDP.required "sequence_length" Decode.int
-        |> JDP.optional "reaseDigest" (Decode.maybe Decode.string) Nothing
-        |> JDP.required "inserts_out" (Decode.list level0Decoder)
-        |> JDP.optional "backbone_out" (Decode.maybe backboneDecoder) Nothing
+        |> JDP.optional "REase_digest" (Decode.maybe Decode.string) Nothing
+        |> JDP.required "children" vectorDecoder
         |> JDP.optional "date" (Decode.maybe Decode.string) Nothing
-        |> JDP.hardcoded Nothing
 
 
 vectorDecoder_ : Decode.Decoder Vector
@@ -416,16 +455,29 @@ backboneEncoder backbone =
           , Encode.string <|
                 Maybe.withDefault "" backbone.date
           )
-        , ( "vector_type"
+        , ( "experiment"
           , Encode.string <|
                 Maybe.withDefault "" backbone.vectorType
+            -- TODO: change to "experiment"
           )
-        , ( "genbank_content"
+        , ( "genbank"
           , Encode.string <|
                 Maybe.withDefault "" backbone.genbankContent
           )
         , ( "level"
           , Encode.int 1
+          )
+        , ( "annotations"
+          , Encode.list Encode.int []
+          )
+        , ( "references"
+          , Encode.list Encode.int []
+          )
+        , ( "gateway_site"
+          , Encode.string ""
+          )
+        , ( "children"
+          , Encode.list Encode.int []
           )
         ]
 

@@ -4,7 +4,7 @@ from Bio import SeqIO
 
 from app.level import VectorLevel
 from app.schemas import (
-    VectorFromGenbank,
+    GenbankData,
     Annotation,
     Feature,
     VectorReference,
@@ -57,7 +57,7 @@ def filter_features(start: int, end: int, level: VectorLevel) -> Callable[[Any],
 
 
 # Function that reads in a genbank file and converts it into a json
-def convert_gbk_to_vector(genbank_file, level: VectorLevel) -> VectorFromGenbank:
+def convert_gbk_to_vector(genbank_file, level: VectorLevel) -> GenbankData:
     # Reading the genbank file
     record = SeqIO.read(genbank_file, "genbank")
 
@@ -94,9 +94,9 @@ def convert_gbk_to_vector(genbank_file, level: VectorLevel) -> VectorFromGenbank
             )
         )
 
-    assert type(sequence) == str
+    assert isinstance(sequence, str)
 
-    return VectorFromGenbank(
+    return GenbankData(
         sequence=sequence,
         annotations=annotations,
         features=features,

@@ -58,7 +58,7 @@ def create_user(database: Session, user: schemas.UserCreate) -> model.User:
     return new_user
 
 
-def get_groups(database: Session, offset: int = 0, limit: int = 10):
+def get_groups(database: Session, offset: int = 0, limit: int = 10) -> List[str]:
     """
     Get all groups with pagination.
     Set limit=None to fetch _all_ groups (Warning: this can be a lot of data)
@@ -95,7 +95,10 @@ def get_provider_by_id(
 
 
 def add_vector(
-    database: Session, vector: schemas.VectorInDB, user: schemas.User
+    database: Session,
+    vector: schemas.VectorIn,
+    genbank: schemas.GenbankData,
+    user: schemas.User,
 ) -> Optional[model.Vector]:
     "Add a vector to the database"
     new_vector = model.Vector(
@@ -113,9 +116,9 @@ def add_vector(
         level=vector.level,
         bsmb1_overhang=vector.bsmb1_overhang,
         gateway_site=vector.gateway_site,
-        vector_type=vector.vector_type,
-        date=vector.date,
-        sequence=vector.sequence,
+        experiment=vector.experiment,
+        date=datetime.strptime(vector.date, "%Y-%m-%d"),
+        sequence=genbank.sequence,
         genbank=vector.genbank,
     )
     try:
@@ -130,12 +133,12 @@ def add_vector(
         database.add_all(
             [
                 model.Annotation(key=ann.key, value=ann.value, vector=new_vector.id)
-                for ann in vector.annotations
+                for ann in genbank.annotations
             ]
         )
 
         # Adding the features and qualifiers to the database
-        for feat in vector.features:
+        for feat in genbank.features:
             new_feature = model.Feature(
                 type=feat.type,
                 start_pos=feat.start_pos,
@@ -163,7 +166,14 @@ def add_vector(
                     title=ref.title,
                     vector=new_vector.id,
                 )
-                for ref in vector.references
+                for ref in genbank.references
+            ]
+        )
+
+        database.add_all(
+            [
+                model.VectorHierarchy(child=child, parent=new_vector.id)
+                for child in vector.children
             ]
         )
 
@@ -176,11 +186,11 @@ def add_vector(
         return new_vector
 
 
-def add_vector_hierarchy(database: Session, child_id: int, parent_id: int):
-    "Provides the relationship between children and parents"
-    database.add(model.VectorHierarchy(child=child_id, parent=parent_id))
-    database.flush()
-    database.commit()
+# def add_vector_hierarchy(database: Session, child_id: int, parent_id: int):
+#    "Provides the relationship between children and parents"
+#    database.add(model.VectorHierarchy(child=child_id, parent=parent_id))
+#    database.flush()
+#    database.commit()
 
 
 def get_vectors_for_user(database: Session, user: schemas.User) -> List[model.Vector]:
@@ -202,11 +212,11 @@ def get_all_vectors(
     return database.query(model.Vector).offset(offset).limit(limit).all()
 
 
-def get_vector_by_id(database: Session, ids: List[int]) -> List[model.Vector]:
+def get_vector_by_id(database: Session, id: int) -> Optional[model.Vector]:
     """
-    Retuns a list of vectors based on query on the vector ID's.
+    Retuns a vector based on the query vector ID.
     """
-    return database.query(model.Vector).filter(id in ids).all()
+    return database.query(model.Vector).filter(model.Vector.id == id).one_or_none()
 
 
 def get_vector_by_name_level_location(
@@ -234,6 +244,9 @@ def get_vector_by_name_level_location(
 def get_annotations_from_vector(
     database: Session, vector_id: int
 ) -> List[model.Annotation]:
+    """
+    Returns Annotations from a given vector ID.
+    """
     return (
         database.query(model.Annotation)
         .filter(model.Annotation.vector == vector_id)
@@ -244,6 +257,9 @@ def get_annotations_from_vector(
 def get_references_from_vector(
     database: Session, vector_id: int
 ) -> List[model.VectorReference]:
+    """
+    Returns the references from a given vector ID.
+    """
     return (
         database.query(model.VectorReference)
         .filter(model.VectorReference.vector == vector_id)
@@ -252,12 +268,19 @@ def get_references_from_vector(
 
 
 def get_features_from_vector(database: Session, vector_id: int) -> List[model.Feature]:
+    """
+    Returns the features from a given vector ID.
+    """
     return database.query(model.Feature).filter(model.Feature.vector == vector_id).all()
 
 
 def get_qualifiers_from_feature(
     database: Session, feature_id: int
 ) -> List[model.Qualifier]:
+    """
+    Returns the qualifiers from a given vector ID.
+    """
+
     return (
         database.query(model.Qualifier)
         .filter(model.Qualifier.feature == feature_id)
