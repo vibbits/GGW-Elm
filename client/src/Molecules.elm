@@ -23,6 +23,7 @@ import Dict exposing (Dict)
 import Json.Decode as Decode
 import Json.Decode.Pipeline as JDP
 import Json.Encode as Encode
+import Maybe.Extra exposing (toList)
 
 
 {-| All possible applications for a Level 1 construct
@@ -538,17 +539,6 @@ level0Encoder level0 =
 
 levelNEncoder : Level1 -> Encode.Value
 levelNEncoder level1 =
-    let
-        getBackboneId : Maybe Backbone -> Int
-        getBackboneId bb =
-            bb
-                |> Maybe.map .id
-                |> Maybe.withDefault initBackbone.id
-
-        getInsertIds : List Level0 -> List Int
-        getInsertIds l0s =
-            List.map .id l0s
-    in
     Encode.object
         [ ( "name", Encode.string level1.name )
         , ( "location", Encode.int level1.location )
@@ -586,7 +576,12 @@ levelNEncoder level1 =
           , Encode.string ""
           )
         , ( "children"
-          , Encode.list Encode.int (getBackboneId level1.backbone :: getInsertIds level1.inserts)
+          , Encode.list Encode.int
+                ((toList level1.backbone
+                    |> List.map .id
+                 )
+                    ++ List.map .id level1.inserts
+                )
           )
         , ( "experiment"
           , Encode.string ""
