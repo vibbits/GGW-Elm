@@ -311,47 +311,34 @@ backboneDecoder =
 level1Decoder : Decode.Decoder Level1
 level1Decoder =
     let
-        mkLevel1 : Int -> String -> Int -> Maybe String -> Maybe Bsmb1Overhang -> String -> String -> Maybe String -> Maybe String -> Int -> Maybe String -> List Vector -> Maybe String -> Level1
-        mkLevel1 id name loc bs bsmb1 resp grp sel nts len rd cs dt =
-            Level1
-                id
-                name
-                loc
-                bs
-                bsmb1
-                resp
-                grp
-                sel
-                nts
-                len
-                rd
-                (cs
-                    |> List.filterMap
-                        (\v ->
-                            case v of
-                                Level0Vec vec ->
-                                    Just vec
+        filterLevel0 : List Vector -> List Level0
+        filterLevel0 vs =
+            vs
+                |> List.filterMap
+                    (\v ->
+                        case v of
+                            Level0Vec vec ->
+                                Just vec
 
-                                _ ->
-                                    Nothing
-                        )
-                )
-                (cs
-                    |> List.filterMap
-                        (\v ->
-                            case v of
-                                BackboneVec vec ->
-                                    Just vec
+                            _ ->
+                                Nothing
+                    )
 
-                                _ ->
-                                    Nothing
-                        )
-                    |> List.head
-                )
-                dt
-                Nothing
+        filterBackbone : List Vector -> Maybe Backbone
+        filterBackbone vs =
+            vs
+                |> List.filterMap
+                    (\v ->
+                        case v of
+                            BackboneVec vec ->
+                                Just vec
+
+                            _ ->
+                                Nothing
+                    )
+                |> List.head
     in
-    Decode.succeed mkLevel1
+    Decode.succeed Level1
         |> JDP.required "id" Decode.int
         |> JDP.required "name" Decode.string
         |> JDP.required "location" Decode.int
@@ -367,8 +354,10 @@ level1Decoder =
         |> JDP.optional "notes" (Decode.maybe Decode.string) Nothing
         |> JDP.required "sequence_length" Decode.int
         |> JDP.optional "REase_digest" (Decode.maybe Decode.string) Nothing
-        |> JDP.required "children" vectorDecoder
+        |> JDP.required "children" (vectorDecoder |> Decode.map filterLevel0)
+        |> JDP.required "children" (vectorDecoder |> Decode.map filterBackbone)
         |> JDP.optional "date" (Decode.maybe Decode.string) Nothing
+        |> JDP.hardcoded Nothing
 
 
 vectorDecoder_ : Decode.Decoder Vector
