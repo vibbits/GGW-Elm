@@ -167,7 +167,7 @@ mkAllConstructs url expect auth =
                 authenticatedGet usr.token (url ++ "/admin/constructs") expect
 
             else
-                authenticatedGet usr.token (url ++ "/vectors/") expect
+                Cmd.none
 
         _ ->
             Cmd.none
