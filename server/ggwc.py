@@ -19,6 +19,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.database import SessionLocal
 from app.level import VectorLevel
 from app import model, crud, oidc, schemas
+from app.genbank import convert_gbk_to_vector
 
 
 @click.group()
@@ -178,27 +179,58 @@ def import_data(csv_path, gbk_path, user):
             .split(",")
             if id != ""
         ]
-        # Reading the sequence from the genbank file
+        # Complete GenBank file name
         gbk_file_path = Path(gbk_path) / Path(gbk_file)
-        genbank = gbk_file_path.read_text()  # Raw Genbank content
-        record = SeqIO.read(gbk_file_path, "genbank")
-        # Getting the annotations
-        annotations = []
-        references = []
-        for key, value in record.annotations.items():
-            # All annotations are strings, integers or list of them
-            # but references are a special case.
-            # References are objects that can be deconstructed to
-            # an author and a title, both strings.
-            if key == "references":
-                for reference in record.annotations["references"]:
-                    references.append(
-                        schemas.VectorReference(
-                            authors=reference.authors, title=reference.title
+
+        # Raw Genbank content
+        genbank = gbk_file_path.read_text()
+
+        if loc[0] in [VectorLevel.LEVEL0, VectorLevel.BACKBONE]:
+            genbank_data = convert_gbk_to_vector(gbk_file_path, loc[0])
+        else:
+            # Convert raw data to GenBank Record
+            record = SeqIO.read(gbk_file_path, "genbank")
+            # Getting the annotations
+            annotations = []
+            references = []
+            for key, value in record.annotations.items():
+                # All annotations are strings, integers or list of them
+                # but references are a special case.
+                # References are objects that can be deconstructed to
+                # an author and a title, both strings.
+                if key == "references":
+                    for reference in record.annotations["references"]:
+                        references.append(
+                            schemas.VectorReference(
+                                authors=reference.authors, title=reference.title
+                            )
                         )
+                else:
+                    annotations.append(schemas.Annotation(key=key, value=str(value)))
+
+            # Getting the features:
+            features = []
+            for feature in record.features:
+                # Getting the qualifiers of each feature
+                new_qualifiers = []
+                for key, value in feature.qualifiers.items():
+                    new_qualifiers.append(schemas.Qualifier(key=key, value=str(value)))
+                features.append(
+                    schemas.Feature(
+                        type=feature.type,
+                        qualifiers=new_qualifiers,
+                        start_pos=feature.location.nofuzzy_start,
+                        end_pos=feature.location.nofuzzy_end,
+                        strand=feature.location.strand,
                     )
-            else:
-                annotations.append(schemas.Annotation(key=key, value=str(value)))
+                )
+
+            genbank_data = schemas.GenbankData(
+                sequence=str(record.seq),
+                annotations=annotations,
+                features=features,
+                references=references,
+            )
 
         vec = schemas.VectorIn(
             location=loc[1],
@@ -219,35 +251,11 @@ def import_data(csv_path, gbk_path, user):
             experiment=csv_content[i]["Vector type (MP-G2-)"],
             children=children,
             genbank=genbank,
-            annotations=annotations,
-            references=references,
+            annotations=genbank_data.annotations,
+            references=genbank_data.references,
         )
 
-        # Getting the features:
-        features = []
-        for feature in record.features:
-            # Getting the qualifiers of each feature
-            new_qualifiers = []
-            for key, value in feature.qualifiers.items():
-                new_qualifiers.append(schemas.Qualifier(key=key, value=str(value)))
-            features.append(
-                schemas.Feature(
-                    type=feature.type,
-                    qualifiers=new_qualifiers,
-                    start_pos=feature.location.nofuzzy_start,
-                    end_pos=feature.location.nofuzzy_end,
-                    strand=feature.location.strand,
-                )
-            )
-
-        genbank = schemas.GenbankData(
-            sequence=str(record.seq),
-            annotations=annotations,
-            features=features,
-            references=references,
-        )
-
-        vecs_to_add.append((vec, genbank))
+        vecs_to_add.append((vec, genbank_data))
 
     with SessionLocal() as database:
         for (vec, genbank) in vecs_to_add:
