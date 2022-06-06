@@ -1,10 +1,13 @@
 from typing import Tuple, Callable, Any
 import datetime
-import os
-import tempfile
+import io
+
 from Bio import SeqIO
 from Bio.Seq import Seq
 import Bio.SeqFeature
+from fastapi import Depends
+from sqlalchemy.orm import Session
+
 
 from app.level import VectorLevel
 from app.schemas import (
@@ -17,10 +20,6 @@ from app.schemas import (
 
 from app import model, deps
 from app.level import VectorLevel
-from typing import List
-
-from fastapi import Depends
-from sqlalchemy.orm import Session
 
 
 def digest_sequence(level: VectorLevel, sequence: str) -> Tuple[int, int, str]:
@@ -49,17 +48,19 @@ def digest_sequence(level: VectorLevel, sequence: str) -> Tuple[int, int, str]:
     return (pos_bsa1_left, pos_bsa1_right, str(digested_sequence))
 
 
-def filter_features(start: int, end: int, level: VectorLevel) -> Callable[[Any], bool]:
+def filter_features(left: int, right: int, level: VectorLevel) -> Callable[[Any], bool]:
     def my_filter(feature: Any) -> bool:
         if level == VectorLevel.BACKBONE:
-            return not (
-                feature.location.nofuzzy_start > start
-                and feature.location.nofuzzy_end < end
+            start = min(left, right)
+            end = max(left, right)
+            return (
+                feature.location.nofuzzy_start > end
+                or feature.location.nofuzzy_end < start
             )
         elif level == VectorLevel.LEVEL0:
-            return not (
-                feature.location.nofuzzy_start > end
-                and feature.location.nofuzzy_end < start
+            return (
+                feature.location.nofuzzy_start >= left
+                and feature.location.nofuzzy_end <= right
             )
         else:
             return False
@@ -67,8 +68,50 @@ def filter_features(start: int, end: int, level: VectorLevel) -> Callable[[Any],
     return my_filter
 
 
-# Function that reads in a genbank file and converts it into a GenBankData object
+def reposition_features(
+    bsa_left: int,
+    bsa_right: int,
+    sequence_length: int,
+    level: VectorLevel,
+    feature: Feature,
+) -> Feature:
+    """
+    Function that repositions the features after performing a BsaI digest.
+    """
+    new_feature_start_pos = 0
+    new_feature_end_pos = 0
+
+    start = min(bsa_left, bsa_right)
+    end = max(bsa_left, bsa_right)
+
+    if level == VectorLevel.LEVEL0:
+        new_feature_start_pos = feature.start_pos - start
+        new_feature_end_pos = feature.end_pos - start
+    elif level == VectorLevel.BACKBONE:
+        if feature.start_pos >= end:
+            new_feature_start_pos = feature.start_pos - end
+            new_feature_end_pos = feature.end_pos - end
+        else:
+            new_feature_start_pos = feature.start_pos + (sequence_length - end)
+            new_feature_end_pos = feature.end_pos + (sequence_length - end)
+    else:
+        raise ValueError(
+            f"Error in adjusting feature positions. Incorrect VectorLevel: '{level}'"
+        )
+
+    return Feature(
+        type=feature.type,
+        qualifiers=feature.qualifiers,
+        start_pos=new_feature_start_pos,
+        end_pos=new_feature_end_pos,
+        strand=feature.strand,
+    )
+
+
 def convert_gbk_to_vector(genbank_file, level: VectorLevel) -> GenbankData:
+    """
+    Function that reads in a genbank file and converts it into a GenBankData object.
+    """
     # Reading the genbank file
     record = SeqIO.read(genbank_file, "genbank")
 
@@ -89,19 +132,29 @@ def convert_gbk_to_vector(genbank_file, level: VectorLevel) -> GenbankData:
             annotations.append(Annotation(key=key, value=str(val)))
 
     # Getting the features:
+    # print(f"(Start, end, level) = {(start, end, level)}")
     features = []
     for feature in filter(filter_features(start, end, level), record.features):
         new_qualifiers = [
             Qualifier(key=key, value=str(value))
             for key, value in feature.qualifiers.items()
         ]
+        # print(
+        #     f"No fuzzy start:{feature.location.nofuzzy_start}\tNo fuzzy end:{feature.location.nofuzzy_end}"
+        # )
         features.append(
-            Feature(
-                type=feature.type,
-                qualifiers=new_qualifiers,
-                start_pos=feature.location.nofuzzy_start,
-                end_pos=feature.location.nofuzzy_end,
-                strand=feature.location.strand,
+            reposition_features(
+                bsa_left=start,
+                bsa_right=end,
+                sequence_length=len(sequence),
+                level=level,
+                feature=Feature(
+                    type=feature.type,
+                    qualifiers=new_qualifiers,
+                    start_pos=feature.location.nofuzzy_start,
+                    end_pos=feature.location.nofuzzy_end,
+                    strand=feature.location.strand,
+                ),
             )
         )
 
@@ -115,11 +168,13 @@ def convert_gbk_to_vector(genbank_file, level: VectorLevel) -> GenbankData:
     )
 
 
-# Converts a model.Vector to a Genbank output
-def convert_LevelN_to_genbank(
-    vector: model.Vector, database: Session = Depends(deps.get_db)
-) -> str:
-    vector_record = SeqIO.SeqRecord(seq=Seq(vector.sequence))
+def serialize_to_genbank(vector: model.Vector) -> str:
+    """
+    Converts a model.Vector to a Genbank output.
+    """
+    vector_record = SeqIO.SeqRecord(
+        seq=Seq(vector.sequence), annotations={"molecule_type": "circular dsDNA"}
+    )
 
     # General construct information
     vector_record.name = (
@@ -143,7 +198,6 @@ def convert_LevelN_to_genbank(
     vector_record.organism = (
         "synthetic DNA construct"  # To ask: Should this be bacterial_strain?
     )
-    # To ask: molecule_type == residue_type?
     # To ask: sequence_version == accesion version?
     # The source of material where the sequence came from.
     vector_record.source = []
@@ -162,6 +216,10 @@ def convert_LevelN_to_genbank(
     for vector_feature in vector.features:
         feature_qualifiers = vector_feature.qualifiers
 
+        print(
+            f"Feature id {vector_feature.id} location (start:{vector_feature.start_pos}, end:{vector_feature.end_pos})"
+        )
+
         feat = Bio.SeqFeature.SeqFeature(
             type=vector_feature.type,
             location=Bio.SeqFeature.FeatureLocation(
@@ -179,18 +237,10 @@ def convert_LevelN_to_genbank(
 
     vector_record.features = feature_list
 
-    # Writing record content to a temporary file
-    with tempfile.NamedTemporaryFile(delete=False, mode="w+", encoding="utf-8") as f:
-        SeqIO.write(vector_record, f.name, "genbank")
-        f.seek(0)
-        lines = f.readlines()
-
-    # Manually clean-up of the temporary file
-    os.remove(f.name)
-
-    content = "".join(lines)
-    print(content)
-    return content
+    # Writing record content to an in-memory file and returning its content.
+    with io.StringIO() as outf:
+        SeqIO.write(vector_record, outf, "genbank")
+        return outf.getvalue()
 
 
 class mod_Reference(Bio.SeqFeature.Reference):

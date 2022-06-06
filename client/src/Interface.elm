@@ -3,7 +3,7 @@ module Interface exposing
     , buttonLink_
     , button_
     , columnTitle
-    , download_
+    , foregroundPrimary
     , linkButton_
     , navBar
     , option_
@@ -18,7 +18,6 @@ import Element
         , centerX
         , centerY
         , column
-        , downloadAs
         , el
         , fill
         , height
@@ -97,29 +96,6 @@ button_ msg label =
         ]
         { onPress = msg
         , label = text label
-        }
-
-
-{-| A download with a simple message
--}
-download_ : String -> String -> String -> Element msg
-download_ url filename label =
-    downloadAs
-        [ padding 10
-        , Border.solid
-        , Border.color foregroundPrimary
-        , Border.width 3
-        , Border.rounded 6
-        , Background.color backgroundPrimary
-        , Font.color foregroundPrimary
-        , mouseOver
-            [ Border.color foregroundSecondary
-            , Font.color foregroundSecondary
-            ]
-        ]
-        { url = url
-        , label = text label
-        , filename = filename
         }
 
 

@@ -33,6 +33,7 @@ import Interface
         ( addButton
         , buttonLink_
         , button_
+        , foregroundPrimary
         , linkButton_
         , navBar
         , option_
@@ -67,7 +68,6 @@ type alias Model =
     , api : Api Msg
     , filterOverhang : Bsa1Overhang -- Used for filtering the overhangs depending on the application
     , currLevel1App : Application -- Used for filtering the tables on overhang
-    , level1IsSaved : Bool
     , auth : Auth
     , notifications : Notify.Notifications
     , key : Nav.Key
@@ -114,8 +114,8 @@ changePage router url =
             Router (Router.changePage rtr url)
 
 
-getRouterPage : Router -> Page
-getRouterPage router =
+routerPage : Router -> Page
+routerPage router =
     case router of
         Router rtr ->
             rtr.page
@@ -149,6 +149,7 @@ init flags url key =
                 , allUsersExpect = expectJson adminReceived Admin.decoder
                 , allGroupsExpect = expectJson adminReceived Admin.decoder
                 , allConstructsExpect = expectJson adminReceived Admin.decoder
+                , genbankExpect = Http.expectString GenbankCreated
                 }
                 flags
 
@@ -177,7 +178,6 @@ init flags url key =
             , api = Result.withDefault dummyApi api
             , currLevel1App = Standard
             , filterOverhang = A__B
-            , level1IsSaved = False
             , auth = Storage.fromJson flags
             , notifications = notifications
             , key = key
@@ -272,85 +272,94 @@ view model =
 catalogueView : Model -> Element Msg
 catalogueView model =
     column
-        [ Element.width Element.fill
-        , Element.height Element.fill
-        , spacing 25
+        [ spacing 25
         , padding 50
-        , centerX
         ]
         [ title "Vector Catalog"
         , row [ spacing 20 ]
             [ button_ (Just ToggleAll) "Toggle all"
             ]
-        , Accordion.accordion
-            (Accordion.head
-                [ EE.onClick BackboneAccordionToggled
-                , padding 25
-                , Border.solid
-                , Border.rounded 6
-                ]
-                [ Element.text "Backbones"
-                ]
-            )
-            (Accordion.body [ padding 25 ]
-                [ Input.text []
-                    { onChange = FilterBackboneTable
-                    , text = Maybe.withDefault "" model.backboneFilterString
-                    , label = Input.labelLeft [] <| Element.text "Filter:"
-                    , placeholder = Nothing
-                    }
-                , backboneTable model
-                , Element.row
-                    [ centerX, spacing 50 ]
-                    [ addButton (SwitchPage Router.AddBackbonePage) ]
-                ]
-            )
-            model.backboneAccordionStatus
-        , Accordion.accordion
-            (Accordion.head
-                [ EE.onClick Level0AccordionToggled
-                , padding 25
-                , Border.solid
-                , Border.rounded 6
-                , alignLeft
-                ]
-                [ Element.text "Level 0"
-                ]
-            )
-            (Accordion.body [ padding 25 ]
-                [ Input.text []
-                    { onChange = FilterLevel0Table
-                    , text = Maybe.withDefault "" model.level0FilterString
-                    , label = Input.labelLeft [] <| Element.text "Filter:"
-                    , placeholder = Nothing
-                    }
-                , overhangRadioRow model
-                , level0Table model
-                , Element.row [ centerX, spacing 50 ] [ addButton (SwitchPage Router.AddLevel0Page) ]
-                ]
-            )
-            model.level0AccordionStatus
-        , Accordion.accordion
-            (Accordion.head
-                [ EE.onClick Level1AccordionToggled
-                , padding 25
-                , Border.solid
-                , Border.rounded 6
-                ]
-                [ Element.text "Level 1"
-                ]
-            )
-            (Accordion.body [ padding 25 ]
-                [ Input.text []
-                    { onChange = FilterLevel1Table
-                    , text = Maybe.withDefault "" model.level1FilterString
-                    , label = Input.labelLeft [] <| Element.text "Filter:"
-                    , placeholder = Nothing
-                    }
-                , level1Table model
-                ]
-            )
-            model.level1AccordionStatus
+        , row
+            [ Border.color foregroundPrimary
+            , Border.solid
+            , Border.width 2
+            , Element.width Element.fill
+            ]
+            [ Accordion.accordion
+                (Accordion.head
+                    [ EE.onClick BackboneAccordionToggled
+                    ]
+                    [ Element.text "Backbones"
+                    ]
+                )
+                (Accordion.body []
+                    [ Input.text []
+                        { onChange = FilterBackboneTable
+                        , text = Maybe.withDefault "" model.backboneFilterString
+                        , label = Input.labelLeft [] <| Element.text "Filter:"
+                        , placeholder = Nothing
+                        }
+                    , backboneTable model
+                    , Element.row
+                        [ centerX, spacing 50 ]
+                        [ addButton (SwitchPage Router.AddBackbonePage) ]
+                    ]
+                )
+                model.backboneAccordionStatus
+            ]
+        , row
+            [ Border.color foregroundPrimary
+            , Border.solid
+            , Border.width 2
+            , Element.width Element.fill
+            ]
+            [ Accordion.accordion
+                (Accordion.head
+                    [ EE.onClick Level0AccordionToggled
+                    ]
+                    [ Element.text "Level 0"
+                    ]
+                )
+                (Accordion.body []
+                    [ Input.text []
+                        { onChange = FilterLevel0Table
+                        , text = Maybe.withDefault "" model.level0FilterString
+                        , label = Input.labelLeft [] <| Element.text "Filter:"
+                        , placeholder = Nothing
+                        }
+                    , overhangRadioRow model
+                    , level0Table model
+                    , Element.row [ centerX, spacing 50 ] [ addButton (SwitchPage Router.AddLevel0Page) ]
+                    ]
+                )
+                model.level0AccordionStatus
+            ]
+        , row
+            [ Border.color foregroundPrimary
+            , Border.solid
+            , Border.width 2
+            , Element.width Element.fill
+            ]
+            [ Accordion.accordion
+                (Accordion.head
+                    [ EE.onClick Level1AccordionToggled
+                    ]
+                    [ Element.text "Level 1"
+                    ]
+                )
+                (Accordion.body []
+                    [ Input.text []
+                        { onChange = FilterLevel1Table
+                        , text = Maybe.withDefault "" model.level1FilterString
+                        , label = Input.labelLeft [] <| Element.text "Filter:"
+                        , placeholder = Nothing
+                        }
+                    , level1Table model
+                    , Element.row [ centerX, spacing 50 ] [ addButton (SwitchPage Router.AddLevel1Page) ]
+                    ]
+                )
+                model.level1AccordionStatus
+            ]
         ]
 
 
@@ -943,9 +952,7 @@ navLinks auth =
     case auth of
         Authenticated user ->
             navBar
-                ([ buttonLink_ (Just (SwitchPage Router.Catalogue)) "Home"
-                 , buttonLink_ (Just (SwitchPage Router.Catalogue)) "Vector Catalogue"
-                 , buttonLink_ (Just (SwitchPage Router.AddLevel1Page)) "New Level1 construct"
+                ([ buttonLink_ (Just (SwitchPage Router.Catalogue)) "Home - Vector Catalogue"
                  , buttonLink_ Nothing <| Maybe.withDefault "Unknown name" user.name
                  , buttonLink_ (Just Logout) "Logout"
                  ]
@@ -973,12 +980,17 @@ overhangRadioRow model =
 
         theOverhangShape : List Bsa1Overhang
         theOverhangShape =
-            case model.vectorToAdd of
-                Just (LevelNVec _) ->
-                    overhangShape model.currLevel1App
+            case routerPage model.router of
+                Catalogue ->
+                    allBsa1Overhangs
 
                 _ ->
-                    allBsa1Overhangs
+                    case model.vectorToAdd of
+                        Just (LevelNVec _) ->
+                            overhangShape model.currLevel1App
+
+                        _ ->
+                            allBsa1Overhangs
     in
     Input.radioRow
         []
@@ -1036,7 +1048,7 @@ level0Table model =
 
         viewName : Level0 -> Element Msg
         viewName level0 =
-            case getRouterPage model.router of
+            case routerPage model.router of
                 AddLevel1Page ->
                     case model.vectorToAdd of
                         Just (LevelNVec level1) ->
@@ -1057,8 +1069,7 @@ level0Table model =
         [ row
             [ spacing 20
             , Element.width Element.fill
-            , padding 30
-            , clipY
+            , padding 40
             ]
             [ el ((Element.width <| fillPortion 3) :: headerAttrs) <| Element.text "MP-G0-Number"
             , el ((Element.width <| fillPortion 5) :: headerAttrs) <| Element.text "Level0 Name"
@@ -1126,13 +1137,11 @@ level1Table model =
                     Nothing
     in
     column
-        [ Element.width Element.fill
-        ]
+        []
         [ row
             [ spacing 75
-            , Element.width Element.fill
             , padding 30
-            , clipY
+            , Element.width Element.fill
             ]
             [ el ((Element.width <| fillPortion 3) :: headerAttrs) <| Element.text "MP-G1-Number"
             , el ((Element.width <| fillPortion 5) :: headerAttrs) <| Element.text "Level1 Name"
@@ -1156,17 +1165,15 @@ level1Table model =
                 , columns =
                     [ { header = none
                       , width = fillPortion 3
-                      , view = .location >> String.fromInt >> Element.text >> el [ centerY ]
+                      , view = .location >> String.fromInt >> Element.text
                       }
                     , { header = none
                       , width = fillPortion 5
                       , view = \level1 -> buttonLink_ (Just <| SelectVector <| LevelNVec level1) level1.name
-
-                      --   , view = .name >> Element.text >> el [ centerY ]
                       }
                     , { header = none
                       , width = fillPortion 1
-                      , view = .sequenceLength >> String.fromInt >> Element.text >> el [ centerY ]
+                      , view = .sequenceLength >> String.fromInt >> Element.text
                       }
                     , { header = none
                       , width = fillPortion 1
@@ -1202,7 +1209,7 @@ backboneTable model =
 
         viewName : Backbone -> Element Msg
         viewName backbone =
-            case getRouterPage model.router of
+            case routerPage model.router of
                 AddLevel1Page ->
                     case model.vectorToAdd of
                         Just (LevelNVec l1) ->
@@ -1339,7 +1346,12 @@ update msg model =
             ( { model | router = changePage model.router url }, Cmd.none )
 
         SwitchPage page ->
-            ( model, gotoRoute model page )
+            case page of
+                Catalogue ->
+                    ( { model | vectorToAdd = Just <| Level0Vec initLevel0 }, gotoRoute model page )
+
+                _ ->
+                    ( model, gotoRoute model page )
 
         GotLoginUrls res ->
             case res of
@@ -1420,7 +1432,7 @@ update msg model =
             )
 
         AddBackbone newBB ->
-            ( model, model.api.save model.auth <| Just <| BackboneVec newBB )
+            ( model, model.api.save model.auth <| BackboneVec newBB )
 
         RequestGB ->
             ( model, Select.file [ "text" ] GBSelected )
@@ -1451,13 +1463,13 @@ update msg model =
             ( { model | vectorToAdd = vector }, Cmd.none )
 
         AddLevel0 newIns ->
-            ( model, model.api.save model.auth <| Just <| Level0Vec newIns )
+            ( model, model.api.save model.auth <| Level0Vec newIns )
 
         AddLevel1 level1 ->
-            ( model, model.api.save model.auth <| Just <| LevelNVec level1 )
+            ( { model | notifications = Notify.makeInfo ("Added " ++ level1.name ++ " to the database") "" model.notifications }, model.api.save model.auth <| Just <| LevelNVec level1 )
 
         DownloadGenbankFile level1 ->
-            ( { model | vectorToAdd = Just (LevelNVec level1) }, createGenbank model.auth <| Just <| LevelNVec level1 )
+            ( { model | vectorToAdd = Just (LevelNVec level1) }, model.api.genbank model.auth level1.id )
 
         GenbankCreated (Err err) ->
             ( { model | notifications = Notify.makeError "Creating the genbank file failed" (showHttpError err) model.notifications }
@@ -1537,9 +1549,6 @@ update msg model =
                     , gotoRoute model Router.AddLevel0Page
                     )
 
-        AddLevel1 level1 ->
-            ( model, model.api.save model.auth <| Just <| LevelNVec level1 )
-
         Admin data ->
             ( { model | admin = data }, Cmd.none )
 
@@ -1603,40 +1612,9 @@ appendInsertToLevel1 l0List newL0 =
                 l0List
 
 
-createGenbank : Auth -> Maybe Vector -> Cmd Msg
-createGenbank auth vector =
-    case auth of
-        Authenticated usr ->
-            case vector of
-                Just (LevelNVec _) ->
-                    Http.request
-                        { method = "POST"
-                        , headers = [ Http.header "Authorization" ("Bearer " ++ usr.token) ]
-                        , url = "http://localhost:8000/level1/genbank/"
-                        , body = Http.jsonBody (vectorEncoder vector)
-                        , expect = Http.expectString GenbankCreated
-                        , timeout = Nothing
-                        , tracker = Nothing
-                        }
-
-                _ ->
-                    Cmd.none
-
-        _ ->
-            Cmd.none
-
-
-
--- To Do: Make a notification that says to fisrt save the vector to the database.
-
-
 saveGenbank : String -> String -> Cmd Msg
 saveGenbank vectorName content =
-    let
-        _ =
-            Debug.log "Genbank content: " content
-    in
-    File.Download.string (String.append vectorName ".gbk") "text/genbank" content
+    File.Download.string (String.append vectorName ".gb") "chemical/x-genbank" content
 
 
 

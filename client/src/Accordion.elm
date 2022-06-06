@@ -4,6 +4,7 @@
 module Accordion exposing (Body, Display, Head, accordion, body, head)
 
 import Element exposing (..)
+import Element.Border
 
 
 type alias Head msg =
@@ -29,13 +30,13 @@ accordion accHead accBody display =
 
 head : List (Element.Attribute msg) -> List (Element msg) -> Head msg
 head attrs contents display =
-    row (width fill :: attrs)
+    row (List.append [ width fill, padding 25, Element.Border.solid, Element.Border.rounded 6 ] attrs)
         (contents ++ [ arrow display ])
 
 
 body : List (Element.Attribute msg) -> List (Element msg) -> Body msg
 body attrs =
-    column (width fill :: attrs)
+    column (List.append [ width fill, padding 25 ] attrs)
 
 
 arrow : Display -> Element msg

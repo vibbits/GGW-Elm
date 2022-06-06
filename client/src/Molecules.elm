@@ -390,20 +390,17 @@ vectorDecoder =
 -- Encoders
 
 
-vectorEncoder : Maybe Vector -> Encode.Value
+vectorEncoder : Vector -> Encode.Value
 vectorEncoder vector =
     case vector of
-        Just (Level0Vec vec) ->
+        Level0Vec vec ->
             level0Encoder vec
 
-        Just (BackboneVec vec) ->
+        BackboneVec vec ->
             backboneEncoder vec
 
-        Just (LevelNVec vec) ->
+        LevelNVec vec ->
             levelNEncoder vec
-
-        _ ->
-            backboneEncoder initBackbone
 
 
 backboneEncoder : Backbone -> Encode.Value

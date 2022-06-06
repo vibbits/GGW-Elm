@@ -12,7 +12,7 @@ alembic = "^1.7.4"
 python-jose = {version = "^3.3.0", extras = ["cryptography"]}
 httpx = "^0.22.0"
 fastapi = "^0.78.0"
-biopython = "^1.79"
+biopython = "1.77"
 python-multipart = "^0.0.5"
 
 [tool.poetry.dev-dependencies]

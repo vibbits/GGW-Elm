@@ -21,10 +21,11 @@ type alias Api msg =
     { login : Cmd msg
     , authorize : AuthCode -> Cmd msg
     , vectors : Auth -> Cmd msg
-    , save : Auth -> Maybe Vector -> Cmd msg
+    , save : Auth -> Vector -> Cmd msg
     , allUsers : Auth -> Cmd msg
     , allGroups : Auth -> Cmd msg
     , allConstructs : Auth -> Cmd msg
+    , genbank : Auth -> Int -> Cmd msg
     }
 
 
@@ -39,6 +40,7 @@ type alias ApiExpect msg =
     , allUsersExpect : Expect msg
     , allGroupsExpect : Expect msg
     , allConstructsExpect : Expect msg
+    , genbankExpect : Expect msg
     }
 
 
@@ -101,6 +103,16 @@ mkAuthorize url expect auth =
         }
 
 
+mkGenbank : ApiUrl -> Expect msg -> Auth -> Int -> Cmd msg
+mkGenbank url expect auth vector_id =
+    case auth of
+        Authenticated usr ->
+            authenticatedGet usr.token (url ++ "/genbank/" ++ String.fromInt vector_id) expect
+
+        _ ->
+            Cmd.none
+
+
 mkVectors : ApiUrl -> Expect msg -> Auth -> Cmd msg
 mkVectors url expect auth =
     case auth of
@@ -111,7 +123,7 @@ mkVectors url expect auth =
             Cmd.none
 
 
-mkSave : ApiUrl -> Expect msg -> Auth -> Maybe Vector -> Cmd msg
+mkSave : ApiUrl -> Expect msg -> Auth -> Vector -> Cmd msg
 mkSave url expect auth vec =
     case auth of
         Authenticated usr ->
@@ -119,7 +131,7 @@ mkSave url expect auth vec =
                 apiUrl : ApiUrl
                 apiUrl =
                     case vec of
-                        Just (LevelNVec _) ->
+                        LevelNVec _ ->
                             url ++ "/submit/vector/"
 
                         _ ->
@@ -193,6 +205,7 @@ initApi expect val =
                 , allUsers = mkAllUsers baseUrl expect.allUsersExpect
                 , allGroups = mkAllGroups baseUrl expect.allGroupsExpect
                 , allConstructs = mkAllConstructs baseUrl expect.allConstructsExpect
+                , genbank = mkGenbank baseUrl expect.genbankExpect
                 }
             )
 
@@ -208,6 +221,7 @@ dummyApi =
     , allUsers = always Cmd.none
     , allGroups = always Cmd.none
     , allConstructs = always Cmd.none
+    , genbank = \_ _ -> Cmd.none
     }
 
 
