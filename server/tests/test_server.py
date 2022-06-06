@@ -1,8 +1,9 @@
 import pytest
 
 from app import __version__
-from app.genbank import digest_sequence
+from app.genbank import digest_sequence, reposition_features
 from app.level import VectorLevel
+from app.schemas import Feature
 
 
 def test_version():
@@ -104,3 +105,188 @@ def test_single_nucleotide_cut_level1_backbone():
         VectorLevel.BACKBONE,
         "REGION2_REMAINSXXXXXGAGACCNGGTCTCXREGION1_REMAINS",
     ) == (34, 15, "REGION1_REMAINSREGION2_REMAINS")
+
+
+def test_reposition_features_level0_case1():
+    """
+    VectorLevel = LEVEL0
+    bsa1 left < bsa1 right
+    """
+    original_feature = Feature(
+        type="Some type", qualifiers=[], start_pos=3125, end_pos=3425, strand=1
+    )
+
+    # bsa1 left < bsa1 right
+    bsa1_left = 1520
+    bsa1_right = 3760
+    sequence_length = 6250
+    vector_level = VectorLevel.LEVEL0
+
+    adjusted_feature = Feature(
+        type="Some type", qualifiers=[], start_pos=1605, end_pos=1905, strand=1
+    )
+
+    assert (
+        reposition_features(
+            bsa_left=bsa1_left,
+            bsa_right=bsa1_right,
+            sequence_length=sequence_length,
+            level=vector_level,
+            feature=original_feature,
+        )
+        == adjusted_feature
+    )
+
+
+def test_reposition_features_level0_case2():
+    """
+    VectorLevel = LEVEL0
+    bsa1 left > bsa1 right
+    """
+    original_feature = Feature(
+        type="Some type", qualifiers=[], start_pos=3125, end_pos=3425, strand=1
+    )
+
+    bsa1_left = 3760
+    bsa1_right = 1520
+    sequence_length = 6250
+    vector_level = VectorLevel.LEVEL0
+
+    adjusted_feature = Feature(
+        type="Some type", qualifiers=[], start_pos=1605, end_pos=1905, strand=1
+    )
+
+    assert (
+        reposition_features(
+            bsa_left=bsa1_left,
+            bsa_right=bsa1_right,
+            sequence_length=sequence_length,
+            level=vector_level,
+            feature=original_feature,
+        )
+        == adjusted_feature
+    )
+
+
+def test_reposition_features_backbone_case1():
+    """
+    VectorLevel = BACKBONE
+    bsa1 left site < bsa1 right site
+    feature position > bsa1 right site
+    """
+    original_feature = Feature(
+        type="Some type", qualifiers=[], start_pos=3825, end_pos=3925, strand=1
+    )
+
+    bsa1_left = 1520
+    bsa1_right = 3760
+    sequence_length = 6250
+    vector_level = VectorLevel.BACKBONE
+
+    adjusted_feature = Feature(
+        type="Some type", qualifiers=[], start_pos=65, end_pos=165, strand=1
+    )
+
+    assert (
+        reposition_features(
+            bsa_left=bsa1_left,
+            bsa_right=bsa1_right,
+            sequence_length=sequence_length,
+            level=vector_level,
+            feature=original_feature,
+        )
+        == adjusted_feature
+    )
+
+
+def test_reposition_features_backbone_case2():
+    """
+    VectorLevel = BACKBONE
+    bsa1 left site < bsa1 right site
+    feature position < bsa1 left site
+    """
+    original_feature = Feature(
+        type="Some type", qualifiers=[], start_pos=1125, end_pos=1175, strand=1
+    )
+
+    bsa1_left = 1520
+    bsa1_right = 3760
+    sequence_length = 6250
+    vector_level = VectorLevel.BACKBONE
+
+    adjusted_feature = Feature(
+        type="Some type", qualifiers=[], start_pos=3615, end_pos=3665, strand=1
+    )
+
+    assert (
+        reposition_features(
+            bsa_left=bsa1_left,
+            bsa_right=bsa1_right,
+            sequence_length=sequence_length,
+            level=vector_level,
+            feature=original_feature,
+        )
+        == adjusted_feature
+    )
+
+
+def test_reposition_features_backbone_case3():
+    """
+    VectorLevel = BACKBONE
+    bsa1 left site > bsa1 right site
+    feature position > bsa1 right site
+    """
+    original_feature = Feature(
+        type="Some type", qualifiers=[], start_pos=3825, end_pos=3925, strand=1
+    )
+
+    bsa1_left = 3760
+    bsa1_right = 1520
+    sequence_length = 6250
+    vector_level = VectorLevel.BACKBONE
+
+    adjusted_feature = Feature(
+        type="Some type", qualifiers=[], start_pos=65, end_pos=165, strand=1
+    )
+
+    assert (
+        reposition_features(
+            bsa_left=bsa1_left,
+            bsa_right=bsa1_right,
+            sequence_length=sequence_length,
+            level=vector_level,
+            feature=original_feature,
+        )
+        == adjusted_feature
+    )
+
+
+def test_reposition_features_backbone_case4():
+    """
+    VectorLevel = BACKBONE
+    bsa1 left site > bsa1 right site
+    feature position < bsa1 left site
+    """
+    original_feature = Feature(
+        type="Some type", qualifiers=[], start_pos=1125, end_pos=1175, strand=1
+    )
+
+    bsa1_left = 3760
+    bsa1_right = 1520
+    sequence_length = 6250
+    vector_level = VectorLevel.BACKBONE
+
+    adjusted_feature = Feature(
+        type="Some type", qualifiers=[], start_pos=3615, end_pos=3665, strand=1
+    )
+
+    assert (
+        reposition_features(
+            bsa_left=bsa1_left,
+            bsa_right=bsa1_right,
+            sequence_length=sequence_length,
+            level=vector_level,
+            feature=original_feature,
+        )
+        == adjusted_feature
+    )

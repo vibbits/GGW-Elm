@@ -7,12 +7,13 @@ import io
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 
 from app import deps, schemas, crud
 from app.level import VectorLevel
-from app.genbank import convert_gbk_to_vector, convert_LevelN_to_genbank
-from app.model import Vector
+from app.genbank import convert_gbk_to_vector, serialize_to_genbank
+from app.model import Feature, Vector
 
 router = APIRouter()
 
@@ -140,10 +141,29 @@ def add_leveln(
     # This should be validated
     features: List[schemas.Feature] = []
     sequence = ""
+
+    # Setting feature_position to 0
+    feature_position_shift: int = 0
+
     for ch_id in new_vec.children:
         if (child := crud.get_vector_by_id(database, ch_id)) is not None:
+            adj_features = []
+            for feature in child.features:
+                adj_feat = Feature(
+                    id=feature.id,
+                    type=feature.type,
+                    start_pos=feature.start_pos + feature_position_shift,
+                    end_pos=feature.end_pos + feature_position_shift,
+                    strand=feature.strand,
+                    vector=feature.vector,
+                    qualifiers=feature.qualifiers,
+                )
+
+                adj_features.append(adj_feat)
+
             sequence += child.sequence
-            features += child.features
+            features += adj_features
+            feature_position_shift = feature_position_shift + len(child.sequence)
 
     genbank = schemas.GenbankData(
         sequence=sequence,
@@ -164,38 +184,30 @@ def add_leveln(
     )
 
 
-@router.post("/level1/genbank/", response_model=str)
+@router.get("/genbank/{vector_id}", response_class=PlainTextResponse)
 def get_level1_genbank(
-    new_vec: schemas.VectorIn,
+    vector_id: int,
     database: Session = Depends(deps.get_db),
     # current_user: schemas.User = Depends(deps.get_current_user),
 ) -> str:
     """
-    This function handles a POST request from the UI
-    for getting a genbank file of a submitted Level 1.
-
-    - Accepts schemas.LevelNToAdd as input
-    - Queries the database for the model.Vector object
-    - Parses the model.Vector object to a genbank file
-    - Returns a genbank file as a string
+    This functione handles a request for a vector to
+    be serialized to GenBank format.
     """
 
     # Get the model.Vector object from the database
-    vec_from_db = crud.get_vector_by_name_level_location(
-        database=database,
-        name=new_vec.name,
-        level=new_vec.level,
-        location=new_vec.location,
-    )
+    vec_from_db = crud.get_vector_by_id(database=database, id=vector_id)
 
     # Parse the vector, using the genbank.convert_LevelN_to_genbank function
-    gbk_str = convert_LevelN_to_genbank(vector=vec_from_db, database=database)
+    if vec_from_db is not None:
+        gbk_str = serialize_to_genbank(vector=vec_from_db)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Could not retrieve the vector from the database. No genbank could be generated!",
+        )
 
     if gbk_str is not None:
-        print("#" * 100)
-        print("Genbank content:")
-        print(gbk_str)
-        print("#" * 100)
         return gbk_str
     else:
         raise HTTPException(
