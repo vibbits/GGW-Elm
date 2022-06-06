@@ -67,7 +67,7 @@ def filter_features(start: int, end: int, level: VectorLevel) -> Callable[[Any],
     return my_filter
 
 
-# Function that reads in a genbank file and converts it into a json
+# Function that reads in a genbank file and converts it into a GenBankData object
 def convert_gbk_to_vector(genbank_file, level: VectorLevel) -> GenbankData:
     # Reading the genbank file
     record = SeqIO.read(genbank_file, "genbank")
