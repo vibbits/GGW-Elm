@@ -1,6 +1,6 @@
 " Provides low-level Create, Read, Update, and Delete functions for API resources. "
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from datetime import datetime
 
 from sqlalchemy.orm import Session
@@ -58,7 +58,7 @@ def create_user(database: Session, user: schemas.UserCreate) -> model.User:
     return new_user
 
 
-def get_groups(database: Session, offset: int = 0, limit: int = 10) -> List[str]:
+def get_groups(database: Session, offset: int = 0, limit: int = 10) -> List[Tuple[str]]:
     """
     Get all groups with pagination.
     Set limit=None to fetch _all_ groups (Warning: this can be a lot of data)
