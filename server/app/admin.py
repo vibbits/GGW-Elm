@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app import schemas, deps, crud
+from app import schemas, deps, crud, vectors
 
 router = APIRouter()
 
@@ -24,7 +24,7 @@ def get_all_groups(
     _admin_user: schemas.User = Depends(deps.get_current_admin),
 ):
     "API endpoint for listing all groups of users."
-    groups = crud.get_groups(database)
+    groups = [group[0] for group in crud.get_groups(database)]
     return schemas.AllGroups(label="groups", data=groups)
 
 
@@ -35,4 +35,8 @@ def get_all_constructs(
 ):
     "API endpoint for listing all vectors (constructs)."
     cons = crud.get_all_vectors(database)
-    return schemas.AllConstructs(label="constructs", data=cons)
+    cons_w_users = [
+        schemas.VectorAdmin(users=vec.users, **vectors.vector_to_world(vec).dict())
+        for vec in cons
+    ]
+    return schemas.AllConstructs(label="constructs", data=cons_w_users)

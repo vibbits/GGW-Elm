@@ -113,7 +113,7 @@ class AllGroups(BaseModel):
 class AllConstructs(BaseModel):
     "Listing of all constructs"
     label: Literal["constructs"]
-    data: List[VectorBase]
+    data: List[VectorAdmin]
 
 
 # Adding data
@@ -188,6 +188,17 @@ class Annotation(BaseModel):
         orm_mode = True
 
 
+class GenbankData(BaseModel):
+    """
+    Data extracted from a genbank file.
+    """
+
+    sequence: str
+    annotations: List[Annotation]
+    features: List[Feature]
+    references: List[VectorReference]
+
+
 class VectorBase(BaseModel):
     """
     Base Class for defining a Vector.
@@ -197,7 +208,6 @@ class VectorBase(BaseModel):
     is being sent to the client.
     """
 
-    id: int
     location: int
     name: str
     bsa1_overhang: Optional[str]
@@ -217,19 +227,6 @@ class VectorBase(BaseModel):
         orm_mode = True
 
 
-class VectorFromGenbank(BaseModel):
-    """
-    Base Class for defining a Vector.
-    This class contains all the vector information
-    that is read from a genbank file.
-    """
-
-    sequence: str
-    annotations: List[Annotation]
-    features: List[Feature]
-    references: List[VectorReference]
-
-
 class Vector(VectorBase):
     """
     This class inherits from the VectorBase class.
@@ -238,67 +235,38 @@ class Vector(VectorBase):
     """
 
     annotations: List[Annotation]
-    features: List[Feature]
     references: List[VectorReference]
     bsmb1_overhang: Optional[str]
-    users: List[User]
     gateway_site: str
-    vector_type: str
-    date: Optional[datetime]
+    experiment: str
 
 
-class VectorInDB(Vector):
+class VectorIn(Vector):
     """
-    It contains all the necessary information for
-    a Vector object when it is stored in the database.
-    """
-
-    children: List[VectorInDB]
-    sequence: str
-    genbank: str
-
-
-class VectorToAdd(VectorBase):
-    """
-    It contains supplemental information provided
-    when a new vector is posted to the database.
-    The client sends a string that must be converted into
-    a Python datetime object along with unparsed genbank
-    data.
+    A construct ("vector") as input to the server.
     """
 
     date: str
-    genbank_content: Optional[str]
     bsmb1_overhang: Optional[str]
+    genbank: Optional[str]
+    children: List[int]
 
 
 class VectorOut(Vector):
     """
-    It contains all the necessary information for
-    a Vector object when it is queried from the database.
-    Not that the `sequence` is **NOT** sent, but instead
-    is replaced by just the `sequence_length`. This is because
-    the sequence is not used by the client but the length is
-    so we save bytes over the wire.
+    A construct ("vector") is used by clients.
     """
 
-    inserts_out: List[VectorOut]
-    backbone_out: Optional[
-        VectorOut
-    ]  # Should be optional because bacbones don't have a backbone
+    id: int
     sequence_length: int
+    children: List[VectorOut]
+    date: datetime
 
 
-class LevelNToAdd(VectorBase):
-    """
-    This schema represents the information received from the UI when
-    making a level 1 construct.
-    """
+class VectorAdmin(VectorOut):
+    "Specifically for admin, known list of users"
 
-    bsmb1_overhang: Optional[str]
-    inserts: List[VectorToAdd]
-    backbone: VectorToAdd
-    date: str
+    users: List[User]
 
 
 AllConstructs.update_forward_refs()

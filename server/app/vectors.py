@@ -1,3 +1,7 @@
+"""
+API endpoints for dealing with Golden Gate 2 constructs (vectors).
+"""
+
 from typing import List, Optional
 import io
 from datetime import datetime
@@ -8,12 +12,12 @@ from sqlalchemy.orm import Session
 from app import deps, schemas, crud
 from app.level import VectorLevel
 from app.genbank import convert_gbk_to_vector
-from app.model import Annotation, Feature, VectorReference
+from app.model import Vector
 
 router = APIRouter()
 
 
-def vector_to_world(vector: schemas.VectorInDB) -> schemas.VectorOut:
+def vector_to_world(vector: Vector) -> schemas.VectorOut:
     """Returns a vector in the form sent over the wire:
           - replace the sequence by its length
 
@@ -23,34 +27,39 @@ def vector_to_world(vector: schemas.VectorInDB) -> schemas.VectorOut:
     Returns:
         schemas.VectorOut: Vector sent over the wire.
     """
-    vec_in_db_dict = vector.dict()
 
-    inserts_out = []
-    backbone_out = None
+    inserts_out: List[schemas.VectorOut] = []
+    backbone_out: Optional[schemas.VectorOut] = None
 
     for child in vector.children:
         if child.level == VectorLevel.LEVEL0:
-            inserts_out.append(
-                schemas.VectorOut(
-                    **child.dict(),
-                    sequence_length=len(child.sequence),
-                    inserts_out=[],
-                    backbone_out=None,
-                )
-            )
+            inserts_out.append(vector_to_world(child))
         elif child.level == VectorLevel.BACKBONE:
-            backbone_out = schemas.VectorOut(
-                **child.dict(),
-                sequence_length=len(child.sequence),
-                inserts_out=[],
-                backbone_out=None,
-            )
+            backbone_out = vector_to_world(child)
 
     return schemas.VectorOut(
-        **vec_in_db_dict,
+        id=vector.id,
         sequence_length=len(vector.sequence),
-        inserts_out=inserts_out,
-        backbone_out=backbone_out,
+        children=inserts_out + ([] if backbone_out is None else [backbone_out]),
+        annotations=vector.annotations,
+        features=vector.features,
+        references=vector.references,
+        bsmb1_overhang=vector.bsmb1_overhang,
+        gateway_site=vector.gateway_site,
+        experiment=vector.experiment,
+        date=vector.date,
+        location=vector.location,
+        name=vector.name,
+        bsa1_overhang=vector.bsa1_overhang,
+        cloning_technique=vector.cloning_technique,
+        bacterial_strain=vector.bacterial_strain,
+        group=vector.group,
+        selection=vector.selection,
+        responsible=vector.responsible,
+        is_BsmB1_free=vector.is_BsmB1_free,
+        notes=vector.notes,
+        REase_digest=vector.REase_digest,
+        level=vector.level,
     )
 
 
@@ -61,14 +70,14 @@ def get_vectors(
 ) -> List[schemas.VectorOut]:
     """Returns all of the vectors accessible by this user."""
     return [
-        vector_to_world(schemas.VectorInDB.from_orm(vec))
+        vector_to_world(vec)
         for vec in crud.get_vectors_for_user(database=database, user=current_user)
     ]
 
 
 @router.post("/submit/genbank/", response_model=schemas.VectorOut)
 def add_vector(
-    new_vec: schemas.VectorToAdd,
+    new_vec: schemas.VectorIn,
     database: Session = Depends(deps.get_db),
     current_user: schemas.User = Depends(deps.get_current_user),
 ) -> schemas.VectorOut:
@@ -85,28 +94,19 @@ def add_vector(
     Returns:
         schemas.VectorOut: Returns the Vector posted by the UI.
     """
-    gbk = io.StringIO(new_vec.genbank_content)
-    vec = new_vec.dict()
+    gbk = io.StringIO(new_vec.genbank)
 
-    print(f"New vec: {vec}")
+    print(f"New vec: {new_vec.dict()}")
 
-    del vec["date"]
-    vec_in_db = schemas.VectorInDB(
-        **vec,
-        **convert_gbk_to_vector(gbk, level=new_vec.level).dict(),
-        genbank=new_vec.genbank_content,
-        children=[],
-        users=[],
-        gateway_site="",
-        vector_type="",
-        date=datetime.strptime(new_vec.date, "%Y-%M-%d"),
-    )
     if (
         inserted := crud.add_vector(
-            database=database, vector=vec_in_db, user=current_user
+            database=database,
+            vector=new_vec,
+            genbank=convert_gbk_to_vector(gbk, level=new_vec.level),
+            user=current_user,
         )
     ) is not None:
-        return vector_to_world(schemas.VectorInDB.from_orm(inserted))
+        return vector_to_world(inserted)
 
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid vector"
@@ -115,7 +115,7 @@ def add_vector(
 
 @router.post("/submit/vector/", response_model=schemas.VectorOut)
 def add_leveln(
-    new_vec: schemas.LevelNToAdd,
+    new_vec: schemas.VectorIn,
     database: Session = Depends(deps.get_db),
     current_user: schemas.User = Depends(deps.get_current_user),
 ) -> schemas.VectorOut:
@@ -134,85 +134,30 @@ def add_leveln(
     Returns:
         schemas.VectorOut: Returns the Vector posted by the UI.
     """
-    vec = new_vec.dict()
+    # TODO: It is possible to _incorrectly_ add invalid inserts
+    # Get sequence information
+    # TODO: We trust the client to submit children in the correct order
+    # This should be validated
+    features: List[schemas.Feature] = []
+    sequence = ""
+    for ch_id in new_vec.children:
+        if (child := crud.get_vector_by_id(database, ch_id)) is not None:
+            sequence += child.sequence
+            features += child.features
 
-    del vec["date"]
-
-    # Get Children
-    inserts = [
-        crud.get_vector_by_name_level_location(
-            database=database,
-            name=insert.name,
-            level=VectorLevel.LEVEL0,
-            location=insert.location,
-        )
-        for insert in new_vec.inserts
-    ]
-    backbone = crud.get_vector_by_name_level_location(
-        database=database,
-        name=new_vec.backbone.name,
-        level=VectorLevel.BACKBONE,
-        location=new_vec.backbone.location,
-    )
-
-    children = inserts
-    children.append(backbone)
-
-    annotations: List[Annotation] = []
-    features: List[Feature] = []
-    references: List[VectorReference] = []
-    sequences: List[str] = []
-
-    # inserts_out: List[schemas.VectorOut] = []
-
-    total_sequence_length = 0
-
-    for child in children:
-        # Get annotations
-        annotations = crud.get_annotations_from_vector(
-            database=database, vector_id=child.id
-        )
-
-        # Get references
-        references = crud.get_references_from_vector(
-            database=database, vector_id=child.id
-        )
-
-        # Get features
-        features = crud.get_features_from_vector(database=database, vector_id=child.id)
-
-        # Get sequence information
-        sequences.append(child.sequence)
-        total_sequence_length = total_sequence_length + len(child.sequence)
-
-    children_in_db: List[schemas.VectorInDB] = [
-        schemas.VectorInDB.from_orm(child) for child in children
-    ]
-
-    vec_in_db = schemas.VectorInDB(
-        **vec,
-        users=[current_user],
-        gateway_site="",
-        vector_type="",
-        annotations=annotations,
+    genbank = schemas.GenbankData(
+        sequence=sequence,
         features=features,
-        references=references,
-        sequence="".join(sequences),
-        date=datetime.strptime(new_vec.date, "%Y-%M-%d"),
-        children=children_in_db,
+        annotations=new_vec.annotations,
+        references=new_vec.references,
     )
-    inserted = crud.add_vector(database=database, vector=vec_in_db, user=current_user)
 
-    if inserted is not None:
-        if len(children) > 0:
-            [
-                crud.add_vector_hierarchy(
-                    database=database, child_id=child.id, parent_id=inserted.id
-                )
-                for child in children
-            ]
-
-        return vector_to_world(schemas.VectorInDB.from_orm(vec_in_db))
+    if (
+        inserted := crud.add_vector(
+            database=database, vector=new_vec, genbank=genbank, user=current_user
+        )
+    ) is not None:
+        return vector_to_world(inserted)
 
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid vector"

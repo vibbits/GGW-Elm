@@ -23,6 +23,7 @@ import Dict exposing (Dict)
 import Json.Decode as Decode
 import Json.Decode.Pipeline as JDP
 import Json.Encode as Encode
+import Maybe.Extra exposing (toList)
 
 
 {-| All possible applications for a Level 1 construct
@@ -310,6 +311,34 @@ backboneDecoder =
 
 level1Decoder : Decode.Decoder Level1
 level1Decoder =
+    let
+        filterLevel0 : List Vector -> List Level0
+        filterLevel0 vs =
+            vs
+                |> List.filterMap
+                    (\v ->
+                        case v of
+                            Level0Vec vec ->
+                                Just vec
+
+                            _ ->
+                                Nothing
+                    )
+
+        filterBackbone : List Vector -> Maybe Backbone
+        filterBackbone vs =
+            vs
+                |> List.filterMap
+                    (\v ->
+                        case v of
+                            BackboneVec vec ->
+                                Just vec
+
+                            _ ->
+                                Nothing
+                    )
+                |> List.head
+    in
     Decode.succeed Level1
         |> JDP.required "id" Decode.int
         |> JDP.required "name" Decode.string
@@ -325,9 +354,9 @@ level1Decoder =
         |> JDP.optional "selection" (Decode.maybe Decode.string) Nothing
         |> JDP.optional "notes" (Decode.maybe Decode.string) Nothing
         |> JDP.required "sequence_length" Decode.int
-        |> JDP.optional "reaseDigest" (Decode.maybe Decode.string) Nothing
-        |> JDP.required "inserts_out" (Decode.list level0Decoder)
-        |> JDP.optional "backbone_out" (Decode.maybe backboneDecoder) Nothing
+        |> JDP.optional "REase_digest" (Decode.maybe Decode.string) Nothing
+        |> JDP.required "children" (vectorDecoder |> Decode.map filterLevel0)
+        |> JDP.required "children" (vectorDecoder |> Decode.map filterBackbone)
         |> JDP.optional "date" (Decode.maybe Decode.string) Nothing
         |> JDP.hardcoded Nothing
 
@@ -416,16 +445,29 @@ backboneEncoder backbone =
           , Encode.string <|
                 Maybe.withDefault "" backbone.date
           )
-        , ( "vector_type"
+        , ( "experiment"
           , Encode.string <|
                 Maybe.withDefault "" backbone.vectorType
+            -- TODO: change to "experiment"
           )
-        , ( "genbank_content"
+        , ( "genbank"
           , Encode.string <|
                 Maybe.withDefault "" backbone.genbankContent
           )
         , ( "level"
           , Encode.int 1
+          )
+        , ( "annotations"
+          , Encode.list Encode.int []
+          )
+        , ( "references"
+          , Encode.list Encode.int []
+          )
+        , ( "gateway_site"
+          , Encode.string ""
+          )
+        , ( "children"
+          , Encode.list Encode.int []
           )
         ]
 
@@ -470,12 +512,27 @@ level0Encoder level0 =
           , Encode.string <|
                 Maybe.withDefault "" level0.date
           )
-        , ( "genbank_content"
+        , ( "genbank"
           , Encode.string <|
                 Maybe.withDefault "" level0.genbankContent
           )
         , ( "level"
           , Encode.int 2
+          )
+        , ( "annotations"
+          , Encode.list Encode.int []
+          )
+        , ( "references"
+          , Encode.list Encode.int []
+          )
+        , ( "gateway_site"
+          , Encode.string ""
+          )
+        , ( "children"
+          , Encode.list Encode.int []
+          )
+        , ( "experiment"
+          , Encode.string ""
           )
         ]
 
@@ -509,6 +566,26 @@ levelNEncoder level1 =
           )
         , ( "inserts", Encode.list (\insert -> level0Encoder insert) level1.inserts )
         , ( "backbone", backboneEncoder (Maybe.withDefault initBackbone level1.backbone) )
+        , ( "annotations"
+          , Encode.list Encode.int []
+          )
+        , ( "references"
+          , Encode.list Encode.int []
+          )
+        , ( "gateway_site"
+          , Encode.string ""
+          )
+        , ( "children"
+          , Encode.list Encode.int
+                ((toList level1.backbone
+                    |> List.map .id
+                 )
+                    ++ List.map .id level1.inserts
+                )
+          )
+        , ( "experiment"
+          , Encode.string ""
+          )
         ]
 
 

@@ -12,7 +12,6 @@ from sqlalchemy import (
     UniqueConstraint,
     ForeignKey,
     Enum,
-    null,
 )
 from sqlalchemy.orm import relationship, Mapped
 
@@ -77,6 +76,8 @@ class IdentityProvider(Base):
 class Vector(Base):
     "Sequence blocks for building a golden gateway construct."
     __tablename__ = "vectors"
+    # Unique MP-GX-numbering constraint
+    __table_args__ = (UniqueConstraint("level", "location", name="lvl_loc"),)
 
     id: int = Column(Integer, primary_key=True, index=True)
 
@@ -128,11 +129,8 @@ class Vector(Base):
     # Extra columns for Backbones
     bsmb1_overhang: str = Column(String, nullable=True)
     gateway_site: str = Column(String, nullable=True)
-    vector_type: str = Column(String, nullable=True)
+    experiment: str = Column(String, nullable=True)
     date: datetime = Column(DateTime, nullable=True)
-
-    # Unique MP-GX-numbering constraint
-    __table_args__ = (UniqueConstraint("level", "location", name="lvl_loc"),)
 
     def __str__(self) -> str:
         return f"Vector({vars(self)})"
