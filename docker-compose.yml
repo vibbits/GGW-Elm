@@ -38,6 +38,11 @@ services:
       bash -c 'poetry run alembic upgrade head && poetry run hypercorn app.main:app --root-path /api/v1 --bind "0.0.0.0:8000"'
 
   frontend:
+    deploy:
+      resources:
+        limits:
+          cpus: "${DOCKER_FRONTEND_CPUS:-0}"
+          memory: "${DOCKER_FRONTEND_MEMORY:-0}"
     image: "vibbioinfocore/gg2-assembler-frontend:latest"
     env_file:
       - ".env"
@@ -50,6 +55,16 @@ services:
       - caddy-config:/config
     depends_on:
       - "backend"
+
+  watchtower:
+    deploy:
+      resources:
+        limits:
+          cpus: "${DOCKER_WATCHTOWER_CPUS:-0}"
+          memory: "${DOCKER_WATCHTOWER_MEMORY:-0}"
+    image: "containrrr/watchtower"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
 
 volumes:
   postgres: {}
