@@ -15,3 +15,14 @@ services:
     restart: "no"
     volumes:
       - ./keycloak_ggw.json:/tmp/keycloak_ggw.json
+
+  backend:
+    command: "./run-dev-env.sh"
+
+  frontend:
+    build:
+      context: "./client"
+      dockerfile: "./Dockerfile.dev"
+    volumes:
+      - "./client:/app"
+    command: bash -c 'npm i && npm start'

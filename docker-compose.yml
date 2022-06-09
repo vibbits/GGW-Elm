@@ -22,7 +22,7 @@ services:
         limits:
           cpus: "${DOCKER_BACKEND_CPUS:-0}"
           memory: "${DOCKER_BACKEND_MEMORY:-0}"
-    build: ./server
+    image: "vibbioinfocore/gg2-assembler-backend:latest"
     depends_on:
       - "postgres"
     env_file:
@@ -38,7 +38,7 @@ services:
       bash -c 'poetry run alembic upgrade head && poetry run hypercorn app.main:app --root-path /api/v1 --bind "0.0.0.0:8000"'
 
   frontend:
-    build: ./client
+    image: "vibbioinfocore/gg2-assembler-frontend:latest"
     env_file:
       - ".env"
     restart: "${DOCKER_RESTART_POLICY:-unless-stopped}"
