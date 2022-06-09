@@ -8,7 +8,7 @@ from pydantic import BaseSettings, PostgresDsn
 class Settings(BaseSettings):
     "Global HTTP API server configuration"
 
-    DATABASE_URL: PostgresDsn = "postgresql://test:test@test/test"
+    DATABASE_URL: PostgresDsn = PostgresDsn(url="postgresql://test:test@test/test")
 
     API_SECRET: str = secrets.token_urlsafe(32)
     API_JWT_ALGORITHM: str = "HS256"
