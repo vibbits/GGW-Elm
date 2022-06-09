@@ -1,0 +1,15 @@
+:80
+
+handle /api/v1/* {
+  reverse_proxy backend:8000 {
+    header_up Host {upstreadm_hostport}
+    header_up X-Real-IP {remote_addr}
+    header_up X-Forwarded-Host {host}
+  }
+}
+
+handle {
+  root * /app/client/
+  try_files {path} /index.html
+  file_server
+}

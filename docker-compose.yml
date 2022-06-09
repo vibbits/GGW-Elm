@@ -1,27 +1,57 @@
 version: '3'
 
 services:
-  db:
-    image: postgres:13-alpine
-    container_name: ggw-db
-    environment:
-      - POSTGRES_USER=keycloak
-      - POSTGRES_PASSWORD=abcdef
-    ports:
-      - "5432:5432"
-
-  keycloak:
-    image: jboss/keycloak:latest
-    container_name: ggw-keycloak
-    environment:
-      - KEYCLOAK_USER=ggw
-      - KEYCLOAK_PASSWORD=ggw
-      - KEYCLOAK_IMPORT=/tmp/keycloak_ggw.json
-      - DB_VENDOR=postgres
-      - DB_ADDR=db
-      - DB_USER=keycloak
-      - DB_PASSWORD=abcdef
+  postgres:
+    deploy:
+      resources:
+        limits:
+          cpus: "${DOCKER_POSTGRES_CPUS:-0}"
+          memory: "${DOCKER_POSTGRES_MEMORY:-0}"
+    image: "postgres:14.3-alpine"
+    container_name: gg2-postgres
+    env_file:
+      - ".env"
+    restart: "${DOCKER_RESTART_POLICY:-unless-stopped}"
+    stop_grace_period: "3s"
     volumes:
-      - ./keycloak_ggw.json:/tmp/keycloak_ggw.json
+      - "postgres:/var/lib/postgresql/data"
+
+  backend:
+    deploy:
+      resources:
+        limits:
+          cpus: "${DOCKER_BACKEND_CPUS:-0}"
+          memory: "${DOCKER_BACKEND_MEMORY:-0}"
+    build: ./server
+    depends_on:
+      - "postgres"
+    env_file:
+      - ".env"
+    restart: "${DOCKER_RESTART_POLICY:-unless-stopped}"
+    stop_grace_period: "3s"
+    tty: true
+    volumes:
+      - "${DOCKER_WEB_VOLUME:-./server:/app/server}"
     ports:
-      - "8080:8080"
+      - "${DOCKER_WEB_PORT_FORWARD:-127.0.0.1:8000}:8000"
+    command: |
+      bash -c 'poetry run alembic upgrade head && poetry run hypercorn app.main:app --root-path /api/v1 --bind "0.0.0.0:8000"'
+
+  frontend:
+    build: ./client
+    env_file:
+      - ".env"
+    restart: "${DOCKER_RESTART_POLICY:-unless-stopped}"
+    ports:
+      - "${DOCKER_FRONTEND_PORT_FORWARD:-49999:80}"
+    volumes:
+      - "./Caddyfile:/etc/caddy/Caddyfile"
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - "backend"
+
+volumes:
+  postgres: {}
+  caddy-data: {}
+  caddy-config: {}

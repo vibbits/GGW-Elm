@@ -1,7 +1,9 @@
+import sys
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
+from sqlalchemy.engine import make_url
 
 from alembic import context
 
@@ -17,6 +19,7 @@ fileConfig(config.config_file_name)
 # for 'autogenerate' support
 from app import model
 from app.config import settings
+from app.database import init_database, wait_for_database_up
 
 target_metadata = model.Base.metadata
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
@@ -25,6 +28,10 @@ config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+
+print(f"Waiting for database to be available")
+if not wait_for_database_up(make_url(config.get_main_option("sqlalchemy.url"))):
+    print("Database is not available")
 
 
 def run_migrations_offline():
@@ -40,6 +47,9 @@ def run_migrations_offline():
 
     """
     url = config.get_main_option("sqlalchemy.url")
+
+    init_database(url)
+
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -64,10 +74,10 @@ def run_migrations_online():
         poolclass=pool.NullPool,
     )
 
+    init_database(connectable.url)
+
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata, render_as_batch=True
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

@@ -10,3 +10,12 @@ __pycache__/
 .vscode
 server/Test_data
 server/app/import
+
+.env*
+!.env.example
+
+docker-compose.override.yml
+!docker-compose.override.yml.example
+
+.node-version
+TAGS
