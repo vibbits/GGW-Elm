@@ -1,6 +1,6 @@
 :80
 
-handle /api/v1/* {
+handle_path /api/v1/* {
   reverse_proxy backend:8000 {
     header_up Host {upstreadm_hostport}
     header_up X-Real-IP {remote_addr}
