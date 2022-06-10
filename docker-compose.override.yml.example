@@ -1,0 +1,28 @@
+version: "3"
+
+services:
+  keycloak:
+    image: jboss/keycloak:latest
+    container_name: gg2-keycloak
+    environment:
+      - KEYCLOAK_USER=ggw
+      - KEYCLOAK_PASSWORD=ggw
+      - KEYCLOAK_IMPORT=/tmp/keycloak_ggw.json
+      - DB_VENDOR=postgres
+      - DB_ADDR=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=abcdef
+    restart: "no"
+    volumes:
+      - ./keycloak_ggw.json:/tmp/keycloak_ggw.json
+
+  backend:
+    command: "./run-dev-env.sh"
+
+  frontend:
+    build:
+      context: "./client"
+      dockerfile: "./Dockerfile.dev"
+    volumes:
+      - "./client:/app"
+    command: bash -c 'npm i && npm start'

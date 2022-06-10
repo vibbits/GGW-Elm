@@ -23,7 +23,7 @@ class UserVectorMapping(Base):
     "A many-to-many mapping between users and vectors"
     __tablename__ = "user_vector_mapping"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     user = Column(Integer, ForeignKey("users.id"))
     vector = Column(Integer, ForeignKey("vectors.id"))
 
@@ -41,15 +41,15 @@ class VectorHierarchy(Base):
     __tablename__ = "vector_hierarchy"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    parent = Column(Integer, ForeignKey("vectors.id"), primary_key=True)
-    child = Column(Integer, ForeignKey("vectors.id"), primary_key=True)
+    parent = Column(Integer, ForeignKey("vectors.id"))
+    child = Column(Integer, ForeignKey("vectors.id"))
 
 
 class User(Base):
     "An authenticated user"
     __tablename__ = "users"
 
-    id: int = Column(Integer, primary_key=True, index=True)
+    id: int = Column(Integer, primary_key=True, index=True, autoincrement=True)
     iss: str = Column(String, nullable=False, index=True)
     sub: str = Column(String, nullable=False, index=True)
     created: datetime = Column(DateTime, nullable=False, default=datetime.now())
@@ -66,7 +66,7 @@ class IdentityProvider(Base):
     "Accepted identity providers"
     __tablename__ = "providers"
 
-    id: int = Column(Integer, primary_key=True, index=True)
+    id: int = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name: str = Column(String, nullable=False, unique=True)
     issuer: str = Column(String, nullable=False)
     clientid: str = Column(String, nullable=False)
@@ -79,7 +79,7 @@ class Vector(Base):
     # Unique MP-GX-numbering constraint
     __table_args__ = (UniqueConstraint("level", "location", name="lvl_loc"),)
 
-    id: int = Column(Integer, primary_key=True, index=True)
+    id: int = Column(Integer, primary_key=True, index=True, autoincrement=True)
 
     # General information
     location: int = Column(Integer, nullable=False)
@@ -140,7 +140,7 @@ class Annotation(Base):
     "Annotations relating to a Vector."
     __tablename__ = "annotations"
 
-    id: int = Column(Integer, primary_key=True, index=True)
+    id: int = Column(Integer, primary_key=True, index=True, autoincrement=True)
     key: str = Column(String, nullable=False)
     value: str = Column(String)
     vector = Column(Integer, ForeignKey("vectors.id"), nullable=False)
@@ -153,7 +153,9 @@ class Feature(Base):
     "Features relating to a Vector."
     __tablename__ = "features"
 
-    id: int = Column(Integer, primary_key=True, index=True, nullable=False)
+    id: int = Column(
+        Integer, primary_key=True, index=True, nullable=False, autoincrement=True
+    )
     type: str = Column(String)
     start_pos: int = Column(Integer, nullable=False)
     end_pos: int = Column(Integer, nullable=False)
@@ -175,7 +177,7 @@ class VectorReference(Base):
     "Reference relating to a vector."
     __tablename__ = "vector_references"
 
-    id: int = Column(Integer, primary_key=True, index=True)
+    id: int = Column(Integer, primary_key=True, index=True, autoincrement=True)
     authors: str = Column(String)
     title: str = Column(String)
     vector = Column(Integer, ForeignKey("vectors.id"), nullable=False)
@@ -188,7 +190,9 @@ class Qualifier(Base):
     "Qualifier relating to a vector."
     __tablename__ = "qualifiers"
 
-    id: int = Column(Integer, primary_key=True, index=True, nullable=False)
+    id: int = Column(
+        Integer, primary_key=True, index=True, nullable=False, autoincrement=True
+    )
     key: str = Column(String, nullable=False)
     value: str = Column(String)
     feature = Column(Integer, ForeignKey("features.id"), nullable=False)

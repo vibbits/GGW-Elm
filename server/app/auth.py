@@ -81,6 +81,7 @@ async def verify_authorization(
         id_token = jose.jwt.decode(
             response["id_token"],
             await oidc.jwks(http_client, config),
+            options={"leeway": 180},
             audience=provider.clientid,
             access_token=response["access_token"],
         )

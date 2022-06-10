@@ -2,7 +2,7 @@ import { Elm } from "./src/Main.elm";
 
 let apiUrl = "http://localhost:8000";
 if (process.env.NODE_ENV === "production") {
-  apiUrl = "https://ggw.vib.be/api/";
+  apiUrl = "https://gg2-assembler-test.vib.be/api/v1";
 }
 
 const app = Elm.Main.init({

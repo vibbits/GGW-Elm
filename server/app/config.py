@@ -2,13 +2,16 @@
 
 import secrets
 
-from pydantic import BaseSettings
+from pydantic import BaseSettings, PostgresDsn
+from pydantic.tools import parse_obj_as
 
 
 class Settings(BaseSettings):
     "Global HTTP API server configuration"
 
-    DATABASE_URL: str = "sqlite:///ggw.sqlite?check_same_thread=false"
+    DATABASE_URL: PostgresDsn = parse_obj_as(
+        PostgresDsn, "postgresql://test:test@test/test"
+    )
 
     API_SECRET: str = secrets.token_urlsafe(32)
     API_JWT_ALGORITHM: str = "HS256"
