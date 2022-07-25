@@ -22,12 +22,12 @@ import Url exposing (Protocol(..), Url)
 {-| The available pages within the app
 -}
 type Page
-    = Login
-    | Catalogue
+    = LoginPage
+    | CataloguePage
     | AddLevel1Page
     | AddLevel0Page
     | AddBackbonePage
-    | Admin
+    | AdminPage
 
 
 {-| Make the custom Page type a comparable
@@ -35,10 +35,10 @@ type Page
 pageToString : Page -> String
 pageToString page =
     case page of
-        Login ->
+        LoginPage ->
             "login"
 
-        Catalogue ->
+        CataloguePage ->
             "catalogue"
 
         AddLevel1Page ->
@@ -50,7 +50,7 @@ pageToString page =
         AddBackbonePage ->
             "new/backbone"
 
-        Admin ->
+        AdminPage ->
             "admin"
 
 
@@ -60,13 +60,13 @@ urlToPage : Url -> Maybe Page
 urlToPage url =
     case url.path of
         "/login" ->
-            Just Login
+            Just LoginPage
 
         "/" ->
-            Just Catalogue
+            Just CataloguePage
 
         "/admin" ->
-            Just Admin
+            Just AdminPage
 
         "/new/level0" ->
             Just AddLevel0Page
@@ -98,10 +98,10 @@ mkRouter key api auth =
     { page =
         case auth of
             Authenticated _ ->
-                Catalogue
+                CataloguePage
 
             _ ->
-                Login
+                LoginPage
     , goto = mkGoto key api
     , view = Dict.empty
     , routes = Dict.empty
@@ -168,7 +168,7 @@ changePage router url =
         page =
             urlToPage url
     in
-    { router | page = Maybe.withDefault Catalogue page }
+    { router | page = Maybe.withDefault CataloguePage page }
 
 
 {-| Run the view function for the current page

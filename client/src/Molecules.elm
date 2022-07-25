@@ -406,9 +406,7 @@ vectorEncoder vector =
 backboneEncoder : Backbone -> Encode.Value
 backboneEncoder backbone =
     Encode.object
-        [ ( "id", Encode.int backbone.id )
-        , ( "sequence_length", Encode.int backbone.sequenceLength )
-        , ( "name", Encode.string backbone.name )
+        [ ( "name", Encode.string backbone.name )
         , ( "location", Encode.int backbone.location )
         , ( "bsa1_overhang"
           , Maybe.map (showBsa1Overhang >> Encode.string) backbone.bsa1Overhang
@@ -419,42 +417,41 @@ backboneEncoder backbone =
                 |> Maybe.withDefault Encode.null
           )
         , ( "bacterial_strain"
-          , Encode.string <|
-                Maybe.withDefault "" backbone.bacterialStrain
+          , Maybe.withDefault "" backbone.bacterialStrain
+                |> Encode.string
           )
-        , ( "responsible", Encode.string <| backbone.responsible )
-        , ( "group", Encode.string <| backbone.group )
+        , ( "responsible", Encode.string backbone.responsible )
+        , ( "group", Encode.string backbone.group )
         , ( "selection"
-          , Encode.string <|
-                Maybe.withDefault "" backbone.selection
+          , Maybe.map Encode.string backbone.selection
+                |> Maybe.withDefault Encode.null
           )
         , ( "cloning_technique"
-          , Encode.string <|
-                Maybe.withDefault "" backbone.cloningTechnique
+          , Maybe.map Encode.string backbone.cloningTechnique
+                |> Maybe.withDefault Encode.null
           )
         , ( "is_BsmB1_free"
           , Encode.null
           )
         , ( "notes"
-          , Encode.string <|
-                Maybe.withDefault "" backbone.notes
+          , Maybe.map Encode.string backbone.notes
+                |> Maybe.withDefault Encode.null
           )
         , ( "REase_digest"
-          , Encode.string <|
-                Maybe.withDefault "" backbone.reaseDigest
+          , Maybe.map Encode.string backbone.reaseDigest
+                |> Maybe.withDefault Encode.null
           )
         , ( "date"
-          , Encode.string <|
-                Maybe.withDefault "" backbone.date
+          , Maybe.withDefault "" backbone.date
+                |> Encode.string
           )
         , ( "experiment"
-          , Encode.string <|
-                Maybe.withDefault "" backbone.vectorType
-            -- TODO: change to "experiment"
+          , Maybe.withDefault "" backbone.vectorType
+                |> Encode.string
           )
         , ( "genbank"
-          , Encode.string <|
-                Maybe.withDefault "" backbone.genbankContent
+          , Maybe.map Encode.string backbone.genbankContent
+                |> Maybe.withDefault Encode.null
           )
         , ( "level"
           , Encode.int 1
@@ -477,48 +474,53 @@ backboneEncoder backbone =
 level0Encoder : Level0 -> Encode.Value
 level0Encoder level0 =
     Encode.object
-        [ ( "id", Encode.int level0.id )
-        , ( "sequence_length", Encode.int level0.sequenceLength )
-        , ( "name", Encode.string level0.name )
+        [ ( "name", Encode.string level0.name )
         , ( "location", Encode.int level0.location )
         , ( "bsa1_overhang"
-          , Encode.string <|
-                showBsa1Overhang <|
-                    level0.bsa1Overhang
+          , level0.bsa1Overhang
+                |> showBsa1Overhang
+                |> Encode.string
           )
         , ( "bacterial_strain"
-          , Encode.string <|
-                Maybe.withDefault "" level0.bacterialStrain
+          , Maybe.withDefault "" level0.bacterialStrain
+                |> Encode.string
           )
-        , ( "responsible", Encode.string <| level0.responsible )
-        , ( "group", Encode.string <| level0.group )
+        , ( "responsible", Encode.string level0.responsible )
+        , ( "group", Encode.string level0.group )
         , ( "selection"
-          , Encode.string <|
-                Maybe.withDefault "" level0.selection
+          , Maybe.map Encode.string level0.selection
+                |> Maybe.withDefault Encode.null
           )
         , ( "cloning_technique"
-          , Encode.string <|
-                Maybe.withDefault "" level0.cloningTechnique
+          , Maybe.map Encode.string level0.cloningTechnique
+                |> Maybe.withDefault Encode.null
           )
         , ( "is_BsmB1_free"
-          , Encode.string <|
-                isBsmb1FreeToString level0.isBsmb1Free
+          , case level0.isBsmb1Free of
+                Nothing ->
+                    Encode.null
+
+                Just True ->
+                    Encode.string "YES"
+
+                Just False ->
+                    Encode.string "NO"
           )
         , ( "notes"
-          , Encode.string <|
-                Maybe.withDefault "" level0.notes
+          , Maybe.map Encode.string level0.notes
+                |> Maybe.withDefault Encode.null
           )
         , ( "REase_digest"
-          , Encode.string <|
-                Maybe.withDefault "" level0.reaseDigest
+          , Maybe.map Encode.string level0.reaseDigest
+                |> Maybe.withDefault Encode.null
           )
         , ( "date"
-          , Encode.string <|
-                Maybe.withDefault "" level0.date
+          , Maybe.withDefault "" level0.date
+                |> Encode.string
           )
         , ( "genbank"
-          , Encode.string <|
-                Maybe.withDefault "" level0.genbankContent
+          , Maybe.map Encode.string level0.genbankContent
+                |> Maybe.withDefault Encode.null
           )
         , ( "level"
           , Encode.int 2
@@ -544,8 +546,7 @@ level0Encoder level0 =
 levelNEncoder : Level1 -> Encode.Value
 levelNEncoder level1 =
     Encode.object
-        [ ( "id", Encode.int level1.id )
-        , ( "sequence_length", Encode.int level1.sequenceLength )
+        [ ( "sequence_length", Encode.int level1.sequenceLength )
         , ( "name", Encode.string level1.name )
         , ( "location", Encode.int level1.location )
         , ( "bsa1_overhang", Encode.null )
@@ -555,17 +556,26 @@ levelNEncoder level1 =
                 |> Maybe.withDefault Encode.null
           )
         , ( "responsible", Encode.string <| level1.responsible )
-        , ( "bacterial_strain", (Maybe.withDefault "" >> Encode.string) level1.bacterialStrain )
-        , ( "selection", (Maybe.withDefault "" >> Encode.string) level1.selection )
-        , ( "group", Encode.string <| level1.group )
-        , ( "notes", Encode.string <| Maybe.withDefault "" level1.notes )
+        , ( "bacterial_strain"
+          , Maybe.withDefault "" level1.bacterialStrain
+                |> Encode.string
+          )
+        , ( "selection"
+          , Maybe.map Encode.string level1.selection
+                |> Maybe.withDefault Encode.null
+          )
+        , ( "group", Encode.string level1.group )
+        , ( "notes"
+          , Maybe.map Encode.string level1.notes
+                |> Maybe.withDefault Encode.null
+          )
         , ( "REase_digest"
-          , Encode.string <|
-                Maybe.withDefault "" level1.reaseDigest
+          , Maybe.map Encode.string level1.reaseDigest
+                |> Maybe.withDefault Encode.null
           )
         , ( "date"
-          , Encode.string <|
-                Maybe.withDefault "" level1.date
+          , Maybe.withDefault "" level1.date
+                |> Encode.string
           )
         , ( "level"
           , Encode.int 3
@@ -581,10 +591,9 @@ levelNEncoder level1 =
           )
         , ( "children"
           , Encode.list Encode.int
-                ((toList level1.backbone
+                (toList level1.backbone
                     |> List.map .id
-                 )
-                    ++ List.map .id level1.inserts
+                    |> List.append (List.map .id level1.inserts)
                 )
           )
         , ( "experiment"
@@ -722,16 +731,3 @@ isBsmb1FreeToBool answer =
 
         _ ->
             Nothing
-
-
-isBsmb1FreeToString : Maybe Bool -> String
-isBsmb1FreeToString answer =
-    case answer of
-        Just True ->
-            "YES"
-
-        Just False ->
-            "NO"
-
-        Nothing ->
-            "NOT TESTED!"
