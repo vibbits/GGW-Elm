@@ -146,7 +146,11 @@ def add_leveln(
     feature_position_shift: int = 0
 
     for ch_id in new_vec.children:
-        if (child := crud.get_vector_by_id(database, ch_id)) is not None:
+        if (
+            child := crud.get_vector_by_id(
+                database=database, id=ch_id, user=current_user
+            )
+        ) is not None:
             adj_features = []
             for feature in child.features:
                 adj_feat = Feature(
@@ -188,7 +192,7 @@ def add_leveln(
 def get_level1_genbank(
     vector_id: int,
     database: Session = Depends(deps.get_db),
-    # current_user: schemas.User = Depends(deps.get_current_user),
+    current_user: schemas.User = Depends(deps.get_current_user),
 ) -> str:
     """
     This functione handles a request for a vector to
@@ -196,7 +200,9 @@ def get_level1_genbank(
     """
 
     # Get the model.Vector object from the database
-    vec_from_db = crud.get_vector_by_id(database=database, id=vector_id)
+    vec_from_db = crud.get_vector_by_id(
+        database=database, id=vector_id, user=current_user
+    )
 
     # Parse the vector, using the genbank.convert_LevelN_to_genbank function
     if vec_from_db is not None:

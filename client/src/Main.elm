@@ -165,12 +165,12 @@ init flags url key =
         router : Router.Router Model Msg
         router =
             Router.mkRouter key (Result.withDefault dummyApi api) auth
-                |> Router.withPageView "/login" Router.Login loginView
-                |> Router.withPageView "/" Router.Catalogue catalogueView
+                |> Router.withPageView "/login" Router.LoginPage loginView
+                |> Router.withPageView "/" Router.CataloguePage catalogueView
                 |> Router.withPageView "/new/level0" Router.AddLevel0Page addLevel0View
                 |> Router.withPageView "/new/level1" Router.AddLevel1Page constructLevel1View
                 |> Router.withPageView "/new/backbone" Router.AddBackbonePage addBackboneView
-                |> Router.withPageView "/admin" Router.Admin adminView
+                |> Router.withPageView "/admin" Router.AdminPage adminView
 
         model : Model
         model =
@@ -952,12 +952,12 @@ navLinks auth =
     case auth of
         Authenticated user ->
             navBar
-                ([ buttonLink_ (Just (SwitchPage Router.Catalogue)) "Home - Vector Catalogue"
+                ([ buttonLink_ (Just (SwitchPage Router.CataloguePage)) "Home - Vector Catalogue"
                  , buttonLink_ Nothing <| Maybe.withDefault "Unknown name" user.name
                  , buttonLink_ (Just Logout) "Logout"
                  ]
                     ++ (if user.role == "admin" then
-                            [ buttonLink_ (Just (SwitchPage Router.Admin)) "Admin" ]
+                            [ buttonLink_ (Just (SwitchPage Router.AdminPage)) "Admin" ]
 
                         else
                             []
@@ -981,7 +981,7 @@ overhangRadioRow model =
         theOverhangShape : List Bsa1Overhang
         theOverhangShape =
             case routerPage model.router of
-                Catalogue ->
+                CataloguePage ->
                     allBsa1Overhangs
 
                 _ ->
@@ -1057,7 +1057,7 @@ level0Table model =
                         _ ->
                             Element.text level0.name
 
-                Catalogue ->
+                CataloguePage ->
                     buttonLink_ (Just <| SelectVector <| Level0Vec level0) level0.name
 
                 _ ->
@@ -1218,7 +1218,7 @@ backboneTable model =
                         _ ->
                             Element.text backbone.name
 
-                Catalogue ->
+                CataloguePage ->
                     buttonLink_ (Just <| SelectVector <| BackboneVec backbone) backbone.name
 
                 _ ->
@@ -1347,7 +1347,7 @@ update msg model =
 
         SwitchPage page ->
             case page of
-                Catalogue ->
+                CataloguePage ->
                     ( { model | vectorToAdd = Just <| Level0Vec initLevel0 }, gotoRoute model page )
 
                 _ ->
@@ -1378,7 +1378,7 @@ update msg model =
                 Ok auth ->
                     let
                         gotoRoot =
-                            gotoRoute { auth = auth, router = model.router } Router.Catalogue
+                            gotoRoute { auth = auth, router = model.router } Router.CataloguePage
                     in
                     ( { model | auth = auth }
                     , Cmd.batch
@@ -1392,13 +1392,13 @@ update msg model =
                     ( { model
                         | notifications = Notify.makeError "Logging in" (showHttpError err) model.notifications
                       }
-                    , gotoRoute model Router.Login
+                    , gotoRoute model Router.LoginPage
                     )
 
         Logout ->
             let
                 gotoLogin =
-                    gotoRoute { auth = Auth.init, router = model.router } Router.Login
+                    gotoRoute { auth = Auth.init, router = model.router } Router.LoginPage
             in
             ( { model | auth = Auth.init }
             , Cmd.batch [ gotoLogin, Storage.toJson Auth.init |> Storage.save ]
@@ -1466,7 +1466,9 @@ update msg model =
             ( model, model.api.save model.auth <| Level0Vec newIns )
 
         AddLevel1 level1 ->
-            ( { model | notifications = Notify.makeInfo ("Added " ++ level1.name ++ " to the database") "" model.notifications }, model.api.save model.auth <| Just <| LevelNVec level1 )
+            ( { model | notifications = Notify.makeInfo ("Saved " ++ level1.name) "" model.notifications }
+            , model.api.save model.auth <| LevelNVec level1
+            )
 
         DownloadGenbankFile level1 ->
             ( { model | vectorToAdd = Just (LevelNVec level1) }, model.api.genbank model.auth level1.id )

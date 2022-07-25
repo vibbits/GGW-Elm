@@ -205,11 +205,18 @@ def get_all_vectors(
     return database.query(model.Vector).offset(offset).limit(limit).all()
 
 
-def get_vector_by_id(database: Session, id: int) -> Optional[model.Vector]:
+def get_vector_by_id(
+    database: Session, id: int, user: schemas.User
+) -> Optional[model.Vector]:
     """
     Retuns a vector based on the query vector ID.
     """
-    return database.query(model.Vector).filter(model.Vector.id == id).one_or_none()
+    return (
+        database.query(model.Vector)
+        .filter(model.Vector.id == id)
+        .filter(model.Vector.users.any(id=user.id))
+        .one_or_none()
+    )
 
 
 def get_vector_by_name_level_location(

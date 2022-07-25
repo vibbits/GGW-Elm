@@ -19,7 +19,6 @@ from app.schemas import (
 )
 
 from app import model, deps
-from app.level import VectorLevel
 
 
 def digest_sequence(level: VectorLevel, sequence: str) -> Tuple[int, int, str]:
@@ -208,7 +207,8 @@ def serialize_to_genbank(vector: model.Vector) -> str:
 
     # References
     vector_record.annotations["references"] = [
-        mod_Reference(authors=ref.authors, title=ref.title) for ref in vector.references
+        make_Reference(authors=ref.authors, title=ref.title)
+        for ref in vector.references
     ]
 
     # Features
@@ -243,22 +243,15 @@ def serialize_to_genbank(vector: model.Vector) -> str:
         return outf.getvalue()
 
 
-class mod_Reference(Bio.SeqFeature.Reference):
+def make_Reference(authors: str, title: str) -> Bio.SeqFeature.Reference:
     """
-    This class extends the existing Record.Reference class.
+    Extra constructor to initialize a Reference
+    with these attributes.
     """
-
-    def __init__(self, authors: str, title: str):
-        """
-        Extra constructor to initialize a Record.Reference object
-        with these attributes:
-
-        - authors: str
-        - title: str
-        """
-        super().__init__()
-        self.authors = authors
-        self.title = title
-        self.journal = (
-            f"Generated {datetime.datetime.now().strftime('%a %d %b %Y')} by GG2"
-        )
+    ref = Bio.SeqFeature.Reference()
+    ref.authors = authors
+    ref.title = title
+    ref.journal = (
+        f"Generated {datetime.datetime.now().strftime('%a %d %b %Y')} by GG2 Assembler"
+    )
+    return ref
